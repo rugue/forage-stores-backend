@@ -15,9 +15,9 @@ import { AuthModule } from './modules/auth/auth.module';
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/forage-stores',
     ),
+    AuthModule,
     StoresModule,
     UsersModule,
-    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

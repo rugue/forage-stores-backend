@@ -63,7 +63,7 @@ export class AuthController {
 
   @Post('refresh')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
@@ -82,7 +82,7 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({
     status: 200,
@@ -95,7 +95,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user (client-side token removal)' })
   @ApiResponse({ status: 200, description: 'Logout successful' })

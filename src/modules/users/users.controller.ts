@@ -51,7 +51,7 @@ export class UsersController {
   // Profile routes (for authenticated users)
   @Get('profile/:id')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get user profile by ID' })
   @ApiResponse({
     status: 200,
@@ -67,7 +67,7 @@ export class UsersController {
 
   @Patch('profile/:id')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user profile' })
   @ApiResponse({
     status: 200,
@@ -84,7 +84,7 @@ export class UsersController {
 
   @Patch('profile/:id/password')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user password' })
   @ApiResponse({ status: 200, description: 'Password updated successfully' })
   @ApiResponse({ status: 401, description: 'Current password is incorrect' })
@@ -102,7 +102,7 @@ export class UsersController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all users (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -145,7 +145,7 @@ export class UsersController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
   @ApiResponse({
     status: 201,
