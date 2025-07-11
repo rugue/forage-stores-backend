@@ -3,21 +3,48 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
+import helmet from 'helmet';
 
 dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
-  app.enableCors();
+  // Security headers with Helmet
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Required for Swagger UI
+    }),
+  );
 
-  // Global validation pipe
+  // Enhanced CORS configuration
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || [
+      'http://localhost:3000',
+      'http://localhost:3001',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  });
+
+  // Enhanced global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 

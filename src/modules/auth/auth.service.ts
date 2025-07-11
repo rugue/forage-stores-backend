@@ -118,4 +118,38 @@ export class AuthService {
 
     return { accessToken };
   }
+
+  async validateUserById(userId: string): Promise<User> {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return user;
+  }
+
+  async generateAccessToken(user: any): Promise<string> {
+    const payload: JwtPayload = {
+      sub: (user._id || user.id)?.toString(),
+      email: user.email,
+      role: user.role,
+      accountType: user.accountType,
+    };
+
+    return this.jwtService.sign(payload);
+  }
+
+  // Token blacklist storage (in production use Redis)
+  private blacklistedTokens = new Set<string>();
+
+  async logout(token: string): Promise<{ message: string }> {
+    // Extract token from "Bearer token" format
+    const cleanToken = token.replace('Bearer ', '');
+    this.blacklistedTokens.add(cleanToken);
+    return { message: 'Logout successful' };
+  }
+
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const cleanToken = token.replace('Bearer ', '');
+    return this.blacklistedTokens.has(cleanToken);
+  }
 }

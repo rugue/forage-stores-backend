@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,11 +14,13 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser } from './decorators';
 import { User } from '../../entities/user.entity';
+import { Request } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -25,6 +28,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 registrations per minute
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: 201,
@@ -43,6 +47,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email/phone and password' })
   @ApiResponse({
@@ -76,8 +81,22 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async refreshToken(@CurrentUser() user: User) {
-    return this.authService.refreshToken((user as any)._id.toString());
+  async refreshToken(@CurrentUser() user: any) {
+    try {
+      if (!user || (!user.id && !user._id)) {
+        throw new Error('Invalid user session');
+      }
+
+      // Get fresh user data from database
+      const userId = user.id || user._id.toString();
+      const currentUser = await this.authService.validateUserById(userId);
+
+      const accessToken =
+        await this.authService.generateAccessToken(currentUser);
+      return { accessToken };
+    } catch (error) {
+      throw new Error('Token refresh failed');
+    }
   }
 
   @Get('profile')
@@ -97,13 +116,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout user (client-side token removal)' })
+  @ApiOperation({ summary: 'Logout user and blacklist token' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async logout() {
-    return {
-      message:
-        'Logout successful. Please remove the token from client storage.',
-    };
+  async logout(@Req() req: Request) {
+    const token = req.headers.authorization;
+    if (token) {
+      return this.authService.logout(token);
+    }
+    return { message: 'Logout successful' };
   }
 }
