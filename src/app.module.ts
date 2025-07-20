@@ -17,6 +17,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { ReferralsModule } from './modules/referrals/referrals.module';
 import { AuctionsModule } from './modules/auctions/auctions.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -56,6 +57,7 @@ import { validate } from './config/env.validation';
     ReferralsModule,
     AuctionsModule,
     DeliveryModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
