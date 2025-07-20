@@ -3,16 +3,24 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Product, ProductDocument } from '../../entities/product.entity';
+import { PriceLock, PriceLockDocument, PriceLockStatus } from '../../entities/price-lock.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
 import { CreateProductDto, UpdateProductDto, ProductFilterDto } from './dto';
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    @InjectModel(PriceLock.name) private priceLockModel: Model<PriceLockDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(
@@ -338,5 +346,65 @@ export class ProductsService {
     }
 
     return results;
+  }
+
+
+  // Added methods for scheduled tasks
+  async expirePriceLocks(): Promise<number> {
+    const now = new Date();
+    
+    // Find active price locks that have expired
+    const priceLocks = await this.priceLockModel.find({
+      expiryDate: { $lte: now },
+      status: PriceLockStatus.ACTIVE
+    }).populate('userId').populate('productId').exec();
+    
+    if (priceLocks.length === 0) {
+      return 0;
+    }
+    
+    let expiredCount = 0;
+    
+    for (const priceLock of priceLocks) {
+      try {
+        // Update status to expired
+        priceLock.status = PriceLockStatus.EXPIRED;
+        await priceLock.save();
+        
+        // Notify user
+        const user = priceLock.userId as any;
+        const product = priceLock.productId as any;
+        
+        await this.notificationsService.sendEmail({
+          recipientEmail: user.email,
+          type: NotificationType.PRICE_LOCK_EXPIRED,
+          title: `Your Price Lock for ${product.name} Has Expired`,
+          message: `
+            Hello,
+            
+            Your price lock for ${product.name} at $${priceLock.price.toFixed(2)} has expired.
+            
+            The current price is now $${product.price.toFixed(2)}.
+            
+            Thank you,
+            Forage Stores Team
+          `,
+          recipientId: user._id.toString(),
+          metadata: {
+            priceLockId: priceLock._id.toString(),
+            productName: product.name,
+            lockedPrice: priceLock.price,
+            currentPrice: product.price,
+            expiredAt: priceLock.expiryDate.toISOString()
+          }
+        });
+        
+        expiredCount++;
+      } catch (error) {
+        this.logger.error(`Failed to expire price lock ${priceLock._id}:`, error);
+      }
+    }
+    
+    return expiredCount;
   }
 }

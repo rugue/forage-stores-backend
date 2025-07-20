@@ -11,6 +11,8 @@ import {
 import { Product, ProductDocument } from '../../entities/product.entity';
 import { User, UserDocument, UserRole } from '../../entities/user.entity';
 import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
 import { 
   CreateAuctionDto, 
   UpdateAuctionDto, 
@@ -29,6 +31,7 @@ export class AuctionsService {
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createAuctionDto: CreateAuctionDto): Promise<Auction> {
@@ -393,5 +396,120 @@ export class AuctionsService {
         this.logger.error(`Error processing auction ${auction._id}: ${error.message}`);
       }
     }
+  }
+
+
+  // Added methods for scheduled tasks
+  async processEndedAuctions(): Promise<number> {
+    const now = new Date();
+    
+    // Find auctions that have ended but not yet processed
+    const auctions = await this.auctionModel.find({
+      endTime: { $lte: now },
+      status: AuctionStatus.ACTIVE
+    }).populate('bids.userId').exec();
+    
+    if (auctions.length === 0) {
+      return 0;
+    }
+    
+    let processedCount = 0;
+    
+    for (const auction of auctions) {
+      try {
+        // Sort bids by amount (highest first)
+        const sortedBids = [...auction.bids].sort((a, b) => b.amount - a.amount);
+        
+        // Determine winner (highest bid)
+        const winningBid = sortedBids.length > 0 ? sortedBids[0] : null;
+        
+        if (winningBid) {
+          // Update auction status
+          auction.status = AuctionStatus.COMPLETED;
+          auction.winnerId = winningBid.userId;
+          auction.winningBid = winningBid.amount;
+          
+          // Notify winner
+          const winnerUser = winningBid.userId as any;
+          await this.notificationsService.sendEmail({
+            recipientEmail: winnerUser.email,
+            type: NotificationType.AUCTION_WIN,
+            title: `Congratulations! You've Won the Auction for ${auction.title}`,
+            message: `
+              Hello,
+              
+              Congratulations! Your bid of $${winningBid.amount.toFixed(2)} for ${auction.title} was the winning bid.
+              
+              We'll be in touch shortly with details on how to complete your purchase.
+              
+              Thank you,
+              Forage Stores Team
+            `,
+            recipientId: winnerUser._id.toString(),
+            metadata: {
+              auctionId: auction._id.toString(),
+              productName: auction.title,
+              bidAmount: winningBid.amount,
+              winTime: now.toISOString()
+            }
+          });
+          
+          // Refund losing bidders (minus fee)
+          for (const bid of sortedBids.slice(1)) {
+            const refundAmount = bid.amount * (1 - (auction.feePercentage / 100));
+            const feeAmount = bid.amount - refundAmount;
+            
+            // Refund to wallet
+            await this.walletModel.updateOne(
+              { userId: bid.userId },
+              { $inc: { foodPoints: refundAmount } }
+            );
+            
+            // Update bid status
+            bid.status = 'refunded';
+            bid.refundRef = `refund_${Date.now()}`;
+            bid.refundTimestamp = now;
+            
+            // Notify of refund
+            const bidderUser = bid.userId as any;
+            await this.notificationsService.sendEmail({
+              recipientEmail: bidderUser.email,
+              type: NotificationType.AUCTION_REFUND,
+              title: `Auction Refund for ${auction.title}`,
+              message: `
+                Hello,
+                
+                We're sorry to inform you that your bid of $${bid.amount.toFixed(2)} for ${auction.title} was not the winning bid.
+                
+                A refund of $${refundAmount.toFixed(2)} has been credited to your FoodPoints wallet.
+                (A processing fee of $${feeAmount.toFixed(2)} was applied)
+                
+                Thank you for participating!
+                Forage Stores Team
+              `,
+              recipientId: bidderUser._id.toString(),
+              metadata: {
+                auctionId: auction._id.toString(),
+                productName: auction.title,
+                refundAmount: refundAmount,
+                originalBid: bid.amount,
+                fee: feeAmount
+              }
+            });
+          }
+        } else {
+          // No bids, mark as expired
+          auction.status = AuctionStatus.EXPIRED;
+        }
+        
+        auction.isProcessed = true;
+        await auction.save();
+        processedCount++;
+      } catch (error) {
+        this.logger.error(`Failed to process ended auction ${auction._id}:`, error);
+      }
+    }
+    
+    return processedCount;
   }
 }

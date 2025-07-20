@@ -5,6 +5,7 @@ import { SubscriptionsController } from './subscriptions.controller';
 import { Subscription, SubscriptionSchema } from '../../entities/subscription.entity';
 import { Order, OrderSchema } from '../../entities/order.entity';
 import { Wallet, WalletSchema } from '../../entities/wallet.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { Wallet, WalletSchema } from '../../entities/wallet.entity';
       { name: Order.name, schema: OrderSchema },
       { name: Wallet.name, schema: WalletSchema },
     ]),
+    NotificationsModule
   ],
   controllers: [SubscriptionsController],
   providers: [SubscriptionsService],

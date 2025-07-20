@@ -8,6 +8,7 @@ import { User, UserSchema } from '../../entities/user.entity';
 import { Wallet, WalletSchema } from '../../entities/wallet.entity';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     forwardRef(() => UsersModule),
     forwardRef(() => AuthModule),
+    NotificationsModule
   ],
   controllers: [AuctionsController],
   providers: [AuctionsService],

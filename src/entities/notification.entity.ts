@@ -14,6 +14,10 @@ export enum NotificationType {
   AUCTION_EVENT = 'AUCTION_EVENT',
   RIDER_ASSIGNMENT = 'RIDER_ASSIGNMENT',
   GENERAL = 'GENERAL',
+  DROP_REMINDER = 'DROP_REMINDER',
+  PRICE_LOCK_EXPIRED = 'PRICE_LOCK_EXPIRED',
+  AUCTION_WIN = 'AUCTION_WIN',
+  AUCTION_REFUND = 'AUCTION_REFUND',
 }
 
 export type NotificationDocument = Notification & Document;

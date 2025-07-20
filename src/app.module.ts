@@ -20,6 +20,7 @@ import { DeliveryModule } from './modules/delivery/delivery.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SupportModule } from './modules/support/support.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -62,6 +63,7 @@ import { validate } from './config/env.validation';
     AdminModule,
     NotificationsModule,
     SupportModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [

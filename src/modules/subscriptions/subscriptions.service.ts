@@ -16,9 +16,12 @@ import {
   PaymentMethod, 
   PaymentStatus, 
   OrderStatus,
-  PaymentHistory
+  PaymentHistory,
+  CartItem
 } from '../../entities/order.entity';
 import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
 import { 
   CreateSubscriptionDto, 
   UpdateSubscriptionDto, 
@@ -35,6 +38,7 @@ export class SubscriptionsService {
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(userId: string, createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
@@ -422,5 +426,133 @@ export class SubscriptionsService {
     }
     
     return { dropAmount, totalDrops, dropSchedule };
+  }
+
+
+  // Added methods for scheduled tasks
+  async sendPayLaterReminders(): Promise<number> {
+    // Get orders with PAY_LATER plan where next payment is within 3 days
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    
+    const today = new Date();
+    
+    const orders = await this.orderModel.find({
+      paymentPlan: PaymentPlan.PAY_LATER,
+      paymentStatus: PaymentStatus.PARTIAL,
+      'paymentSchedule.nextPaymentDate': {
+        $gte: today,
+        $lte: threeDaysFromNow
+      }
+    }).populate('userId').exec();
+
+    let reminderCount = 0;
+    
+    for (const order of orders) {
+      try {
+        // Get remaining amount
+        const remainingAmount = order.finalTotal - order.amountPaid;
+        
+        // Only send if there's a remaining amount
+        if (remainingAmount > 0) {
+          const user = order.userId as any;
+          await this.notificationsService.sendEmail({
+            recipientEmail: user.email,
+            type: NotificationType.PAYMENT_REMINDER,
+            title: `Payment Reminder for Order #${order.orderNumber}`,
+            message: `
+              Hello,
+              
+              This is a friendly reminder that your payment of $${remainingAmount.toFixed(2)} for order #${order.orderNumber} is due on ${order.paymentSchedule.nextPaymentDate.toDateString()}.
+              
+              Please log in to your account to make the payment.
+              
+              Thank you,
+              Forage Stores Team
+            `,
+            recipientId: user._id.toString(),
+            metadata: {
+              orderId: order._id.toString(),
+              dueDate: order.paymentSchedule.nextPaymentDate.toDateString(),
+              amount: remainingAmount,
+              orderNumber: order.orderNumber
+            }
+          });
+          
+          reminderCount++;
+        }
+      } catch (error) {
+        this.logger.error(`Failed to send pay later reminder for order ${order._id}:`, error);
+      }
+    }
+    
+    return reminderCount;
+  }
+
+  async sendDropReminders(): Promise<number> {
+    // Get active subscriptions with drops scheduled within the next 2 days
+    const twoDaysFromNow = new Date();
+    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+    
+    const today = new Date();
+    
+    const subscriptions = await this.subscriptionModel.find({
+      status: SubscriptionStatus.ACTIVE,
+      nextDropDate: {
+        $gte: today,
+        $lte: twoDaysFromNow
+      }
+    }).populate('userId').exec();
+
+    let reminderCount = 0;
+    
+    for (const subscription of subscriptions) {
+      try {
+        const user = subscription.userId as any;
+        const nextDrop = subscription.dropSchedule.find(drop => 
+          !drop.isPaid && drop.scheduledDate >= today && drop.scheduledDate <= twoDaysFromNow
+        );
+        
+        if (nextDrop) {
+          // Get product names
+          const order = await this.orderModel.findById(subscription.orderId).exec();
+          const productNames = order.items.map(item => 
+            `Product #${item.productId}`).join(', ');
+          
+          // Send notification
+          await this.notificationsService.sendEmail({
+            recipientEmail: user.email,
+            type: NotificationType.DROP_REMINDER,
+            title: `Your Subscription Drop is Coming Soon!`,
+            message: `
+              Hello,
+              
+              Great news! Your upcoming subscription drop for your subscription is scheduled for ${nextDrop.scheduledDate.toDateString()}.
+              
+              Products in this drop:
+              ${productNames}
+              
+              We'll notify you when your items are ready for delivery.
+              
+              Thank you,
+              Forage Stores Team
+            `,
+            recipientId: user._id.toString(),
+            metadata: {
+              subscriptionId: subscription._id.toString(),
+              dropDate: nextDrop.scheduledDate.toDateString(),
+              products: productNames,
+              subscriptionName: 'Your subscription'
+            }
+          });
+          
+          reminderCount++;
+        }
+      } catch (error) {
+        this.logger.error(`Failed to send drop reminder for subscription ${subscription._id}:`, error);
+      }
+    }
+    
+    return reminderCount;
   }
 }

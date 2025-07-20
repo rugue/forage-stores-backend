@@ -20,6 +20,8 @@ export enum AuctionStatus {
   ACTIVE = 'active',
   ENDED = 'ended',
   CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
+  EXPIRED = 'expired',
 }
 
 @Schema({ timestamps: true, _id: false })
