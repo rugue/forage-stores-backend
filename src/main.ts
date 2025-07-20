@@ -1,14 +1,23 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, ValidationError, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 import helmet from 'helmet';
+import { 
+  HttpExceptionFilter, 
+  MongoExceptionFilter, 
+  AllExceptionsFilter 
+} from './common/filters';
+import { ValidationException } from './common/exceptions/validation.exception';
 
 dotenv.config();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'], // Enable all log levels
+  });
 
   // Security headers with Helmet
   app.use(
@@ -45,14 +54,27 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      exceptionFactory: (validationErrors: ValidationError[]) => {
+        return new ValidationException(validationErrors);
+      },
     }),
+  );
+
+  // Register global exception filters
+  app.useGlobalFilters(
+    new AllExceptionsFilter(),
+    new HttpExceptionFilter(),
+    new MongoExceptionFilter(),
   );
 
   // Swagger documentation setup
   const config = new DocumentBuilder()
     .setTitle('Forage Stores API')
     .setDescription(
-      'Backend API for Forage Stores application with JWT Authentication',
+      'Backend API for Forage Stores application with JWT Authentication and Role-Based Access Control.\n\n' +
+      '- Protected routes require JWT authentication.\n' +
+      '- Admin routes require ADMIN role.\n' +
+      '- Exception handling and validation are implemented globally.'
     )
     .setVersion('1.0')
     .addBearerAuth(

@@ -18,7 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
 import { JwtAuthGuard } from './guards';
-import { CurrentUser } from './decorators';
+import { CurrentUser, Public } from './decorators';
 import { User } from '../../entities/user.entity';
 import { Request } from 'express';
 
@@ -28,6 +28,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Public()
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 registrations per minute
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
@@ -47,6 +48,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email/phone and password' })

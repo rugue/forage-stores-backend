@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -22,6 +22,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { SupportModule } from './modules/support/support.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { validate } from './config/env.validation';
+import { LoggingMiddleware } from './common/middleware';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from './modules/auth/guards/roles.guard';
 
 @Module({
   imports: [
@@ -72,6 +75,20 @@ import { validate } from './config/env.validation';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggingMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}
