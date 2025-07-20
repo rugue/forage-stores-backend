@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { StoresModule } from './modules/stores/stores.module';
-import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { StoresModule } from './modules/stores/stores.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
+import { ProductsModule } from './modules/products/products.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -41,6 +43,7 @@ import { validate } from './config/env.validation';
     StoresModule,
     UsersModule,
     WalletsModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [
