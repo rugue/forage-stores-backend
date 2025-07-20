@@ -130,6 +130,9 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get user by ID (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -137,6 +140,8 @@ export class UsersController {
     type: User,
   })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'id', description: 'User ID' })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
@@ -163,6 +168,9 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -171,12 +179,17 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'Email already exists' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'id', description: 'User ID' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Patch(':id/credit-score')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user credit score (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -184,6 +197,8 @@ export class UsersController {
     type: User,
   })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'id', description: 'User ID' })
   updateCreditScore(
     @Param('id') id: string,
@@ -193,6 +208,9 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete user (Admin only)' })
   @ApiResponse({
     status: 200,
@@ -200,6 +218,8 @@ export class UsersController {
     type: User,
   })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'id', description: 'User ID' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
@@ -207,36 +227,51 @@ export class UsersController {
 
   // Additional utility routes
   @Get('filter/role/:role')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get users by role (Admin only)' })
   @ApiResponse({
     status: 200,
     description: 'Users retrieved successfully',
     type: [User],
   })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'role', description: 'User role' })
   findByRole(@Param('role') role: string) {
     return this.usersService.findByRole(role);
   }
 
   @Get('filter/account-type/:accountType')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get users by account type (Admin only)' })
   @ApiResponse({
     status: 200,
     description: 'Users retrieved successfully',
     type: [User],
   })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'accountType', description: 'Account type' })
   findByAccountType(@Param('accountType') accountType: string) {
     return this.usersService.findByAccountType(accountType);
   }
 
   @Get('filter/city/:city')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get users by city (Admin only)' })
   @ApiResponse({
     status: 200,
     description: 'Users retrieved successfully',
     type: [User],
   })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'city', description: 'City name' })
   findByCity(@Param('city') city: string) {
     return this.usersService.findByCity(city);
