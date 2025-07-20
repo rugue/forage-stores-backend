@@ -18,6 +18,7 @@ import { ReferralsModule } from './modules/referrals/referrals.module';
 import { AuctionsModule } from './modules/auctions/auctions.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -58,6 +59,7 @@ import { validate } from './config/env.validation';
     AuctionsModule,
     DeliveryModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
