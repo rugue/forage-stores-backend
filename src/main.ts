@@ -73,6 +73,7 @@ async function bootstrap() {
     .addTag('products', 'Product management endpoints')
     .addTag('orders', 'Order and cart management endpoints')
     .addTag('subscriptions', 'Subscription management for payment plans')
+    .addTag('referrals', 'Referral and commission management endpoints')
     .build();
   const document = SwaggerModule.createDocument(app, config);
 

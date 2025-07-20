@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { 
@@ -15,6 +15,7 @@ import {
 import { Product, ProductDocument } from '../../entities/product.entity';
 import { User, UserDocument, UserRole } from '../../entities/user.entity';
 import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+import { OrdersReferralHookService } from './orders-referral-hook.service';
 import {
   AddToCartDto,
   UpdateCartItemDto,
@@ -40,6 +41,8 @@ export class OrdersService {
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    @Inject(forwardRef(() => OrdersReferralHookService))
+    private readonly referralHook: OrdersReferralHookService,
   ) {}
 
   // Cart Management
@@ -440,7 +443,20 @@ export class OrdersService {
     // Handle payment plan specific logic
     await this.handlePaymentByPlanType(order);
 
+    // Save the order
     await order.save();
+
+    // Check if the order is now fully paid, and if so, process referral commission
+    if (order.remainingAmount <= 0) {
+      // Process referral commission asynchronously
+      this.referralHook.processReferralCommission(
+        order.userId.toString(),
+        order._id.toString(),
+        order.finalTotal
+      ).catch(error => {
+        console.error(`Error processing referral commission: ${error.message}`);
+      });
+    }
 
     return {
       message: 'Payment processed successfully',
