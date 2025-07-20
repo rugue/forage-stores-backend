@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { StoresModule } from './modules/stores/stores.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { WalletsModule } from './modules/wallets/wallets.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -39,6 +40,7 @@ import { validate } from './config/env.validation';
     AuthModule,
     StoresModule,
     UsersModule,
+    WalletsModule,
   ],
   controllers: [AppController],
   providers: [
