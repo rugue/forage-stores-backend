@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -12,6 +13,7 @@ import { StoresModule } from './modules/stores/stores.module';
 import { WalletsModule } from './modules/wallets/wallets.module';
 import { ProductsModule } from './modules/products/products.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -23,6 +25,7 @@ import { validate } from './config/env.validation';
     MongooseModule.forRoot(
       process.env.MONGODB_URI || 'mongodb://localhost:27017/forage-stores',
     ),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         name: 'short',
@@ -46,6 +49,7 @@ import { validate } from './config/env.validation';
     WalletsModule,
     ProductsModule,
     OrdersModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [

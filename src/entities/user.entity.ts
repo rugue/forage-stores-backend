@@ -24,6 +24,7 @@ export enum UserRole {
   ADMIN = 'admin',
   RIDER = 'rider',
   PRO_AFFILIATE = 'pro-affiliate',
+  SYSTEM = 'system', // For system-triggered operations
 }
 
 @Schema({ timestamps: true })
