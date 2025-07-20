@@ -23,14 +23,27 @@ export enum OrderStatus {
 }
 
 export enum PaymentPlan {
-  FULL_PAYMENT = 'full_payment',
-  INSTALLMENT = 'installment',
-  PAY_ON_DELIVERY = 'pay_on_delivery',
+  PAY_NOW = 'pay_now',            // Full payment + instant delivery
+  PRICE_LOCK = 'price_lock',      // Lock price, deliver after 30-45 days
+  PAY_SMALL_SMALL = 'pay_small_small', // Split into weekly/monthly payments
+  PAY_LATER = 'pay_later',        // Credit check before approving
 }
 
 export enum DeliveryMethod {
   PICKUP = 'pickup',
   HOME_DELIVERY = 'home_delivery',
+}
+
+export enum PaymentFrequency {
+  WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
+  MONTHLY = 'monthly',
+}
+
+export enum CreditStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
 }
 
 export enum PaymentStatus {
@@ -84,6 +97,80 @@ export class CartItem {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   totalPriceInNibia: number;
+}
+
+@Schema({ timestamps: true, _id: false })
+export class PaymentSchedule {
+  @ApiProperty({ description: 'Payment frequency for installments', enum: PaymentFrequency })
+  @Prop({ required: true, enum: Object.values(PaymentFrequency), default: PaymentFrequency.MONTHLY })
+  @IsEnum(PaymentFrequency)
+  frequency: PaymentFrequency;
+
+  @ApiProperty({ description: 'Amount per installment' })
+  @Prop({ required: true, type: Number, min: 0 })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  installmentAmount: number;
+
+  @ApiProperty({ description: 'Total number of installments' })
+  @Prop({ required: true, type: Number, min: 1 })
+  @IsNumber()
+  @Min(1)
+  totalInstallments: number;
+
+  @ApiProperty({ description: 'Number of installments paid' })
+  @Prop({ required: true, type: Number, min: 0, default: 0 })
+  @IsNumber()
+  @Min(0)
+  installmentsPaid: number;
+
+  @ApiProperty({ description: 'Start date of payment schedule' })
+  @Prop({ required: true, type: Date })
+  @IsDateString()
+  startDate: Date;
+
+  @ApiProperty({ description: 'Next payment due date' })
+  @Prop({ required: true, type: Date })
+  @IsDateString()
+  nextPaymentDate: Date;
+
+  @ApiProperty({ description: 'Final payment due date' })
+  @Prop({ required: true, type: Date })
+  @IsDateString()
+  finalPaymentDate: Date;
+}
+
+@Schema({ timestamps: true, _id: false })
+export class CreditCheck {
+  @ApiProperty({ description: 'Credit check status', enum: CreditStatus })
+  @Prop({ required: true, enum: Object.values(CreditStatus), default: CreditStatus.PENDING })
+  @IsEnum(CreditStatus)
+  status: CreditStatus;
+
+  @ApiProperty({ description: 'Credit check score' })
+  @Prop({ required: false, type: Number })
+  @IsOptional()
+  @IsNumber()
+  score?: number;
+
+  @ApiProperty({ description: 'Credit check date' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  @IsDateString()
+  checkDate?: Date;
+
+  @ApiProperty({ description: 'Credit check notes' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiProperty({ description: 'Approved credit limit' })
+  @Prop({ required: false, type: Number, min: 0 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  approvedLimit?: number;
 }
 
 @Schema({ timestamps: true, _id: false })
@@ -227,6 +314,22 @@ export class Order {
   @IsOptional()
   deliveryAddress?: DeliveryAddress;
 
+  @ApiProperty({ description: 'Payment schedule for installments', type: PaymentSchedule })
+  @Prop({ required: false, type: PaymentSchedule })
+  @IsOptional()
+  paymentSchedule?: PaymentSchedule;
+
+  @ApiProperty({ description: 'Credit check information for Pay Later option', type: CreditCheck })
+  @Prop({ required: false, type: CreditCheck })
+  @IsOptional()
+  creditCheck?: CreditCheck;
+
+  @ApiProperty({ description: 'Scheduled delivery date for Price Lock orders' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  @IsDateString()
+  scheduledDeliveryDate?: Date;
+
   @ApiProperty({ description: 'Payment history', type: [PaymentHistory] })
   @Prop({ required: true, type: [PaymentHistory], default: [] })
   @IsArray()
@@ -278,6 +381,8 @@ export class Order {
 export const CartItemSchema = SchemaFactory.createForClass(CartItem);
 export const PaymentHistorySchema = SchemaFactory.createForClass(PaymentHistory);
 export const DeliveryAddressSchema = SchemaFactory.createForClass(DeliveryAddress);
+export const PaymentScheduleSchema = SchemaFactory.createForClass(PaymentSchedule);
+export const CreditCheckSchema = SchemaFactory.createForClass(CreditCheck);
 export const OrderSchema = SchemaFactory.createForClass(Order);
 
 // Pre-save middleware to calculate totals and remaining amount

@@ -13,6 +13,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { PaymentPlan, DeliveryMethod, PaymentMethod } from '../../../entities/order.entity';
+import { PaymentPlanDetailsDto } from './payment-plan.dto';
 
 export class AddToCartDto {
   @ApiProperty({ description: 'Product ID to add to cart' })
@@ -73,9 +74,13 @@ export class DeliveryAddressDto {
 }
 
 export class CheckoutDto {
-  @ApiProperty({ description: 'Payment plan', enum: PaymentPlan })
-  @IsEnum(PaymentPlan)
-  paymentPlan: PaymentPlan;
+  @ApiProperty({ 
+    description: 'Payment plan details', 
+    type: PaymentPlanDetailsDto 
+  })
+  @ValidateNested()
+  @Type(() => PaymentPlanDetailsDto)
+  paymentPlan: PaymentPlanDetailsDto;
 
   @ApiProperty({ description: 'Delivery method', enum: DeliveryMethod })
   @IsEnum(DeliveryMethod)

@@ -27,6 +27,7 @@ import {
   PaymentDto,
   UpdateOrderDto,
   OrderFilterDto,
+  CreditApprovalDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards';
 import { RolesGuard } from '../auth/guards';
@@ -195,5 +196,21 @@ export class OrdersController {
     @Body('reason') reason: string,
   ) {
     return this.ordersService.cancelOrder(id, userId, userRole, reason);
+  }
+
+  @Post(':id/credit-approval')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Approve or reject credit check for Pay Later orders (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Credit check processed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - not a Pay Later order or no pending credit check' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @HttpCode(HttpStatus.OK)
+  approveCreditCheck(
+    @Param('id') id: string,
+    @Body() creditApprovalDto: CreditApprovalDto,
+  ) {
+    return this.ordersService.approveCreditCheck(id, creditApprovalDto);
   }
 }

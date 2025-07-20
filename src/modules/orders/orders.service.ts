@@ -1,7 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Order, OrderDocument, OrderStatus, PaymentStatus, PaymentMethod, DeliveryMethod, PaymentPlan } from '../../entities/order.entity';
+import { 
+  Order, 
+  OrderDocument, 
+  OrderStatus, 
+  PaymentStatus, 
+  PaymentMethod, 
+  DeliveryMethod, 
+  PaymentPlan,
+  PaymentFrequency,
+  CreditStatus
+} from '../../entities/order.entity';
 import { Product, ProductDocument } from '../../entities/product.entity';
 import { User, UserDocument, UserRole } from '../../entities/user.entity';
 import { Wallet, WalletDocument } from '../../entities/wallet.entity';
@@ -13,6 +23,12 @@ import {
   PaymentDto,
   UpdateOrderDto,
   OrderFilterDto,
+  PaymentPlanDetailsDto,
+  PayNowPlanDto,
+  PriceLockPlanDto,
+  PaySmallSmallPlanDto,
+  PayLaterPlanDto,
+  CreditApprovalDto,
 } from './dto';
 
 @Injectable()
@@ -169,8 +185,8 @@ export class OrdersService {
     // Generate order number
     const orderNumber = this.generateOrderNumber();
 
-    // Create order
-    const order = new this.orderModel({
+    // Create base order object
+    const orderData: any = {
       orderNumber,
       userId: new Types.ObjectId(userId),
       items: updatedItems,
@@ -179,21 +195,177 @@ export class OrdersService {
       deliveryFee,
       finalTotal: totalAmount + deliveryFee,
       status: OrderStatus.PENDING,
-      paymentPlan: checkoutDto.paymentPlan,
+      paymentPlan: checkoutDto.paymentPlan.type,
       deliveryMethod: checkoutDto.deliveryMethod,
       deliveryAddress: checkoutDto.deliveryAddress,
       paymentHistory: [],
       amountPaid: 0,
       remainingAmount: totalAmount + deliveryFee,
       notes: checkoutDto.notes,
-    });
+    };
 
+    // Process payment plan specific logic
+    switch (checkoutDto.paymentPlan.type) {
+      case PaymentPlan.PAY_NOW:
+        // No additional processing needed for Pay Now option
+        break;
+
+      case PaymentPlan.PRICE_LOCK:
+        await this.handlePriceLockOrder(orderData, checkoutDto.paymentPlan.priceLockDetails);
+        break;
+
+      case PaymentPlan.PAY_SMALL_SMALL:
+        await this.handlePaySmallSmallOrder(orderData, checkoutDto.paymentPlan.paySmallSmallDetails, totalAmount + deliveryFee);
+        break;
+
+      case PaymentPlan.PAY_LATER:
+        await this.handlePayLaterOrder(orderData, userId, checkoutDto.paymentPlan.payLaterDetails);
+        break;
+
+      default:
+        throw new BadRequestException('Invalid payment plan type');
+    }
+
+    const order = new this.orderModel(orderData);
     const savedOrder = await order.save();
 
     // Clear cart after successful order creation
     this.cartStorage.delete(userId);
 
     return savedOrder;
+  }
+
+  // Helper methods for different payment plan types
+  private async handlePriceLockOrder(orderData: any, priceLockDetails: PriceLockPlanDto) {
+    if (!priceLockDetails || !priceLockDetails.preferredDeliveryDate) {
+      throw new BadRequestException('Preferred delivery date is required for Price Lock orders');
+    }
+
+    const preferredDate = new Date(priceLockDetails.preferredDeliveryDate);
+    const now = new Date();
+    
+    // Calculate minimum (30 days) and maximum (45 days) delivery dates
+    const minDate = new Date(now);
+    minDate.setDate(minDate.getDate() + 30);
+    
+    const maxDate = new Date(now);
+    maxDate.setDate(maxDate.getDate() + 45);
+
+    if (preferredDate < minDate || preferredDate > maxDate) {
+      throw new BadRequestException('Preferred delivery date must be between 30 and 45 days from now');
+    }
+
+    // Set scheduled delivery date
+    orderData.scheduledDeliveryDate = preferredDate;
+    orderData.expectedDeliveryDate = preferredDate;
+    
+    // Price Lock requires a 20% down payment
+    orderData.downPaymentRequired = orderData.finalTotal * 0.2;
+  }
+
+  private async handlePaySmallSmallOrder(orderData: any, paySmallSmallDetails: PaySmallSmallPlanDto, totalAmount: number) {
+    if (!paySmallSmallDetails || !paySmallSmallDetails.frequency || !paySmallSmallDetails.totalInstallments) {
+      throw new BadRequestException('Payment frequency and total installments are required for Pay Small-Small orders');
+    }
+
+    if (paySmallSmallDetails.totalInstallments < 2) {
+      throw new BadRequestException('Total installments must be at least 2');
+    }
+
+    const { frequency, totalInstallments } = paySmallSmallDetails;
+    const installmentAmount = totalAmount / totalInstallments;
+    
+    // Calculate payment dates based on frequency
+    const startDate = new Date();
+    let nextPaymentDate = new Date(startDate);
+    let finalPaymentDate = new Date(startDate);
+    
+    switch (frequency) {
+      case PaymentFrequency.WEEKLY:
+        nextPaymentDate.setDate(nextPaymentDate.getDate() + 7); // Next week
+        finalPaymentDate.setDate(finalPaymentDate.getDate() + (7 * totalInstallments));
+        break;
+      case PaymentFrequency.BIWEEKLY:
+        nextPaymentDate.setDate(nextPaymentDate.getDate() + 14); // Two weeks
+        finalPaymentDate.setDate(finalPaymentDate.getDate() + (14 * totalInstallments));
+        break;
+      case PaymentFrequency.MONTHLY:
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1); // Next month
+        finalPaymentDate.setMonth(finalPaymentDate.getMonth() + totalInstallments);
+        break;
+      default:
+        throw new BadRequestException('Invalid payment frequency');
+    }
+
+    // Create payment schedule
+    orderData.paymentSchedule = {
+      frequency,
+      installmentAmount,
+      totalInstallments,
+      installmentsPaid: 0,
+      startDate,
+      nextPaymentDate,
+      finalPaymentDate
+    };
+    
+    // First installment is due immediately (25% down payment minimum)
+    orderData.downPaymentRequired = Math.max(installmentAmount, totalAmount * 0.25);
+    
+    // For Pay Small-Small, products are only delivered after full payment or after 50% payment (depends on business rule)
+    // Here we'll set expected delivery after full payment
+    orderData.expectedDeliveryDate = new Date(finalPaymentDate);
+  }
+
+  private async handlePayLaterOrder(orderData: any, userId: string, payLaterDetails: PayLaterPlanDto) {
+    if (!payLaterDetails || !payLaterDetails.monthlyIncome || !payLaterDetails.employmentStatus || !payLaterDetails.bvn) {
+      throw new BadRequestException('Monthly income, employment status, and BVN are required for Pay Later orders');
+    }
+
+    // Retrieve user information
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Initialize credit check
+    orderData.creditCheck = {
+      status: CreditStatus.PENDING,
+      checkDate: new Date(),
+      notes: 'Credit check in progress',
+    };
+
+    // In a real system, we'd call a credit check API here
+    // For this implementation, we'll simulate a credit check based on order amount and user's provided details
+    const { monthlyIncome } = payLaterDetails;
+    const orderTotal = orderData.finalTotal;
+    
+    // Simple credit check rule: Order total should not exceed 50% of monthly income
+    const creditRatio = orderTotal / monthlyIncome;
+    
+    if (creditRatio <= 0.5) {
+      // Approve credit
+      orderData.creditCheck.status = CreditStatus.APPROVED;
+      orderData.creditCheck.score = 700 + Math.floor(Math.random() * 100); // Random score between 700-799
+      orderData.creditCheck.notes = 'Credit automatically approved';
+      orderData.creditCheck.approvedLimit = monthlyIncome * 0.5;
+      
+      // Set expected delivery date to 1-3 days from now
+      const deliveryDate = new Date();
+      deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 3));
+      orderData.expectedDeliveryDate = deliveryDate;
+    } else {
+      // Set to pending for manual review
+      orderData.creditCheck.notes = 'Order requires manual credit review';
+      // Order will remain in PENDING status until manually approved
+    }
+    
+    // Store the credit check details for reference
+    orderData.creditDetails = {
+      monthlyIncome: payLaterDetails.monthlyIncome,
+      employmentStatus: payLaterDetails.employmentStatus,
+      bvn: payLaterDetails.bvn,
+      additionalInfo: payLaterDetails.additionalInfo,
+    };
   }
 
   async makePayment(orderId: string, userId: string, userRole: UserRole, paymentDto: PaymentDto) {
@@ -210,6 +382,12 @@ export class OrdersService {
     // Validate payment amount
     if (paymentDto.amount > order.remainingAmount) {
       throw new BadRequestException(`Payment amount exceeds remaining balance. Remaining: ${order.remainingAmount}`);
+    }
+
+    // For Pay Later orders, check if credit has been approved
+    if (order.paymentPlan === PaymentPlan.PAY_LATER && 
+        order.creditCheck?.status !== CreditStatus.APPROVED) {
+      throw new BadRequestException('Credit check must be approved before making payment on Pay Later orders');
     }
 
     // Process payment based on method
@@ -259,18 +437,8 @@ export class OrdersService {
     order.amountPaid += paymentDto.amount;
     order.remainingAmount -= paymentDto.amount;
 
-    // Update order status based on payment
-    if (order.remainingAmount <= 0) {
-      order.status = OrderStatus.PAID;
-      
-      // Reduce product stock
-      for (const item of order.items) {
-        await this.productModel.findByIdAndUpdate(
-          item.productId,
-          { $inc: { stock: -item.quantity } }
-        );
-      }
-    }
+    // Handle payment plan specific logic
+    await this.handlePaymentByPlanType(order);
 
     await order.save();
 
@@ -284,6 +452,125 @@ export class OrdersService {
         status: order.status,
       },
     };
+  }
+
+  private async handlePaymentByPlanType(order) {
+    // Handle order status update based on payment plan
+    switch (order.paymentPlan) {
+      case PaymentPlan.PAY_NOW:
+        // For Pay Now, order is marked as PAID when fully paid
+        if (order.remainingAmount <= 0) {
+          order.status = OrderStatus.PAID;
+          
+          // Reduce product stock
+          for (const item of order.items) {
+            await this.productModel.findByIdAndUpdate(
+              item.productId,
+              { $inc: { stock: -item.quantity } }
+            );
+          }
+          
+          // Set expected delivery date to 1-2 days from now for PAY_NOW
+          const deliveryDate = new Date();
+          deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 2));
+          order.expectedDeliveryDate = deliveryDate;
+        }
+        break;
+        
+      case PaymentPlan.PRICE_LOCK:
+        // For Price Lock, check if down payment requirement is met
+        const downPaymentRequired = order.finalTotal * 0.2; // 20% down payment
+        
+        if (order.amountPaid >= downPaymentRequired && order.status === OrderStatus.PENDING) {
+          // If down payment is made, keep the order in a special "PRICE_LOCKED" status
+          // But technically still PENDING until scheduled delivery date
+          order.status = OrderStatus.PENDING;
+          order.priceLockConfirmed = true;
+        }
+        
+        // If fully paid
+        if (order.remainingAmount <= 0) {
+          // Only change to PAID if we've reached the scheduled delivery date
+          const now = new Date();
+          if (order.scheduledDeliveryDate && now >= order.scheduledDeliveryDate) {
+            order.status = OrderStatus.PAID;
+            
+            // Reduce product stock
+            for (const item of order.items) {
+              await this.productModel.findByIdAndUpdate(
+                item.productId,
+                { $inc: { stock: -item.quantity } }
+              );
+            }
+          }
+        }
+        break;
+        
+      case PaymentPlan.PAY_SMALL_SMALL:
+        // For Pay Small-Small, update installment tracking
+        if (order.paymentSchedule) {
+          order.paymentSchedule.installmentsPaid += 1;
+          
+          // Calculate next payment date
+          const nextPaymentDate = new Date();
+          switch (order.paymentSchedule.frequency) {
+            case PaymentFrequency.WEEKLY:
+              nextPaymentDate.setDate(nextPaymentDate.getDate() + 7);
+              break;
+            case PaymentFrequency.BIWEEKLY:
+              nextPaymentDate.setDate(nextPaymentDate.getDate() + 14);
+              break;
+            case PaymentFrequency.MONTHLY:
+              nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+              break;
+          }
+          order.paymentSchedule.nextPaymentDate = nextPaymentDate;
+          
+          // If fully paid or paid 50% or more, we can update status
+          if (order.remainingAmount <= 0) {
+            order.status = OrderStatus.PAID;
+            
+            // Reduce product stock
+            for (const item of order.items) {
+              await this.productModel.findByIdAndUpdate(
+                item.productId,
+                { $inc: { stock: -item.quantity } }
+              );
+            }
+            
+            // Set delivery date to within a week
+            const deliveryDate = new Date();
+            deliveryDate.setDate(deliveryDate.getDate() + 3 + Math.floor(Math.random() * 4)); // 3-7 days
+            order.expectedDeliveryDate = deliveryDate;
+          } else if (order.amountPaid >= order.finalTotal * 0.5) {
+            // If 50% or more is paid, optionally update delivery expectations
+            // Business rule: Could release product after 50% payment for trusted customers
+          }
+        }
+        break;
+        
+      case PaymentPlan.PAY_LATER:
+        // For Pay Later, order is processed after credit approval
+        if (order.remainingAmount <= 0) {
+          order.status = OrderStatus.PAID;
+          
+          // Reduce product stock
+          for (const item of order.items) {
+            await this.productModel.findByIdAndUpdate(
+              item.productId,
+              { $inc: { stock: -item.quantity } }
+            );
+          }
+          
+          // Update delivery date if not already set
+          if (!order.expectedDeliveryDate) {
+            const deliveryDate = new Date();
+            deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 2)); // 1-3 days
+            order.expectedDeliveryDate = deliveryDate;
+          }
+        }
+        break;
+    }
   }
 
   async findAll(filterDto: OrderFilterDto, userId?: string, userRole?: UserRole) {
@@ -488,5 +775,56 @@ export class OrdersService {
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `ORD-${timestamp.slice(-6)}${random}`;
+  }
+
+  async approveCreditCheck(orderId: string, creditApprovalDto: CreditApprovalDto) {
+    const order = await this.orderModel.findById(orderId);
+    
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Verify this is a Pay Later order with pending credit check
+    if (order.paymentPlan !== PaymentPlan.PAY_LATER) {
+      throw new BadRequestException('This is not a Pay Later order');
+    }
+
+    if (!order.creditCheck || order.creditCheck.status !== CreditStatus.PENDING) {
+      throw new BadRequestException('This order does not have a pending credit check');
+    }
+
+    // Update the credit check based on approval decision
+    if (creditApprovalDto.approve) {
+      // Credit is approved
+      order.creditCheck.status = CreditStatus.APPROVED;
+      order.creditCheck.score = creditApprovalDto.score || 700; // Default score if not provided
+      order.creditCheck.approvedLimit = creditApprovalDto.approvedLimit || order.finalTotal;
+      order.creditCheck.notes = creditApprovalDto.notes || 'Credit manually approved';
+      
+      // Set expected delivery date to 1-3 days from now
+      const deliveryDate = new Date();
+      deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 3));
+      order.expectedDeliveryDate = deliveryDate;
+    } else {
+      // Credit is rejected
+      order.creditCheck.status = CreditStatus.REJECTED;
+      order.creditCheck.notes = creditApprovalDto.notes || 'Credit manually rejected';
+      order.status = OrderStatus.CANCELLED;
+      order.cancellationReason = 'Credit check failed';
+    }
+
+    // Save the updated order
+    await order.save();
+
+    return {
+      message: creditApprovalDto.approve ? 'Credit approved successfully' : 'Credit rejected',
+      order: {
+        id: order._id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        creditStatus: order.creditCheck.status,
+        expectedDeliveryDate: order.expectedDeliveryDate,
+      }
+    };
   }
 }
