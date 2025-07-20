@@ -19,6 +19,7 @@ import { AuctionsModule } from './modules/auctions/auctions.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SupportModule } from './modules/support/support.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -60,6 +61,7 @@ import { validate } from './config/env.validation';
     DeliveryModule,
     AdminModule,
     NotificationsModule,
+    SupportModule,
   ],
   controllers: [AppController],
   providers: [
