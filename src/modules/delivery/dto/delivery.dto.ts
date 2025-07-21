@@ -14,7 +14,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { DeliveryStatus, PaymentStatus } from '../../../entities/delivery.entity';
+import { DeliveryStatus, PaymentStatus } from '../../../shared/enums';
 
 export class DeliveryLocationDto {
   @ApiProperty({ description: 'Street address' })

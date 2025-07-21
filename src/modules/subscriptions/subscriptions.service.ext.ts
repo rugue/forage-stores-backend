@@ -5,9 +5,9 @@ import {
   Subscription, 
   SubscriptionDocument, 
   SubscriptionStatus 
-} from '../../entities/subscription.entity';
-import { Order, OrderDocument, PaymentPlan, PaymentStatus } from '../../entities/order.entity';
-import { User, UserDocument } from '../../entities/user.entity';
+} from '../subscriptions/entities/subscription.entity';
+import { Order, OrderDocument, PaymentPlan, PaymentStatus, OrderStatus } from '../orders/entities/order.entity';
+import { User, UserDocument } from '../users/entities/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -33,9 +33,9 @@ export class SubscriptionsService {
     const today = new Date();
     
     const orders = await this.orderModel.find({
-      'payment.plan': PaymentPlan.PAY_LATER,
-      'payment.status': PaymentStatus.PARTIALLY_PAID,
-      'payment.nextPaymentDate': {
+      paymentPlan: PaymentPlan.PAY_LATER,
+      status: { $in: [OrderStatus.PENDING, OrderStatus.PAID] },
+      'paymentSchedule.nextPaymentDate': {
         $gte: today,
         $lte: threeDaysFromNow
       }
@@ -46,19 +46,19 @@ export class SubscriptionsService {
     for (const order of orders) {
       try {
         // Get remaining amount
-        const paidAmount = order.payment.history.reduce(
+        const paidAmount = order.paymentHistory.reduce(
           (sum, payment) => sum + payment.amount, 0
         );
         const remainingAmount = order.totalAmount - paidAmount;
         
         // Send notification
         await this.notificationsService.sendPaymentReminder(
-          order.userId.email,
+          (order.userId as any).email,
+          order.userId.toString(),
           {
-            orderId: order._id.toString(),
-            dueDate: order.payment.nextPaymentDate.toDateString(),
+            subscriptionName: `Order ${order._id}`,
+            dueDate: order.paymentSchedule?.nextPaymentDate?.toDateString() || 'TBD',
             amount: remainingAmount,
-            orderNumber: order.orderNumber
           }
         );
         
@@ -101,12 +101,12 @@ export class SubscriptionsService {
         if (nextDrop) {
           // Send notification
           await this.notificationsService.sendDropReminder(
-            subscription.userId.email,
+            (subscription.userId as any).email,
+            subscription.userId.toString(),
             {
-              subscriptionId: subscription._id.toString(),
-              dropDate: nextDrop.nextDropDate.toDateString(),
-              products: nextDrop.products.map(p => p.name).join(', '),
-              subscriptionName: subscription.name || 'Your subscription'
+              subscriptionName: subscription.name || 'Your subscription',
+              dropDate: nextDrop.nextDropDate?.toDateString() || 'TBD',
+              products: nextDrop.products?.map(p => (p as any).name).join(', ') || 'Products',
             }
           );
           

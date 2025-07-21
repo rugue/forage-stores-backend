@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { TicketCategory, TicketPriority } from '../../../entities/support-ticket.entity';
+import { TicketCategory, TicketPriority } from '../../support/entities/support-ticket.entity';
 
 export class CreateTicketDto {
   @IsString()

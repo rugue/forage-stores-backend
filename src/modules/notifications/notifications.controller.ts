@@ -3,7 +3,7 @@ import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../../entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 import { NotificationDto } from './dto/notification.dto';
 import { EmailNotificationDto } from './dto/email-notification.dto';
 import { PushNotificationDto } from './dto/push-notification.dto';

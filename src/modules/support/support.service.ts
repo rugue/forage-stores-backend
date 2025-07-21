@@ -6,13 +6,13 @@ import {
   SupportTicketDocument,
   TicketStatus,
   TicketPriority
-} from '../../entities/support-ticket.entity';
+} from '../support/entities/support-ticket.entity';
 import { 
   TicketMessage, 
   TicketMessageDocument,
   MessageSender
-} from '../../entities/ticket-message.entity';
-import { User, UserDocument, UserRole } from '../../entities/user.entity';
+} from '../support/entities/ticket-message.entity';
+import { User, UserDocument, UserRole } from '../users/entities/user.entity';
 import { 
   CreateTicketDto, 
   UpdateTicketDto, 

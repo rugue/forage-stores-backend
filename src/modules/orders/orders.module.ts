@@ -3,10 +3,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { OrdersReferralHookService } from './orders-referral-hook.service';
-import { Order, OrderSchema } from '../../entities/order.entity';
-import { Product, ProductSchema } from '../../entities/product.entity';
-import { User, UserSchema } from '../../entities/user.entity';
-import { Wallet, WalletSchema } from '../../entities/wallet.entity';
+import { Order, OrderSchema } from '../orders/entities/order.entity';
+import { Product, ProductSchema } from '../products/entities/product.entity';
+import { User, UserSchema } from '../users/entities/user.entity';
+import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
 import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({

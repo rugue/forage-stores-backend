@@ -11,10 +11,10 @@ import {
   PaymentPlan,
   PaymentFrequency,
   CreditStatus
-} from '../../entities/order.entity';
-import { Product, ProductDocument } from '../../entities/product.entity';
-import { User, UserDocument, UserRole } from '../../entities/user.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+} from '../orders/entities/order.entity';
+import { Product, ProductDocument } from '../products/entities/product.entity';
+import { User, UserDocument, UserRole } from '../users/entities/user.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { OrdersReferralHookService } from './orders-referral-hook.service';
 import {
   AddToCartDto,

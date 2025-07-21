@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Rider, RiderDocument, RiderStatus } from '../../entities/rider.entity';
-import { User, UserDocument, UserRole } from '../../entities/user.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+import { Rider, RiderDocument, RiderStatus } from '../delivery/entities/rider.entity';
+import { User, UserDocument, UserRole } from '../users/entities/user.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import {
   CreateRiderDto,
   UpdateRiderDto,

@@ -27,6 +27,7 @@ export enum PaymentStatus {
   FAILED = 'failed',
   REFUNDED = 'refunded',
   PARTIAL = 'partial',
+  RELEASED = 'released',
 }
 
 export enum PaymentMethod {
@@ -52,18 +53,50 @@ export enum NotificationChannel {
 }
 
 export enum AuctionStatus {
+  UPCOMING = 'upcoming',
   ACTIVE = 'active',
   ENDED = 'ended',
   CANCELLED = 'cancelled',
+  COMPLETED = 'completed',
+  EXPIRED = 'expired',
+}
+
+export enum BidStatus {
+  ACTIVE = 'active',
+  REFUNDED = 'refunded',
+  WINNING = 'winning',
 }
 
 export enum DeliveryStatus {
   PENDING = 'pending',
   ASSIGNED = 'assigned',
+  PENDING_ASSIGNMENT = 'pending_assignment',
+  PENDING_ACCEPTANCE = 'pending_acceptance',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+  DECLINED = 'declined',
   PICKED_UP = 'picked_up',
   IN_TRANSIT = 'in_transit',
   DELIVERED = 'delivered',
+  COMPLETED = 'completed',
   FAILED = 'failed',
+  EXPIRED = 'expired',
+  CANCELLED = 'cancelled',
+}
+
+export enum RiderStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+  PENDING_VERIFICATION = 'pending_verification',
+}
+
+export enum VehicleType {
+  MOTORCYCLE = 'motorcycle',
+  BICYCLE = 'bicycle',
+  CAR = 'car',
+  VAN = 'van',
+  FOOT = 'foot',
 }
 
 export enum ProductStatus {

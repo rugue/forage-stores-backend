@@ -25,8 +25,8 @@ import {
 } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
-import { UserRole } from '../../entities/user.entity';
-import { Wallet } from '../../entities/wallet.entity';
+import { UserRole } from '../users/entities/user.entity';
+import { Wallet } from '../wallets/entities/wallet.entity';
 
 @ApiTags('wallets')
 @Controller('wallets')

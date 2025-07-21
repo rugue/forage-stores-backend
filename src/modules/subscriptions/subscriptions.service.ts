@@ -7,7 +7,7 @@ import {
   SubscriptionDocument, 
   SubscriptionStatus,
   DropScheduleItem
-} from '../../entities/subscription.entity';
+} from '../subscriptions/entities/subscription.entity';
 import { 
   Order, 
   OrderDocument, 
@@ -18,17 +18,17 @@ import {
   OrderStatus,
   PaymentHistory,
   CartItem
-} from '../../entities/order.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+} from '../orders/entities/order.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '../notifications/entities/notification.entity';
 import { 
   CreateSubscriptionDto, 
   UpdateSubscriptionDto, 
   ProcessDropDto,
   SubscriptionFilterDto 
 } from './dto';
-import { UserRole } from '../../entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class SubscriptionsService {

@@ -14,7 +14,7 @@ import { SupportService } from './support.service';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../../entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 import { 
   CreateTicketDto, 
   UpdateTicketDto, 

@@ -3,8 +3,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
-import { User, UserSchema } from '../../entities/user.entity';
-import { Notification, NotificationSchema } from '../../entities/notification.entity';
+import { User, UserSchema } from '../users/entities/user.entity';
+import { Notification, NotificationSchema } from '../notifications/entities/notification.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({

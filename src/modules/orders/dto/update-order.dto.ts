@@ -6,7 +6,7 @@ import {
   IsMongoId,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderStatus, PaymentPlan, DeliveryMethod } from '../../../entities/order.entity';
+import { OrderStatus, PaymentPlan, DeliveryMethod } from '../../orders/entities/order.entity';
 
 export class UpdateOrderDto {
   @ApiProperty({ description: 'Order status', enum: OrderStatus, required: false })

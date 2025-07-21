@@ -5,7 +5,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { SubscriptionStatus } from '../../../entities/subscription.entity';
+import { SubscriptionStatus } from '../../subscriptions/entities/subscription.entity';
 
 export class UpdateSubscriptionDto {
   @ApiProperty({

@@ -1,6 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import {
+  DeliveryStatus,
+  PaymentStatus,
+  RiderStatus,
+  VehicleType,
+} from '../../../shared/enums';
+import {
   IDeliveryDocument,
   IRiderDocument,
   IDeliveryLocation,
@@ -9,12 +15,12 @@ import {
   IVehicle,
   IVerificationDocument,
   IDeliveryStats,
-  DeliveryStatus,
-  PaymentStatus,
-  RiderStatus,
-  VehicleType,
 } from '../interfaces/delivery.interface';
 import { DELIVERY_CONSTANTS, DELIVERY_DEFAULTS, RIDER_DEFAULTS } from '../constants/delivery.constants';
+
+// Re-export types for backward compatibility
+export type DeliveryDocument = IDeliveryDocument;
+export type RiderDocument = IRiderDocument;
 
 @Schema({ 
   timestamps: true, 
@@ -247,12 +253,12 @@ export class Delivery extends Document implements IDeliveryDocument {
     },
   },
 })
-export class Vehicle extends Document implements IVehicle {
+export class Vehicle implements IVehicle {
   @Prop({ required: true, enum: Object.values(VehicleType) })
   type: VehicleType;
 
   @Prop({ required: false, type: String })
-  model?: string;
+  vehicleModel?: string;
 
   @Prop({ required: false, type: String })
   licensePlate?: string;

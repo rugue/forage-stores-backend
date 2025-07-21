@@ -10,7 +10,7 @@ import {
   IsUrl,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { DeliveryType, ProductCategory } from '../../../entities/product.entity';
+import { DeliveryType, ProductCategory } from '../../products/entities/product.entity';
 
 export class CreateProductDto {
   @ApiProperty({ description: 'Product name', example: 'Fresh Tomatoes' })

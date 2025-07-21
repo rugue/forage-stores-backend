@@ -3,12 +3,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Schema, Types } from 'mongoose';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
-import { User, UserSchema } from '../../entities/user.entity';
-import { Wallet, WalletSchema } from '../../entities/wallet.entity';
-import { Order, OrderSchema } from '../../entities/order.entity';
-import { Subscription, SubscriptionSchema } from '../../entities/subscription.entity';
-import { Referral, ReferralSchema } from '../../entities/referral.entity';
-import { Product, ProductSchema } from '../../entities/product.entity';
+import { User, UserSchema } from '../users/entities/user.entity';
+import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
+import { Order, OrderSchema } from '../orders/entities/order.entity';
+import { Subscription, SubscriptionSchema } from '../subscriptions/entities/subscription.entity';
+import { Referral, ReferralSchema } from '../referrals/entities/referral.entity';
+import { Product, ProductSchema } from '../products/entities/product.entity';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 

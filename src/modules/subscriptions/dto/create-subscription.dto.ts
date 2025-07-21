@@ -6,7 +6,7 @@ import {
   IsMongoId,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { PaymentPlan, PaymentFrequency } from '../../../entities/order.entity';
+import { PaymentPlan, PaymentFrequency } from '../../orders/entities/order.entity';
 
 export class CreateSubscriptionDto {
   @ApiProperty({

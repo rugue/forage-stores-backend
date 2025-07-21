@@ -12,7 +12,7 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AccountType, UserRole } from '../../../entities/user.entity';
+import { AccountType, UserRole } from '../../users/entities/user.entity';
 
 export class CreateUserDto {
   @ApiProperty({ description: 'User full name', example: 'John Doe' })

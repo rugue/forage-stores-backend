@@ -3,13 +3,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
-import { User, UserDocument } from '../../entities/user.entity';
+import { User, UserDocument } from '../users/entities/user.entity';
 import { 
   Notification, 
   NotificationDocument, 
   NotificationType,
   NotificationChannel
-} from '../../entities/notification.entity';
+} from '../notifications/entities/notification.entity';
 import { NotificationDto } from './dto/notification.dto';
 import { EmailNotificationDto } from './dto/email-notification.dto';
 import { PushNotificationDto } from './dto/push-notification.dto';
@@ -636,6 +636,91 @@ export class NotificationsService {
       </body>
       </html>
     `;
+  }
+
+  /**
+   * Send price lock expiry notification
+   */
+  async sendPriceLockExpiryNotification(
+    recipientEmail: string,
+    recipientId: string,
+    metadata: { productName: string; orderNumber: string; expiryDate: string }
+  ): Promise<boolean> {
+    return this.sendEmail({
+      recipientEmail,
+      type: NotificationType.ORDER_UPDATE,
+      title: `Price Lock Expiring Soon - ${metadata.productName}`,
+      message: `
+        Hello,
+        
+        Your price lock for ${metadata.productName} (Order: ${metadata.orderNumber}) will expire on ${metadata.expiryDate}.
+        
+        Please complete your payment to secure your order at the locked price.
+        
+        Thank you,
+        Forage Stores Team
+      `,
+      recipientId,
+      metadata
+    });
+  }
+
+  /**
+   * Send payment reminder notification
+   */
+  async sendPaymentReminder(
+    recipientEmail: string,
+    recipientId: string,
+    metadata: { subscriptionName: string; dueDate: string; amount: number }
+  ): Promise<boolean> {
+    return this.sendEmail({
+      recipientEmail,
+      type: NotificationType.PAYMENT_REMINDER,
+      title: `Payment Reminder - ${metadata.subscriptionName}`,
+      message: `
+        Hello,
+        
+        This is a reminder that your payment for ${metadata.subscriptionName} is due on ${metadata.dueDate}.
+        
+        Amount due: ₦${metadata.amount.toFixed(2)}
+        
+        Please make your payment to avoid any service interruption.
+        
+        Thank you,
+        Forage Stores Team
+      `,
+      recipientId,
+      metadata
+    });
+  }
+
+  /**
+   * Send drop reminder notification
+   */
+  async sendDropReminder(
+    recipientEmail: string,
+    recipientId: string,
+    metadata: { subscriptionName: string; dropDate: string; products: string }
+  ): Promise<boolean> {
+    return this.sendEmail({
+      recipientEmail,
+      type: NotificationType.DELIVERY_UPDATE,
+      title: `Upcoming Delivery - ${metadata.subscriptionName}`,
+      message: `
+        Hello,
+        
+        Your scheduled delivery for ${metadata.subscriptionName} is coming up on ${metadata.dropDate}.
+        
+        Items to be delivered: ${metadata.products}
+        
+        Please ensure someone is available to receive the delivery.
+        
+        Thank you,
+        Forage Stores Team
+      `,
+      recipientId,
+      metadata
+    });
   }
   
   /**

@@ -1,5 +1,5 @@
 import { IsEnum, IsMongoId, IsOptional, IsString, MaxLength } from 'class-validator';
-import { TicketPriority, TicketStatus } from '../../../entities/support-ticket.entity';
+import { TicketPriority, TicketStatus } from '../../support/entities/support-ticket.entity';
 
 export class UpdateTicketDto {
   @IsOptional()

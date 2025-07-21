@@ -49,6 +49,7 @@ export enum CreditStatus {
 export enum PaymentStatus {
   PENDING = 'pending',
   PARTIAL = 'partial',
+  PARTIALLY_PAID = 'partially_paid',
   COMPLETED = 'completed',
   FAILED = 'failed',
   REFUNDED = 'refunded',
@@ -318,6 +319,13 @@ export class Order {
   @Prop({ required: false, type: PaymentSchedule })
   @IsOptional()
   paymentSchedule?: PaymentSchedule;
+
+  @ApiProperty({ description: 'Payment information (combined schedule and history)' })
+  payment?: {
+    history: PaymentHistory[];
+    nextPaymentDate: Date;
+    status: PaymentStatus;
+  };
 
   @ApiProperty({ description: 'Credit check information for Pay Later option', type: CreditCheck })
   @Prop({ required: false, type: CreditCheck })

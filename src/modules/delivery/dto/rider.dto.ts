@@ -13,7 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { RiderStatus, VehicleType } from '../../../entities/rider.entity';
+import { RiderStatus, VehicleType } from '../../delivery/entities/rider.entity';
 
 export class VehicleDto {
   @ApiProperty({ description: 'Vehicle type', enum: VehicleType })

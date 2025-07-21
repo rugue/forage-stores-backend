@@ -8,7 +8,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { CreditStatus } from '../../../entities/order.entity';
+import { CreditStatus } from '../../orders/entities/order.entity';
 
 export class CreditApprovalDto {
   @ApiProperty({ 

@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { ReferralsService } from '../referrals/referrals.service';
-import { CommissionType } from '../../entities/referral.entity';
+import { CommissionType } from '../referrals/entities/referral.entity';
 
 @Injectable()
 export class OrdersReferralHookService {

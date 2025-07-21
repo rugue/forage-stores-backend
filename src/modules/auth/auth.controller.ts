@@ -19,7 +19,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser, Public } from './decorators';
-import { User } from '../../entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { Request } from 'express';
 
 @ApiTags('auth')

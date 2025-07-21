@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { PaymentFrequency, PaymentPlan } from '../../../entities/order.entity';
+import { PaymentFrequency, PaymentPlan } from '../../orders/entities/order.entity';
 
 export class PayNowPlanDto {
   // No additional fields needed for Pay Now

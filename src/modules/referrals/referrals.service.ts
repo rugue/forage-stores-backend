@@ -6,10 +6,10 @@ import {
   ReferralDocument,
   ReferralStatus,
   CommissionType,
-  CommissionHistory,
-} from '../../entities/referral.entity';
-import { User, UserDocument, UserRole } from '../../entities/user.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+} from '../referrals/entities/referral.entity';
+import { ICommissionHistory } from '../referrals/interfaces/referral.interface';
+import { User, UserDocument, UserRole } from '../users/entities/user.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import {
   CreateReferralDto,
   ProcessCommissionDto,
@@ -29,7 +29,7 @@ export class ReferralsService {
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
   ) {}
 
-  async create(createReferralDto: CreateReferralDto): Promise<Referral> {
+  async create(createReferralDto: CreateReferralDto): Promise<ReferralDocument> {
     const { referralCode, referrerId, referredUserId } = createReferralDto;
     
     // Check if referral already exists for this referred user
@@ -85,7 +85,7 @@ export class ReferralsService {
     return referral.save();
   }
 
-  async findAll(filterDto: ReferralFilterDto): Promise<Referral[]> {
+  async findAll(filterDto: ReferralFilterDto): Promise<ReferralDocument[]> {
     const { referrerId, referredUserId, status, isCommissionCompleted } = filterDto;
     const filter: any = {};
     
@@ -97,14 +97,14 @@ export class ReferralsService {
     return this.referralModel.find(filter).sort({ createdAt: -1 }).exec();
   }
 
-  async findAllByReferrer(referrerId: string): Promise<Referral[]> {
+  async findAllByReferrer(referrerId: string): Promise<ReferralDocument[]> {
     return this.referralModel
       .find({ referrerId: new Types.ObjectId(referrerId) })
       .sort({ createdAt: -1 })
       .exec();
   }
 
-  async findOne(id: string): Promise<Referral> {
+  async findOne(id: string): Promise<ReferralDocument> {
     const referral = await this.referralModel.findById(id);
     if (!referral) {
       throw new NotFoundException('Referral not found');
@@ -112,7 +112,7 @@ export class ReferralsService {
     return referral;
   }
 
-  async update(id: string, updateReferralDto: UpdateReferralDto): Promise<Referral> {
+  async update(id: string, updateReferralDto: UpdateReferralDto): Promise<ReferralDocument> {
     const referral = await this.referralModel.findById(id);
     
     if (!referral) {
@@ -123,7 +123,7 @@ export class ReferralsService {
     return referral.save();
   }
 
-  async processCommission(referredUserId: string, processDto: ProcessCommissionDto): Promise<Referral> {
+  async processCommission(referredUserId: string, processDto: ProcessCommissionDto): Promise<ReferralDocument> {
     // Find the referral for this user
     const referral = await this.referralModel.findOne({ 
       referredUserId: new Types.ObjectId(referredUserId) 
@@ -167,13 +167,14 @@ export class ReferralsService {
     const commissionAmount = (processDto.orderAmount * commissionPercentage) / 100;
 
     // Create commission history entry
-    const commissionHistory: CommissionHistory = {
+    const commissionHistory: ICommissionHistory = {
       orderId: new Types.ObjectId(processDto.orderId),
       amount: commissionAmount,
       type: processDto.commissionType,
       date: new Date(),
       orderAmount: processDto.orderAmount,
       commissionPercentage,
+      isProcessed: false,
     };
 
     // Add to referral

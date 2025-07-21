@@ -26,7 +26,7 @@ import {
 } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
-import { UserRole } from '../../entities/user.entity';
+import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('subscriptions')
 @Controller('subscriptions')

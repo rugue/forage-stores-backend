@@ -2,12 +2,12 @@ import { Injectable, BadRequestException, UnauthorizedException, NotFoundExcepti
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from '../../entities/user.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
-import { Order, OrderDocument } from '../../entities/order.entity';
-import { Subscription, SubscriptionDocument } from '../../entities/subscription.entity';
-import { Referral, ReferralDocument } from '../../entities/referral.entity';
-import { Product, ProductDocument } from '../../entities/product.entity';
+import { User, UserDocument } from '../users/entities/user.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
+import { Order, OrderDocument } from '../orders/entities/order.entity';
+import { Subscription, SubscriptionDocument } from '../subscriptions/entities/subscription.entity';
+import { Referral, ReferralDocument } from '../referrals/entities/referral.entity';
+import { Product, ProductDocument } from '../products/entities/product.entity';
 import { 
   AdminWalletFundDto, 
   AdminWalletWipeDto, 

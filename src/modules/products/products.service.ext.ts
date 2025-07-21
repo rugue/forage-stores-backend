@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Product, ProductDocument } from '../../entities/product.entity';
-import { PriceLock, PriceLockDocument, PriceLockStatus } from '../../entities/price-lock.entity';
+import { Product, ProductDocument } from '../products/entities/product.entity';
+import { PriceLock, PriceLockDocument, PriceLockStatus } from '../products/entities/price-lock.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -42,13 +42,12 @@ export class ProductsService {
         
         // Notify user
         await this.notificationsService.sendPriceLockExpiryNotification(
-          priceLock.userId.email,
+          (priceLock.userId as any).email,
+          priceLock.userId.toString(),
           {
-            priceLockId: priceLock._id.toString(),
-            productName: priceLock.productId.name,
-            lockedPrice: priceLock.price,
-            currentPrice: priceLock.productId.price,
-            expiredAt: priceLock.expiryDate.toISOString()
+            productName: (priceLock.productId as any).name,
+            orderNumber: priceLock._id.toString(),
+            expiryDate: priceLock.expiryDate.toISOString()
           }
         );
         

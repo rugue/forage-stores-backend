@@ -5,7 +5,7 @@ import {
   Auction, 
   AuctionDocument, 
   AuctionStatus 
-} from '../../entities/auction.entity';
+} from '../auctions/entities/auction.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WalletsService } from '../wallets/wallets.service';
 

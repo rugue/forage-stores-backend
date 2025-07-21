@@ -10,6 +10,11 @@ import {
 } from '../interfaces/referral.interface';
 import { REFERRAL_CONSTANTS, REFERRAL_DEFAULTS, REFERRAL_TIER_CONFIG } from '../constants/referral.constants';
 
+// Re-export types for backward compatibility
+export { CommissionType, ReferralStatus, ReferralTier } from '../interfaces/referral.interface';
+export type ReferralDocument = IReferralDocument;
+export type CommissionHistoryDocument = ICommissionHistoryDocument;
+
 @Schema({ 
   timestamps: true, 
   _id: false,

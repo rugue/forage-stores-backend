@@ -2,14 +2,14 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { AuctionStatus, BidStatus, UserRole } from '../../shared/enums';
 import { 
   Auction, 
   AuctionDocument, 
-  AuctionStatus, 
   Bid
 } from './entities/auction.entity';
 import { Product, ProductDocument } from '../products/entities/product.entity';
-import { User, UserDocument, UserRole } from '../users/entities/user.entity';
+import { User, UserDocument } from '../users/entities/user.entity';
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType, NotificationChannel } from '../notifications/entities/notification.entity';
@@ -206,19 +206,18 @@ export class AuctionsService {
     }
     
     // Place the bid
-    const bid: Bid = {
+    auction.bids.push({
       userId: new Types.ObjectId(userId),
       amount: bidDto.amount,
       timestamp: new Date(),
-      status: 'active',
-    };
+      status: BidStatus.ACTIVE,
+    } as any);
     
     // Lock the bid amount in user's wallet
     wallet.foodPoints -= bidDto.amount;
     await wallet.save();
     
     // Update auction with new bid
-    auction.bids.push(bid);
     auction.bidCount += 1;
     auction.currentTopBid = bidDto.amount;
     auction.currentTopBidder = new Types.ObjectId(userId);
@@ -297,7 +296,7 @@ export class AuctionsService {
       );
       
       if (winningBidIndex !== -1) {
-        auction.bids[winningBidIndex].status = 'winning';
+        auction.bids[winningBidIndex].status = BidStatus.WINNING;
         auction.winnerId = auction.currentTopBidder;
         auction.winningBid = auction.currentTopBid;
       }
@@ -313,7 +312,7 @@ export class AuctionsService {
   private async refundLosingBids(auction: AuctionDocument): Promise<void> {
     // Process refunds for all non-winning bids with status 'active'
     for (const bid of auction.bids) {
-      if (bid.status === 'active') {
+      if (bid.status === BidStatus.ACTIVE) {
         // If this is not the winning bid, refund it (minus fee)
         if (!(auction.winnerId && 
             bid.userId.toString() === auction.winnerId.toString() && 
@@ -328,7 +327,7 @@ export class AuctionsService {
   private async refundAllBids(auction: AuctionDocument): Promise<void> {
     // Process refunds for all bids with status 'active'
     for (const bid of auction.bids) {
-      if (bid.status === 'active') {
+      if (bid.status === BidStatus.ACTIVE) {
         await this.refundBid(bid, auction.feePercentage);
       }
     }
@@ -352,7 +351,7 @@ export class AuctionsService {
       await wallet.save();
       
       // Update bid status
-      bid.status = 'refunded';
+      bid.status = BidStatus.REFUNDED;
       bid.refundRef = `refund_${Date.now()}`;
       bid.refundTimestamp = new Date();
       
@@ -466,7 +465,7 @@ export class AuctionsService {
             );
             
             // Update bid status
-            bid.status = 'refunded';
+            bid.status = BidStatus.REFUNDED;
             bid.refundRef = `refund_${Date.now()}`;
             bid.refundTimestamp = now;
             

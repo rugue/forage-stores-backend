@@ -1,22 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-
-// Auction status enumeration
-export enum AuctionStatus {
-  UPCOMING = 'upcoming',
-  ACTIVE = 'active',
-  ENDED = 'ended',
-  CANCELLED = 'cancelled',
-  COMPLETED = 'completed',
-  EXPIRED = 'expired',
-}
-
-// Bid status enumeration
-export enum BidStatus {
-  ACTIVE = 'active',
-  REFUNDED = 'refunded',
-  WINNING = 'winning',
-}
+import {
+  AuctionStatus,
+  BidStatus,
+  PaymentStatus,
+  PaymentMethod,
+} from '../../../shared/enums';
 
 // Constants
 export const AUCTION_CONSTANTS = {

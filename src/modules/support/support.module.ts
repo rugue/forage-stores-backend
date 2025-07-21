@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SupportService } from './support.service';
 import { SupportController } from './support.controller';
-import { SupportTicket, SupportTicketSchema } from '../../entities/support-ticket.entity';
-import { TicketMessage, TicketMessageSchema } from '../../entities/ticket-message.entity';
-import { User, UserSchema } from '../../entities/user.entity';
+import { SupportTicket, SupportTicketSchema } from '../support/entities/support-ticket.entity';
+import { TicketMessage, TicketMessageSchema } from '../support/entities/ticket-message.entity';
+import { User, UserSchema } from '../users/entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({

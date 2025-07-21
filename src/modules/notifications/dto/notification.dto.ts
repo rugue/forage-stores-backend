@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsEnum, IsOptional, IsObject } from 'class-validator';
-import { NotificationType } from '../../../entities/notification.entity';
+import { NotificationType } from '../../notifications/entities/notification.entity';
 
 export class NotificationDto {
   @IsEnum(NotificationType)

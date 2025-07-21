@@ -1,50 +1,5 @@
 import { Document, Types } from 'mongoose';
-
-/**
- * Delivery status enumeration
- */
-export enum DeliveryStatus {
-  PENDING_ASSIGNMENT = 'pending_assignment',  // Waiting for admin to assign rider
-  PENDING_ACCEPTANCE = 'pending_acceptance',  // Waiting for rider to accept
-  ACCEPTED = 'accepted',                     // Rider accepted, waiting for pickup
-  PICKED_UP = 'picked_up',                   // Rider has picked up the order
-  IN_TRANSIT = 'in_transit',                 // Rider is delivering the order
-  DELIVERED = 'delivered',                   // Order has been delivered
-  COMPLETED = 'completed',                   // Delivery confirmed by customer
-  CANCELLED = 'cancelled',                   // Delivery was cancelled
-  DECLINED = 'declined',                     // Rider declined the delivery
-  EXPIRED = 'expired',                       // Rider didn't respond in time
-}
-
-/**
- * Payment status enumeration
- */
-export enum PaymentStatus {
-  PENDING = 'pending',
-  RELEASED = 'released',
-  CANCELLED = 'cancelled',
-}
-
-/**
- * Rider status enumeration
- */
-export enum RiderStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-  PENDING_VERIFICATION = 'pending_verification',
-}
-
-/**
- * Vehicle type enumeration
- */
-export enum VehicleType {
-  MOTORCYCLE = 'motorcycle',
-  BICYCLE = 'bicycle',
-  CAR = 'car',
-  VAN = 'van',
-  FOOT = 'foot',
-}
+import { DeliveryStatus, PaymentStatus, RiderStatus, VehicleType } from '../../../shared/enums';
 
 /**
  * Delivery location interface
@@ -139,6 +94,11 @@ export interface IDelivery {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Computed properties (getters)
+  isActive: boolean;
+  isCompleted: boolean;
+  isCancelled: boolean;
 }
 
 /**

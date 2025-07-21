@@ -12,7 +12,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { Types } from 'mongoose';
-import { PaymentPlan, DeliveryMethod, PaymentMethod } from '../../../entities/order.entity';
+import { PaymentPlan, DeliveryMethod, PaymentMethod } from '../../orders/entities/order.entity';
 import { PaymentPlanDetailsDto } from './payment-plan.dto';
 
 export class AddToCartDto {

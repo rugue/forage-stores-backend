@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { DeliveryType, ProductCategory } from '../../../entities/product.entity';
+import { DeliveryType, ProductCategory } from '../../products/entities/product.entity';
 
 export class ProductFilterDto {
   @ApiProperty({

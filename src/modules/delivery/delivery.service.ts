@@ -2,11 +2,12 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Delivery, DeliveryDocument, DeliveryStatus, PaymentStatus } from '../../entities/delivery.entity';
-import { Order, OrderDocument, OrderStatus } from '../../entities/order.entity';
-import { Rider, RiderDocument, RiderStatus } from '../../entities/rider.entity';
-import { User, UserDocument, UserRole } from '../../entities/user.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+import { DeliveryStatus, PaymentStatus, UserRole, OrderStatus, RiderStatus } from '../../shared/enums';
+import { Delivery, DeliveryDocument } from './entities/delivery.entity';
+import { Order, OrderDocument } from '../orders/entities/order.entity';
+import { Rider, RiderDocument } from './entities/rider.entity';
+import { User, UserDocument } from '../users/entities/user.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { RidersService } from './riders.service';
 import {
   CreateDeliveryDto,

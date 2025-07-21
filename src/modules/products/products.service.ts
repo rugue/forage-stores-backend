@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Product, ProductDocument } from '../../entities/product.entity';
-import { PriceLock, PriceLockDocument, PriceLockStatus } from '../../entities/price-lock.entity';
+import { Product, ProductDocument } from '../products/entities/product.entity';
+import { PriceLock, PriceLockDocument, PriceLockStatus } from '../products/entities/price-lock.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '../notifications/entities/notification.entity';
 import { CreateProductDto, UpdateProductDto, ProductFilterDto } from './dto';
 
 @Injectable()

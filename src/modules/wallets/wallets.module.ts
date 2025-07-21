@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Wallet, WalletSchema } from '../../entities/wallet.entity';
+import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
 import { WalletsController } from './wallets.controller';
 import { WalletsService } from './wallets.service';
 

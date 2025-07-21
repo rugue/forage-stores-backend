@@ -25,6 +25,7 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from '../entities/order.entity';
+import { PaymentPlanDetailsDto } from './payment-plan.dto';
 
 export class CreateCartItemDto {
   @ApiProperty({ description: 'Product ID' })
@@ -36,6 +37,25 @@ export class CreateCartItemDto {
   @IsNumber()
   @Min(1)
   quantity: number;
+}
+
+export class UpdateCartItemDto {
+  @ApiProperty({ description: 'Product ID' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @ApiProperty({ description: 'New quantity of the product', minimum: 1 })
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+}
+
+export class RemoveFromCartDto {
+  @ApiProperty({ description: 'Product ID to remove' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
 }
 
 export class CreateDeliveryAddressDto {
@@ -157,6 +177,22 @@ export class ProcessPaymentDto {
   @ApiProperty({ description: 'Payment method', enum: PaymentMethod })
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
+
+  @ApiProperty({ description: 'Delivery method', enum: DeliveryMethod })
+  @IsEnum(DeliveryMethod)
+  deliveryMethod: DeliveryMethod;
+
+  @ApiProperty({ description: 'Delivery address for home delivery', required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateDeliveryAddressDto)
+  deliveryAddress?: CreateDeliveryAddressDto;
+
+  @ApiProperty({ description: 'Payment plan details' })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => PaymentPlanDetailsDto)
+  paymentPlan: PaymentPlanDetailsDto;
 
   @ApiProperty({ description: 'Transaction reference/ID', required: false })
   @IsOptional()

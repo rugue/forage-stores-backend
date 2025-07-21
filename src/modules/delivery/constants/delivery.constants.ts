@@ -1,4 +1,4 @@
-import { DeliveryStatus, PaymentStatus, RiderStatus, VehicleType } from '../interfaces/delivery.interface';
+import { DeliveryStatus, PaymentStatus, RiderStatus, VehicleType } from '../../../shared/enums';
 
 /**
  * Delivery-related constants and configurations
@@ -152,6 +152,14 @@ export const DELIVERY_NOTIFICATION_TYPES = {
  * Status transition rules
  */
 export const DELIVERY_STATUS_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[]> = {
+  [DeliveryStatus.PENDING]: [
+    DeliveryStatus.PENDING_ASSIGNMENT,
+    DeliveryStatus.CANCELLED
+  ],
+  [DeliveryStatus.ASSIGNED]: [
+    DeliveryStatus.PENDING_ACCEPTANCE,
+    DeliveryStatus.CANCELLED
+  ],
   [DeliveryStatus.PENDING_ASSIGNMENT]: [
     DeliveryStatus.PENDING_ACCEPTANCE,
     DeliveryStatus.CANCELLED
@@ -166,6 +174,7 @@ export const DELIVERY_STATUS_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[
     DeliveryStatus.PICKED_UP,
     DeliveryStatus.CANCELLED
   ],
+  [DeliveryStatus.REJECTED]: [], // Terminal state
   [DeliveryStatus.PICKED_UP]: [
     DeliveryStatus.IN_TRANSIT,
     DeliveryStatus.CANCELLED
@@ -178,6 +187,7 @@ export const DELIVERY_STATUS_TRANSITIONS: Record<DeliveryStatus, DeliveryStatus[
     DeliveryStatus.COMPLETED
   ],
   [DeliveryStatus.COMPLETED]: [], // Terminal state
+  [DeliveryStatus.FAILED]: [], // Terminal state
   [DeliveryStatus.CANCELLED]: [], // Terminal state
   [DeliveryStatus.DECLINED]: [], // Terminal state
   [DeliveryStatus.EXPIRED]: [], // Terminal state

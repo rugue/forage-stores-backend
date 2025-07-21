@@ -30,6 +30,18 @@ export class DropScheduleItem {
   @IsDateString()
   scheduledDate: Date;
 
+  @ApiProperty({ description: 'Next drop date for delivery' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  @IsDateString()
+  nextDropDate?: Date;
+
+  @ApiProperty({ description: 'Products in this drop' })
+  @Prop({ required: false, type: [Types.ObjectId], ref: 'Product', default: [] })
+  @IsOptional()
+  @IsArray()
+  products?: Types.ObjectId[];
+
   @ApiProperty({ description: 'Amount for this drop' })
   @Prop({ required: true, type: Number, min: 0 })
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -56,6 +68,12 @@ export class DropScheduleItem {
 
 @Schema({ timestamps: true })
 export class Subscription {
+  @ApiProperty({ description: 'Subscription name/title' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
   @ApiProperty({ description: 'User who owns the subscription' })
   @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
   @IsString()

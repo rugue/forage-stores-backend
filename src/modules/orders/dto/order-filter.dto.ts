@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderStatus, PaymentPlan, DeliveryMethod } from '../../../entities/order.entity';
+import { OrderStatus, PaymentPlan, DeliveryMethod } from '../../orders/entities/order.entity';
 
 export class OrderFilterDto {
   @ApiProperty({ description: 'Filter by order status', enum: OrderStatus, required: false })
