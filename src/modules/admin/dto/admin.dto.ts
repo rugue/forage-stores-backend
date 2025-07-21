@@ -1,6 +1,220 @@
-import { IsString, IsEmail, IsEnum, IsOptional, IsNumber, Min, IsBoolean, IsArray, ValidateNested, IsDate, IsMongoId, IsNotEmpty, IsObject } from 'class-validator';
+import { IsString, IsEmail, IsEnum, IsOptional, IsNumber, Min, IsBoolean, IsArray, ValidateNested, IsDate, IsMongoId, IsNotEmpty, IsObject, MinLength, Matches, ArrayUnique } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import { AdminRole, AdminPermission } from '../interfaces/admin.interface';
+import { ADMIN_VALIDATION } from '../constants/admin.constants';
+
+// ====== ADMIN AUTHENTICATION & MANAGEMENT DTOs ======
+
+/**
+ * Admin login DTO
+ */
+export class AdminLoginDto {
+  @ApiProperty({ 
+    description: 'Admin email address',
+    example: 'admin@forage.com'
+  })
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ 
+    description: 'Admin password',
+    example: 'SecurePassword123!'
+  })
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
+/**
+ * Create admin DTO
+ */
+export class CreateAdminDto {
+  @ApiProperty({ 
+    description: 'Admin email address',
+    example: 'admin@forage.com'
+  })
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ 
+    description: 'Admin full name',
+    example: 'John Admin'
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(ADMIN_VALIDATION.NAME_MIN_LENGTH)
+  name: string;
+
+  @ApiProperty({ 
+    description: 'Admin password',
+    example: 'SecurePassword123!'
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  @Matches(ADMIN_VALIDATION.PASSWORD_REGEX, {
+    message: 'Password must contain at least 8 characters with uppercase, lowercase, number and special character'
+  })
+  password: string;
+
+  @ApiProperty({ 
+    description: 'Admin role',
+    enum: AdminRole,
+    example: AdminRole.ADMIN
+  })
+  @IsEnum(AdminRole)
+  role: AdminRole;
+
+  @ApiProperty({ 
+    description: 'Admin permissions',
+    enum: AdminPermission,
+    isArray: true,
+    example: [AdminPermission.VIEW_USERS, AdminPermission.EDIT_USERS]
+  })
+  @IsArray()
+  @IsEnum(AdminPermission, { each: true })
+  @ArrayUnique()
+  permissions: AdminPermission[];
+
+  @ApiPropertyOptional({ 
+    description: 'Admin active status',
+    default: true
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+/**
+ * Update admin DTO
+ */
+export class UpdateAdminDto extends PartialType(CreateAdminDto) {
+  @ApiPropertyOptional({ 
+    description: 'Admin full name',
+    example: 'John Updated Admin'
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(ADMIN_VALIDATION.NAME_MIN_LENGTH)
+  name?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Admin role',
+    enum: AdminRole
+  })
+  @IsOptional()
+  @IsEnum(AdminRole)
+  role?: AdminRole;
+
+  @ApiPropertyOptional({ 
+    description: 'Admin permissions',
+    enum: AdminPermission,
+    isArray: true
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AdminPermission, { each: true })
+  @ArrayUnique()
+  permissions?: AdminPermission[];
+
+  @ApiPropertyOptional({ 
+    description: 'Admin active status'
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+/**
+ * Change admin password DTO
+ */
+export class ChangeAdminPasswordDto {
+  @ApiProperty({ 
+    description: 'Current password',
+    example: 'OldPassword123!'
+  })
+  @IsString()
+  @IsNotEmpty()
+  currentPassword: string;
+
+  @ApiProperty({ 
+    description: 'New password',
+    example: 'NewSecurePassword123!'
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  @Matches(ADMIN_VALIDATION.PASSWORD_REGEX, {
+    message: 'Password must contain at least 8 characters with uppercase, lowercase, number and special character'
+  })
+  newPassword: string;
+}
+
+/**
+ * Admin query filters DTO
+ */
+export class AdminQueryDto {
+  @ApiPropertyOptional({ 
+    description: 'Filter by admin role',
+    enum: AdminRole
+  })
+  @IsOptional()
+  @IsEnum(AdminRole)
+  role?: AdminRole;
+
+  @ApiPropertyOptional({ 
+    description: 'Filter by active status'
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ 
+    description: 'Search by name or email'
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'Filter by permissions',
+    enum: AdminPermission,
+    isArray: true
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AdminPermission, { each: true })
+  permissions?: AdminPermission[];
+
+  @ApiPropertyOptional({ 
+    description: 'Page number',
+    default: 1,
+    minimum: 1
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  page?: number;
+
+  @ApiPropertyOptional({ 
+    description: 'Number of items per page',
+    default: 20,
+    minimum: 1,
+    maximum: 100
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number;
+}
+
+// ====== WALLET MANAGEMENT DTOs ======
 
 export class AdminWalletFundDto {
   @ApiProperty({ description: 'User ID whose wallet will be funded' })

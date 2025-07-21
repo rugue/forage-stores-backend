@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { 
   IsString, 
   IsNotEmpty, 
@@ -12,21 +12,20 @@ import {
   IsDate,
   IsArray,
   ValidateNested,
+  MinLength,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { AuctionStatus } from '../interfaces/auction.interface';
+import { AUCTION_VALIDATION } from '../constants/auction.constants';
 
-// Define enum locally to avoid circular dependencies
-export enum AuctionStatus {
-  UPCOMING = 'upcoming',
-  ACTIVE = 'active',
-  ENDED = 'ended',
-  CANCELLED = 'cancelled'
-}
-
+/**
+ * Create auction DTO
+ */
 export class CreateAuctionDto {
   @ApiProperty({
     description: 'Product ID being auctioned',
-    required: true,
+    example: '507f1f77bcf86cd799439011'
   })
   @IsMongoId()
   @IsNotEmpty()
@@ -34,18 +33,24 @@ export class CreateAuctionDto {
 
   @ApiProperty({
     description: 'Auction title',
-    required: true,
+    example: 'Flash Sale: Premium Pizza',
+    minLength: AUCTION_VALIDATION.TITLE_MIN_LENGTH,
+    maxLength: AUCTION_VALIDATION.TITLE_MAX_LENGTH
   })
   @IsString()
   @IsNotEmpty()
+  @MinLength(AUCTION_VALIDATION.TITLE_MIN_LENGTH)
+  @MaxLength(AUCTION_VALIDATION.TITLE_MAX_LENGTH)
   title: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Auction description',
-    required: false,
+    example: 'Limited time auction for premium pizza with special toppings',
+    maxLength: AUCTION_VALIDATION.DESCRIPTION_MAX_LENGTH
   })
   @IsString()
   @IsOptional()
+  @MaxLength(AUCTION_VALIDATION.DESCRIPTION_MAX_LENGTH)
   description?: string;
 
   @ApiProperty({

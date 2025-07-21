@@ -9,7 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StoresService } from './stores.service';
-import { Store } from '../../entities/store.entity';
+import { Store } from './entities/store.entity';
+import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 
 @ApiTags('stores')
 @Controller('stores')
@@ -23,7 +24,7 @@ export class StoresController {
     description: 'Store created successfully',
     type: Store,
   })
-  create(@Body() createStoreDto: Partial<Store>) {
+  create(@Body() createStoreDto: CreateStoreDto) {
     return this.storesService.create(createStoreDto);
   }
 
@@ -48,7 +49,7 @@ export class StoresController {
     description: 'Store updated successfully',
     type: Store,
   })
-  update(@Param('id') id: string, @Body() updateStoreDto: Partial<Store>) {
+  update(@Param('id') id: string, @Body() updateStoreDto: UpdateStoreDto) {
     return this.storesService.update(id, updateStoreDto);
   }
 

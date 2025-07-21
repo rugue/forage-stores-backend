@@ -7,12 +7,12 @@ import {
   AuctionDocument, 
   AuctionStatus, 
   Bid
-} from '../../entities/auction.entity';
-import { Product, ProductDocument } from '../../entities/product.entity';
-import { User, UserDocument, UserRole } from '../../entities/user.entity';
-import { Wallet, WalletDocument } from '../../entities/wallet.entity';
+} from './entities/auction.entity';
+import { Product, ProductDocument } from '../products/entities/product.entity';
+import { User, UserDocument, UserRole } from '../users/entities/user.entity';
+import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType, NotificationChannel } from '../../entities/notification.entity';
+import { NotificationType, NotificationChannel } from '../notifications/entities/notification.entity';
 import { 
   CreateAuctionDto, 
   UpdateAuctionDto, 

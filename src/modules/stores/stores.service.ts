@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Store, StoreDocument } from '../../entities/store.entity';
+import { Store, StoreDocument } from './entities/store.entity';
+import { IStoreService } from './interfaces/store.interface';
+import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 
 @Injectable()
-export class StoresService {
+export class StoresService implements IStoreService {
   constructor(
     @InjectModel(Store.name) private storeModel: Model<StoreDocument>,
   ) {}
 
-  async create(storeData: Partial<Store>): Promise<Store> {
+  async create(storeData: CreateStoreDto): Promise<Store> {
     const createdStore = new this.storeModel(storeData);
     return createdStore.save();
   }
@@ -22,7 +24,7 @@ export class StoresService {
     return this.storeModel.findById(id).exec();
   }
 
-  async update(id: string, storeData: Partial<Store>): Promise<Store> {
+  async update(id: string, storeData: UpdateStoreDto): Promise<Store> {
     return this.storeModel
       .findByIdAndUpdate(id, storeData, { new: true })
       .exec();
