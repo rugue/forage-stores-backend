@@ -7,6 +7,9 @@ import {
   PaymentMethod,
 } from '../../../shared/enums';
 
+// Export the enums for external use
+export { AuctionStatus, BidStatus, PaymentStatus, PaymentMethod };
+
 // Constants
 export const AUCTION_CONSTANTS = {
   COLLECTION_NAME: 'auctions',

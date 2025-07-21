@@ -8,6 +8,7 @@ import {
 } from '../auctions/entities/auction.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WalletsService } from '../wallets/wallets.service';
+import { WalletType, TransactionType } from '../wallets/dto/update-balance.dto';
 
 @Injectable()
 export class AuctionsService {
@@ -30,7 +31,16 @@ export class AuctionsService {
     const auctions = await this.auctionModel.find({
       endTime: { $lte: now },
       status: AuctionStatus.ACTIVE
-    }).populate('bids.userId').exec();
+    })
+    .populate({
+      path: 'bids.userId',
+      select: 'email firstName lastName'
+    })
+    .populate({
+      path: 'productId',
+      select: 'name'
+    })
+    .exec();
     
     if (auctions.length === 0) {
       return 0;
@@ -52,12 +62,12 @@ export class AuctionsService {
           auction.winnerId = winningBid.userId;
           auction.winningBid = winningBid.amount;
           
-          // Notify winner
-          await this.notificationsService.sendAuctionWinNotification(
-            winningBid.userId.email,
+          // Notify winner - use the extension service method
+          await (this.notificationsService as any).sendAuctionWinNotification(
+            (winningBid.userId as any).email,
             {
               auctionId: auction._id.toString(),
-              productName: auction.productName,
+              productName: (auction.productId as any).name || auction.title,
               bidAmount: winningBid.amount,
               winTime: now.toISOString()
             }
@@ -66,17 +76,25 @@ export class AuctionsService {
           // Refund losing bidders (minus fee)
           for (const bid of sortedBids.slice(1)) {
             const refundAmount = bid.amount * 0.95; // 5% fee
-            await this.walletsService.addFoodPoints(bid.userId._id.toString(), refundAmount, {
-              reason: 'Auction refund',
-              reference: auction._id.toString()
-            });
             
-            // Notify of refund
-            await this.notificationsService.sendAuctionRefundNotification(
-              bid.userId.email,
+            // Use the correct wallet service method
+            await this.walletsService.updateBalance(
+              (bid.userId as any)._id.toString(),
+              {
+                amount: refundAmount,
+                walletType: WalletType.FOOD_POINTS,
+                transactionType: TransactionType.CREDIT,
+                description: 'Auction refund',
+                reference: auction._id.toString()
+              }
+            );
+            
+            // Notify of refund - use the extension service method
+            await (this.notificationsService as any).sendAuctionRefundNotification(
+              (bid.userId as any).email,
               {
                 auctionId: auction._id.toString(),
-                productName: auction.productName,
+                productName: (auction.productId as any).name || auction.title,
                 refundAmount: refundAmount,
                 originalBid: bid.amount,
                 fee: bid.amount - refundAmount
