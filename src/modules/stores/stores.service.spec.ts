@@ -54,7 +54,7 @@ describe('StoresService', () => {
       };
       const expectedStore = { id: '1', ...createStoreDto };
 
-      jest.spyOn(model, 'create').mockImplementationOnce(() => Promise.resolve(expectedStore as Store));
+      jest.spyOn(model, 'create').mockImplementationOnce(() => Promise.resolve([expectedStore] as any));
 
       const result = await service.create(createStoreDto);
       expect(result).toEqual(expectedStore);

@@ -22,13 +22,14 @@ The Swagger UI provides an interactive interface to test all API endpoints with 
 **Test Data:**
 ```json
 {
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "phoneNumber": "+2348123456789",
-  "password": "SecurePassword123!",
-  "role": "USER",
-  "referralCode": "OPTIONAL_REF_CODE"
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "password": "MySecure123!",
+  "accountType": "family",
+  "role": "user",
+  "city": "New York",
+  "referralCode": "REF123456"
 }
 ```
 
@@ -40,11 +41,19 @@ The Swagger UI provides an interactive interface to test all API endpoints with 
 ### Step 2: Login (Alternative to Registration)
 **Endpoint:** `POST /auth/login`
 
-**Test Data:**
+**Test Data (using email):**
 ```json
 {
-  "emailOrPhone": "john.doe@example.com",
-  "password": "SecurePassword123!"
+  "email": "john@example.com",
+  "password": "MySecure123!"
+}
+```
+
+**Alternative Test Data (using phone):**
+```json
+{
+  "phone": "+1234567890",
+  "password": "MySecure123!"
 }
 ```
 
@@ -79,7 +88,7 @@ Now you can test protected endpoints!
   "name": "Fresh Foods Market",
   "description": "Premium fresh foods and groceries",
   "address": "123 Market Street, Lagos",
-  "phoneNumber": "+2348123456789",
+  "phone": "+2348123456789",
   "email": "contact@freshfoods.com",
   "category": "GROCERY",
   "isActive": true
@@ -115,13 +124,12 @@ Now you can test protected endpoints!
 **Endpoint:** `POST /users`
 ```json
 {
-  "firstName": "Jane",
-  "lastName": "Smith",
+  "name": "Jane Smith",
   "email": "jane.smith@example.com",
-  "phoneNumber": "+2348123456790",
+  "phone": "+2348123456790",
   "password": "SecurePassword456!",
-  "role": "USER",
-  "accountType": "PREMIUM"
+  "role": "customer",
+  "accountType": "customer"
 }
 ```
 
@@ -136,9 +144,9 @@ Now you can test protected endpoints!
 **Endpoint:** `PATCH /users/{id}`
 ```json
 {
-  "firstName": "Updated Name",
-  "phoneNumber": "+2348123456791",
-  "accountType": "PREMIUM"
+  "name": "Updated Name",
+  "phone": "+2348123456791",
+  "accountType": "customer"
 }
 ```
 
@@ -173,9 +181,8 @@ Now you can test protected endpoints!
 **Endpoint:** `PATCH /users/profile/{id}`
 ```json
 {
-  "firstName": "John Updated",
-  "lastName": "Doe Updated",
-  "phoneNumber": "+2348123456790"
+  "name": "John Updated Doe",
+  "phone": "+2348123456790"
 }
 ```
 
@@ -183,7 +190,7 @@ Now you can test protected endpoints!
 **Endpoint:** `PATCH /users/profile/{id}/password`
 ```json
 {
-  "oldPassword": "SecurePassword123!",
+  "currentPassword": "SecurePassword123!",
   "newPassword": "NewSecurePassword456!"
 }
 ```

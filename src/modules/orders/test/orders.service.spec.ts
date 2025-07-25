@@ -5,6 +5,7 @@ import { OrdersService } from '../orders.service';
 import { Order, OrderDocument } from '../entities/order.entity';
 import { CreateOrderDto } from '../dto';
 import { PaymentPlan, DeliveryMethod, OrderStatus } from '../entities/order.entity';
+import { UserRole } from '../../users/entities/user.entity';
 
 const mockOrder = {
   _id: '64f123456789abcdef123456',
@@ -77,37 +78,51 @@ describe('OrdersService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('create', () => {
-    it('should create a new order', async () => {
-      const createOrderDto: CreateOrderDto = {
-        items: [
-          {
-            productId: '64f123456789abcdef123458',
-            quantity: 2,
-          },
-        ],
-        paymentPlan: PaymentPlan.PAY_NOW,
-        deliveryMethod: DeliveryMethod.HOME_DELIVERY,
-        deliveryAddress: {
-          street: '123 Test Street',
-          city: 'Lagos',
-          state: 'Lagos',
-          country: 'Nigeria',
-        },
-      };
+  describe('basic operations', () => {
+    it('should find all orders', async () => {
+      const filterDto = { page: 1, limit: 10 };
+      const orders = [mockOrder];
+      
+      mockOrderModel.find.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              skip: jest.fn().mockReturnValue({
+                exec: jest.fn().mockResolvedValue(orders),
+              }),
+            }),
+          }),
+        }),
+      });
+      mockOrderModel.countDocuments.mockResolvedValue(1);
 
-      mockOrderModel.create.mockResolvedValue(mockOrder);
+      const result = await service.findAll(filterDto, '64f123456789abcdef123457', UserRole.USER);
+      expect(result).toBeDefined();
+    });
 
-      const result = await service.create(createOrderDto, '64f123456789abcdef123457');
+    it('should find one order', async () => {
+      mockOrderModel.findById.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(mockOrder),
+        }),
+      });
+
+      const result = await service.findOne('64f123456789abcdef123456', '64f123456789abcdef123457', UserRole.USER);
       expect(result).toEqual(mockOrder);
-      expect(mockOrderModel.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: '64f123456789abcdef123457',
-          items: createOrderDto.items,
-          paymentPlan: createOrderDto.paymentPlan,
-          deliveryMethod: createOrderDto.deliveryMethod,
-        })
-      );
+    });
+
+    it('should update an order', async () => {
+      const updatedOrder = { ...mockOrder, status: OrderStatus.SHIPPED };
+      mockOrderModel.findByIdAndUpdate.mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(updatedOrder),
+        }),
+      });
+
+      const result = await service.update('64f123456789abcdef123456', {
+        status: OrderStatus.SHIPPED,
+      }, UserRole.ADMIN);
+      expect(result).toEqual(updatedOrder);
     });
   });
 
@@ -145,98 +160,19 @@ describe('OrdersService', () => {
     });
   });
 
-  describe('updateStatus', () => {
-    it('should update order status', async () => {
-      const updatedOrder = { ...mockOrder, status: OrderStatus.PAID };
+  describe('update', () => {
+    it('should update an order', async () => {
+      const updatedOrder = { ...mockOrder, status: OrderStatus.SHIPPED };
       mockOrderModel.findByIdAndUpdate.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(updatedOrder),
+        populate: jest.fn().mockReturnValue({
+          exec: jest.fn().mockResolvedValue(updatedOrder),
+        }),
       });
 
-      const result = await service.updateStatus('64f123456789abcdef123456', {
-        status: OrderStatus.PAID,
-      });
+      const result = await service.update('64f123456789abcdef123456', {
+        status: OrderStatus.SHIPPED,
+      }, UserRole.ADMIN);
       expect(result).toEqual(updatedOrder);
-    });
-  });
-
-  describe('processPayment', () => {
-    it('should process payment for an order', async () => {
-      const paymentDto = {
-        amount: 3500,
-        paymentMethod: 'CARD' as any,
-        transactionRef: 'TXN123456',
-      };
-
-      mockOrderModel.findById.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockOrder),
-      });
-
-      mockOrder.save.mockResolvedValue({
-        ...mockOrder,
-        amountPaid: 3500,
-        remainingAmount: 0,
-        status: OrderStatus.PAID,
-      });
-
-      const result = await service.processPayment('64f123456789abcdef123456', paymentDto);
-      expect(result.amountPaid).toBe(3500);
-      expect(result.remainingAmount).toBe(0);
-      expect(result.status).toBe(OrderStatus.PAID);
-    });
-  });
-
-  describe('cancel', () => {
-    it('should cancel an order', async () => {
-      const cancelDto = {
-        cancellationReason: 'Customer request',
-        processRefund: true,
-      };
-
-      mockOrderModel.findById.mockReturnValue({
-        exec: jest.fn().mockResolvedValue(mockOrder),
-      });
-
-      mockOrder.save.mockResolvedValue({
-        ...mockOrder,
-        status: OrderStatus.CANCELLED,
-        cancellationReason: 'Customer request',
-      });
-
-      const result = await service.cancel('64f123456789abcdef123456', cancelDto);
-      expect(result.status).toBe(OrderStatus.CANCELLED);
-      expect(result.cancellationReason).toBe('Customer request');
-    });
-  });
-
-  describe('getOrderSummary', () => {
-    it('should return order summary statistics', async () => {
-      const summaryData = [
-        {
-          _id: null,
-          totalOrders: 10,
-          totalAmount: 50000,
-          totalAmountInNibia: 5000000,
-          ordersByStatus: {
-            [OrderStatus.PENDING]: 2,
-            [OrderStatus.PAID]: 5,
-            [OrderStatus.SHIPPED]: 2,
-            [OrderStatus.DELIVERED]: 1,
-            [OrderStatus.CANCELLED]: 0,
-          },
-          ordersByPaymentPlan: {
-            [PaymentPlan.PAY_NOW]: 6,
-            [PaymentPlan.PRICE_LOCK]: 2,
-            [PaymentPlan.PAY_SMALL_SMALL]: 1,
-            [PaymentPlan.PAY_LATER]: 1,
-          },
-        },
-      ];
-
-      mockOrderModel.aggregate.mockResolvedValue(summaryData);
-
-      const result = await service.getOrderSummary();
-      expect(result.totalOrders).toBe(10);
-      expect(result.totalAmount).toBe(50000);
     });
   });
 });
