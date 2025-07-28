@@ -32,6 +32,7 @@ export class SupportController {
    */
   @Post('tickets')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   async createTicket(
     @CurrentUser('id') userId: string,
     @Body() createTicketDto: CreateTicketDto
@@ -41,6 +42,7 @@ export class SupportController {
 
   @Get('tickets')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   async getUserTickets(
     @CurrentUser('id') userId: string,
     @Query() query: TicketQueryDto
@@ -50,6 +52,7 @@ export class SupportController {
 
   @Get('tickets/:id')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   async getTicketById(
     @CurrentUser('id') userId: string,
     @Param('id') ticketId: string
@@ -59,6 +62,7 @@ export class SupportController {
 
   @Get('tickets/:id/messages')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   async getTicketMessages(
     @CurrentUser('id') userId: string,
     @Param('id') ticketId: string
@@ -68,6 +72,7 @@ export class SupportController {
 
   @Post('tickets/:id/messages')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   async addMessageToTicket(
     @CurrentUser('id') userId: string,
     @Param('id') ticketId: string,
@@ -82,6 +87,7 @@ export class SupportController {
   @Get('admin/tickets')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async getAllTickets(
     @CurrentUser('id') adminId: string,
     @Query() query: TicketQueryDto
@@ -92,6 +98,7 @@ export class SupportController {
   @Patch('admin/tickets/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async updateTicket(
     @CurrentUser('id') adminId: string,
     @Param('id') ticketId: string,
@@ -103,6 +110,7 @@ export class SupportController {
   @Post('admin/tickets/:id/close')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async closeTicket(
     @CurrentUser('id') adminId: string,
     @Param('id') ticketId: string,
@@ -114,6 +122,7 @@ export class SupportController {
   @Get('admin/analytics')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async getTicketAnalytics(
     @CurrentUser('id') adminId: string
   ) {

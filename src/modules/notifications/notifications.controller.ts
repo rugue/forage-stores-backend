@@ -35,6 +35,7 @@ export class NotificationsController {
   @Post('whatsapp')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async sendWhatsAppMessage(@Body() whatsappDto: WhatsAppNotificationDto) {
     const result = await this.notificationsService.sendWhatsAppMessage(whatsappDto);
     return { success: result };
@@ -43,6 +44,7 @@ export class NotificationsController {
   @Post('order/:orderId/status-update')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async notifyOrderUpdate(
     @Param('orderId') orderId: string,
     @Body() body: { userId: string; status: string; additionalInfo?: Record<string, any> }
@@ -59,6 +61,7 @@ export class NotificationsController {
   @Post('payment/:subscriptionId/late')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async notifyLatePayment(
     @Param('subscriptionId') subscriptionId: string,
     @Body() body: { 
@@ -81,6 +84,7 @@ export class NotificationsController {
   @Post('auction/:auctionId/event')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async notifyAuctionEvent(
     @Param('auctionId') auctionId: string,
     @Body() body: { 
@@ -101,6 +105,7 @@ export class NotificationsController {
   @Post('rider/:riderId/assignment')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async notifyRiderAssignment(
     @Param('riderId') riderId: string,
     @Body() body: { 
