@@ -32,7 +32,7 @@ export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new delivery for an order' })
@@ -42,7 +42,7 @@ export class DeliveryController {
   }
 
   @Get()
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get deliveries with optional filtering' })
   @ApiResponse({ status: 200, description: 'Returns deliveries matching the filter criteria' })
@@ -62,7 +62,7 @@ export class DeliveryController {
   }
 
   @Get('my-deliveries')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get deliveries for the current user' })
   @ApiResponse({ status: 200, description: 'Returns the user\'s deliveries' })
@@ -77,7 +77,7 @@ export class DeliveryController {
   }
 
   @Get('order/:orderId')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get delivery for a specific order' })
   @ApiResponse({ status: 200, description: 'Returns the delivery for the order' })
@@ -102,7 +102,7 @@ export class DeliveryController {
   }
 
   @Get(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a delivery by ID' })
   @ApiResponse({ status: 200, description: 'Returns the delivery' })
@@ -127,7 +127,7 @@ export class DeliveryController {
   }
 
   @Post(':id/assign')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Assign a rider to a delivery' })
@@ -141,7 +141,7 @@ export class DeliveryController {
   }
 
   @Post(':id/respond')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Respond to a delivery assignment (accept/decline)' })
   @ApiResponse({ status: 200, description: 'Response processed successfully' })
@@ -160,7 +160,7 @@ export class DeliveryController {
   }
 
   @Patch(':id/status')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update delivery status' })
   @ApiResponse({ status: 200, description: 'Status updated successfully' })
@@ -174,7 +174,7 @@ export class DeliveryController {
   }
 
   @Post(':id/release-payment')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Release payment to rider for completed delivery' })
@@ -189,7 +189,7 @@ export class DeliveryController {
   }
 
   @Post(':id/rate')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Rate a delivery' })
   @ApiResponse({ status: 200, description: 'Rating submitted successfully' })

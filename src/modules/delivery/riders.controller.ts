@@ -32,7 +32,7 @@ export class RidersController {
   constructor(private readonly ridersService: RidersService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a rider profile' })
   @ApiResponse({ status: 201, description: 'The rider profile has been successfully created' })
@@ -45,7 +45,7 @@ export class RidersController {
   }
 
   @Get()
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all riders with optional filtering' })
@@ -55,7 +55,7 @@ export class RidersController {
   }
 
   @Get('eligible')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get eligible riders for a specific city' })
@@ -65,7 +65,7 @@ export class RidersController {
   }
 
   @Get('my-profile')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get the current user\'s rider profile' })
   @ApiResponse({ status: 200, description: 'Returns the rider profile' })
@@ -75,7 +75,7 @@ export class RidersController {
   }
 
   @Get('deposit-status')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Check security deposit requirement status' })
   @ApiResponse({ status: 200, description: 'Returns security deposit status' })
@@ -85,7 +85,7 @@ export class RidersController {
   }
 
   @Get(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get a rider profile by ID' })
   @ApiResponse({ status: 200, description: 'Returns the rider profile' })
@@ -102,7 +102,7 @@ export class RidersController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update a rider profile' })
   @ApiResponse({ status: 200, description: 'The rider profile has been successfully updated' })
@@ -130,7 +130,7 @@ export class RidersController {
   }
 
   @Post(':id/documents')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Add a verification document to rider profile' })
   @ApiResponse({ status: 201, description: 'The document has been successfully added' })
@@ -152,7 +152,7 @@ export class RidersController {
   }
 
   @Patch(':id/documents/:index')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Verify a document (admin only)' })
@@ -167,7 +167,7 @@ export class RidersController {
   }
 
   @Patch(':id/location')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update rider\'s current location' })
   @ApiResponse({ status: 200, description: 'The location has been successfully updated' })
@@ -189,7 +189,7 @@ export class RidersController {
   }
 
   @Patch(':id/security-deposit')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update rider\'s security deposit (admin only)' })
@@ -203,7 +203,7 @@ export class RidersController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete a rider profile (admin only)' })

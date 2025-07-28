@@ -30,7 +30,7 @@ export class AuctionsController {
   constructor(private readonly auctionsService: AuctionsService) {}
 
   @Post()
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new auction' })
@@ -55,7 +55,7 @@ export class AuctionsController {
   }
   
   @Get('user/bids')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get auctions the current user has bid on' })
   @ApiResponse({ status: 200, description: 'Returns all auctions the current user has bid on', type: [AuctionResponseDto] })
@@ -64,7 +64,7 @@ export class AuctionsController {
   }
   
   @Get('user/won')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get auctions the current user has won' })
   @ApiResponse({ status: 200, description: 'Returns all auctions the current user has won', type: [AuctionResponseDto] })
@@ -73,7 +73,7 @@ export class AuctionsController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update an auction' })
@@ -88,7 +88,7 @@ export class AuctionsController {
   }
 
   @Post(':id/bid')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Place a bid on an auction' })
   @ApiResponse({ status: 200, description: 'Bid successfully placed', type: AuctionResponseDto })
@@ -103,7 +103,7 @@ export class AuctionsController {
   }
   
   @Post(':id/cancel')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Cancel an auction and refund all bids' })
@@ -117,7 +117,7 @@ export class AuctionsController {
   }
   
   @Post(':id/finalize')
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Manually finalize an auction' })

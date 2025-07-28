@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards, Param, Get } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -16,6 +17,7 @@ export class NotificationsController {
   @Post('email')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async sendEmail(@Body() emailDto: EmailNotificationDto) {
     const result = await this.notificationsService.sendEmail(emailDto);
     return { success: result };
@@ -24,6 +26,7 @@ export class NotificationsController {
   @Post('push')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
   async sendPushNotification(@Body() pushDto: PushNotificationDto) {
     const result = await this.notificationsService.sendPushNotification(pushDto);
     return { success: result };

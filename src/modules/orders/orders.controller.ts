@@ -38,7 +38,7 @@ import { UserRole } from '../users/entities/user.entity';
 @ApiTags('orders')
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 

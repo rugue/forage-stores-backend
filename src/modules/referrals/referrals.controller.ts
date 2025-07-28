@@ -38,7 +38,7 @@ export class ReferralsController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all referrals (admin only)' })
   @ApiResponse({ status: 200, description: 'Return all referrals' })
   async findAll(@Query() filterDto: ReferralFilterDto) {
@@ -47,7 +47,7 @@ export class ReferralsController {
 
   @Get('my-referrals')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all referrals made by current user' })
   @ApiResponse({ status: 200, description: 'Return user referrals' })
   async findMyReferrals(@CurrentUser() user: any) {
@@ -56,7 +56,7 @@ export class ReferralsController {
 
   @Get('stats')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get referral statistics for current user' })
   @ApiResponse({ status: 200, description: 'Return referral statistics' })
   async getMyStats(@CurrentUser() user: any) {
@@ -65,7 +65,7 @@ export class ReferralsController {
 
   @Get('generate-code')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Generate referral code for current user' })
   @ApiResponse({ status: 200, description: 'Return generated referral code' })
   async generateCode(@CurrentUser() user: any) {
@@ -75,7 +75,7 @@ export class ReferralsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get a referral by ID' })
   @ApiResponse({ status: 200, description: 'Return the referral' })
   @ApiResponse({ status: 404, description: 'Referral not found' })
@@ -86,7 +86,7 @@ export class ReferralsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update a referral (admin only)' })
   @ApiResponse({ status: 200, description: 'Referral updated successfully' })
   @ApiResponse({ status: 404, description: 'Referral not found' })
@@ -100,7 +100,7 @@ export class ReferralsController {
   @Post('process-commission/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SYSTEM)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Process commission for a purchase (admin/system only)' })
   @ApiResponse({ status: 200, description: 'Commission processed successfully' })
   async processCommission(
