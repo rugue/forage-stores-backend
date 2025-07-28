@@ -80,17 +80,21 @@ Let's walk through the complete process of getting authenticated and creating yo
   "phone": "+2348123456789",
   "password": "MySecure123!",
   "accountType": "business",
-  "role": "user"
+  "role": "user",
+  "city": "Lagos",
+  "referralCode": "REF123456"
 }
 ```
 
 **Important Fields Explained:**
-- `name`: Your full name
-- `email`: Must be unique (no one else can use this email)
-- `phone`: Your phone number (include country code)
-- `password`: Must be strong (8+ chars, uppercase, lowercase, number, special char)
-- `accountType`: Use "business" if you plan to create stores, "family" for regular users
-- `role`: Always use "user" (admin accounts are created separately)
+- `name`: Your full name (required)
+- `email`: Must be unique (no one else can use this email) (required)
+- `phone`: Your phone number (include country code) (optional)
+- `password`: Must be strong (8+ chars, uppercase, lowercase, number, special char) (required)
+- `accountType`: Use "business" if you plan to create stores, "family" for regular users (optional)
+- `role`: Always use "user" (admin accounts are created separately) (optional)
+- `city`: Your city/location (optional)
+- `referralCode`: Code from someone who referred you (optional)
 
 5. Click "Execute"
 
@@ -165,9 +169,11 @@ Let's walk through the complete process of getting authenticated and creating yo
 ```
 
 **Field Explanations:**
-- `name`: Your store's name (will be visible to customers)
-- `description`: What your store sells (helps customers understand your business)
-- `address`: Physical location of your store
+- `name`: Your store's name (will be visible to customers) (required)
+- `description`: What your store sells (helps customers understand your business) (optional)
+- `address`: Physical location of your store (required)
+- `phone`: Store contact number (optional)
+- `email`: Store contact email (optional)
 - `phone`: Store contact number
 - `email`: Store contact email
 
@@ -354,6 +360,20 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 ```
 **Important:** Replace `YOUR_STORE_ID_HERE` with your store's ID from earlier!
 
+**Field Explanations:**
+- `name`: Product name (required)
+- `description`: Product description (required)
+- `price`: Price in Nigerian Naira (required)
+- `priceInNibia`: Price in Nibia points (required)
+- `weight`: Weight in grams (required)
+- `city`: City where product is available (required)
+- `category`: Product category - options: "fruits", "vegetables", "grains", "dairy", "meat", "beverages", "snacks", "spices", "seafood", "others" (required)
+- `sellerId`: Your store ID (optional for admin)
+- `tags`: Tags for search and filtering (required)
+- `deliveryType`: "free" or "paid" (required)
+- `stock`: Available quantity (required)
+- `images`: Array of image URLs (optional)
+
 #### 🔍 Browse All Products (Public)
 **What:** See all products available on the platform
 **Endpoint:** `GET /products`
@@ -449,7 +469,7 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 
 ### 🛒 4. Shopping Cart & Orders (Complete)
 
-#### Add Item to Cart
+#### Add Item to Cart (🔒 Authentication Required)
 **Endpoint:** `POST /orders/cart/add`
 ```json
 {
@@ -458,7 +478,7 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 }
 ```
 
-#### Update Cart Item
+#### Update Cart Item Quantity (🔒 Authentication Required)
 **Endpoint:** `PATCH /orders/cart/{productId}`
 ```json
 {
@@ -466,21 +486,17 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 }
 ```
 
-#### Remove Item from Cart
-**Endpoint:** `DELETE /orders/cart/remove`
-```json
-{
-  "productId": "PRODUCT_ID_TO_REMOVE"
-}
-```
+#### Remove Item from Cart (🔒 Authentication Required)
+**Endpoint:** `DELETE /orders/cart/{productId}`
+**Note:** Just use the product ID in the URL path, no body needed.
 
-#### View Cart
+#### View Cart (🔒 Authentication Required)
 **Endpoint:** `GET /orders/cart`
-- Returns current user's cart items
+**Returns:** Current user's cart items with product details and totals
 
-#### Clear Cart
+#### Clear Cart (🔒 Authentication Required)
 **Endpoint:** `DELETE /orders/cart`
-- Removes all items from cart
+**What:** Removes all items from your cart
 
 #### Checkout Cart
 **Endpoint:** `POST /orders/checkout`
@@ -554,40 +570,58 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 
 #### 🛍️ Place an Order (🔒 Authentication Required)
 **What:** Buy products from stores
-**Endpoint:** `POST /orders/checkout`
 **This is the main shopping feature!**
 
 **Step-by-Step Shopping Process:**
 
 **Step 1: Find products you want to buy**
-Use `GET /products` to browse available items.
+Use `GET /products` to browse available items and note the product IDs.
 
-**Step 2: Create your order**
+**Step 2: Add items to your cart**
+**Endpoint:** `POST /orders/cart/add`
 ```json
 {
-  "items": [
-    {
-      "productId": "PRODUCT_ID_FROM_STEP_1",
-      "quantity": 2,
-      "price": 800
-    },
-    {
-      "productId": "ANOTHER_PRODUCT_ID",
-      "quantity": 1,
-      "price": 1200
-    }
-  ],
-  "deliveryAddress": "456 Customer Street, Lagos, Nigeria",
-  "customerPhone": "+2348123456789",
-  "customerEmail": "customer@example.com",
-  "paymentMethod": "card",
-  "specialInstructions": "Please call when you arrive"
+  "productId": "PRODUCT_ID_FROM_STEP_1",
+  "quantity": 2
+}
+```
+Repeat this for each product you want to buy.
+
+**Step 3: View your cart**
+**Endpoint:** `GET /orders/cart`
+This shows all items in your cart with prices and totals.
+
+**Step 4: Checkout your cart**
+**Endpoint:** `POST /orders/checkout`
+```json
+{
+  "paymentPlan": {
+    "type": "pay_now",
+    "payNowDetails": {}
+  },
+  "deliveryMethod": "home_delivery",
+  "deliveryAddress": {
+    "street": "456 Customer Street",
+    "city": "Lagos",
+    "state": "Lagos",
+    "postalCode": "100001",
+    "country": "Nigeria",
+    "instructions": "Please call when you arrive"
+  },
+  "notes": "Handle with care"
 }
 ```
 
+**Field Explanations:**
+- `paymentPlan.type`: Payment plan - options: "pay_now", "price_lock", "pay_small_small", "pay_later"
+- `deliveryMethod`: Delivery method - options: "home_delivery", "pickup"
+- `deliveryAddress`: Required for home delivery (optional for pickup)
+- `notes`: Optional special instructions
+
 **What happens:** 
-- Order is created with status "pending"
-- Total amount is calculated automatically
+- Order is created from your cart items
+- Total amount is calculated automatically (including delivery fee if applicable)
+- Your cart is cleared
 - You get an order confirmation with tracking ID
 
 #### 📋 View Your Orders (🔒 Authentication Required)
@@ -650,21 +684,38 @@ Use `GET /products` to browse available items.
 **Endpoint:** `POST /wallets/transfer`
 ```json
 {
-  "recipientId": "FRIEND_USER_ID",
+  "toUserId": "FRIEND_USER_ID",
   "amount": 500,
-  "type": "FOOD_MONEY",
-  "description": "Splitting dinner order"
+  "currency": "food_money",
+  "description": "Splitting dinner order",
+  "reference": "TXN123456"
 }
 ```
+
+**Field Explanations:**
+- `toUserId`: ID of the user receiving the money (required)
+- `amount`: Amount to transfer (required)
+- `currency`: Type of currency - options: "food_money", "food_points", "food_safe" (required)
+- `description`: Description of the transfer (required)
+- `reference`: Optional reference number
 
 #### 🏦 Create Your Wallet (🔒 Authentication Required)
 **What:** Set up your payment account
 **Endpoint:** `POST /wallets/create`
 ```json
 {
-  "initialBalance": 1000
+  "userId": "YOUR_USER_ID",
+  "foodMoney": 1000,
+  "foodPoints": 50,
+  "foodSafe": 0
 }
 ```
+
+**Field Explanations:**
+- `userId`: Your user ID (required)
+- `foodMoney`: Initial Food Money balance (optional, default: 0)
+- `foodPoints`: Initial Food Points balance (optional, default: 0)
+- `foodSafe`: Initial Food Safe balance (optional, default: 0)
 
 **Money Types Explained:**
 - **Food Money:** Regular cash for buying food
@@ -1118,12 +1169,22 @@ Here are some complete workflows you can test:
 **Endpoint:** `POST /support/tickets`
 ```json
 {
-  "title": "Payment Issue",
-  "description": "Unable to process payment for order #12345",
+  "subject": "Payment Issue",
+  "message": "Unable to process payment for order #12345",
   "category": "PAYMENT",
-  "priority": "HIGH"
+  "priority": "HIGH",
+  "attachments": ["https://example.com/screenshot.jpg"],
+  "metadata": {"orderId": "12345"}
 }
 ```
+
+**Field Explanations:**
+- `subject`: Ticket title/subject (required, max 100 chars)
+- `message`: Detailed description of the issue (required)
+- `category`: Issue category (required) - check entity for valid values
+- `priority`: Priority level (optional) - check entity for valid values
+- `attachments`: Array of attachment URLs (optional)
+- `metadata`: Additional data (optional)
 
 #### Get My Tickets
 **Endpoint:** `GET /support/tickets`
