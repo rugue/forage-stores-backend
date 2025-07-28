@@ -1,273 +1,390 @@
-# Forage Stores Backend - Complete API Testing Guide via Swagger
+# Forage Stores Backend - Complete API Testing Guide for Beginners
 
-This comprehensive guide covers **ALL** endpoints and features of the Forage Stores Backend API using Swagger UI. The API is designed for a food marketplace platform with authentication, role-based access control, and comprehensive business logic.
+This comprehensive guide will teach you how to test **ALL** endpoints and features of the Forage Stores Backend API. Whether you're a beginner or experienced developer, this guide will walk you through every step.
+
+## 📋 What You'll Learn
+
+- How to set up and access the API
+- How to authenticate (login/register) 
+- How to test every endpoint step-by-step
+- How to handle different user roles and permissions
+- Real-world examples with sample data
+- Common troubleshooting tips
+
+## 🛠️ Prerequisites
+
+Before we begin, make sure you have:
+- ✅ Node.js installed on your computer
+- ✅ The Forage Stores Backend project running
+- ✅ A web browser (Chrome, Firefox, Safari, etc.)
+- ✅ Basic understanding of JSON format (we'll explain as we go)
 
 ## 🚀 Getting Started
 
-### 1. Start the Application
+### Step 1: Start the Application
+
+Open your terminal/command prompt and run:
 ```bash
+# Navigate to the project folder
+cd forage-stores-backend
+
+# Install dependencies (if not already done)
+npm install
+
+# Start the development server
 npm run start:dev
 ```
 
-### 2. Access Swagger Documentation
-Navigate to: `http://localhost:3000/api`
+**What this does:** Starts the API server on your local machine (usually port 3000)
 
-The Swagger UI provides an interactive interface to test all API endpoints with proper documentation, request/response schemas, and authentication.
+### Step 2: Access the Interactive API Documentation (Swagger)
 
-## 🔐 Authentication Flow
+1. Open your web browser
+2. Go to: `http://localhost:3000/api`
+3. You should see a page with all the API endpoints listed
 
-### Step 1: Register a New User
+**What is Swagger?** It's a visual interface that lets you test APIs directly from your browser without writing code. Think of it as a "control panel" for your API.
+
+## 🔐 Understanding Authentication
+
+**What is Authentication?** 
+Authentication is like showing your ID card to prove who you are. Most API endpoints require you to be "logged in" before you can use them.
+
+**How it works:**
+1. You register an account or login with existing credentials
+2. The API gives you a special "token" (like a temporary pass)
+3. You include this token with future requests to prove you're authorized
+
+### 🎯 Complete Authentication Workflow
+
+Let's walk through the complete process of getting authenticated and creating your first store:
+
+## � Step-by-Step: How to Get Authenticated and Create a Store
+
+### Step 1: Register a New User Account
+
+**Why do this?** You need an account to create stores and access protected features.
+
 **Endpoint:** `POST /auth/register`
 
-**Test Data:**
+**What to do:**
+1. In Swagger, find the "auth" section
+2. Click on `POST /auth/register`
+3. Click "Try it out"
+4. Replace the example data with:
+
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "phone": "+1234567890",
-  "password": "MySecure123!",
-  "accountType": "family",
-  "role": "user",
-  "city": "New York",
-  "referralCode": "REF123456"
-}
-```
-
-**Expected Response:**
-- Status: 201
-- Returns user object and JWT access token
-- Note the `accessToken` for authentication
-
-### Step 2: Login (Alternative to Registration)
-**Endpoint:** `POST /auth/login`
-
-**Test Data (using email):**
-```json
-{
-  "email": "john@example.com",
-  "password": "MySecure123!"
-}
-```
-
-**Alternative Test Data (using phone):**
-```json
-{
-  "phone": "+1234567890",
-  "password": "MySecure123!"
-}
-```
-
-### Step 3: Get Profile
-**Endpoint:** `GET /auth/profile`
-- Returns current user profile information
-
-### Step 4: Refresh Token
-**Endpoint:** `POST /auth/refresh`
-- Refreshes the JWT access token
-
-### Step 5: Logout
-**Endpoint:** `POST /auth/logout`
-- Invalidates the current session
-
-### Step 6: Authorize in Swagger
-1. Copy the `accessToken` from registration/login response
-2. Click the "Authorize" button (🔒) at the top of Swagger UI
-3. Enter: `Bearer YOUR_ACCESS_TOKEN_HERE`
-4. Click "Authorize"
-
-Now you can test protected endpoints!
-
-## 📊 Complete Feature Testing Workflow
-
-### 🏪 1. Store Management
-
-#### Create a Store (Requires Authentication)
-**Endpoint:** `POST /stores`
-**Authentication:** Required - Include `Authorization: Bearer <token>` header
-
-**Step 1: Register/Login to get access token**
-```bash
-# Register first (if you don't have an account)
-POST /auth/register
-{
-  "name": "John Doe",
-  "email": "john@example.com",
+  "name": "John Store Owner",
+  "email": "john.storeowner@example.com",
   "phone": "+2348123456789",
   "password": "MySecure123!",
   "accountType": "business",
   "role": "user"
 }
+```
 
-# OR Login (if you already have an account)
-POST /auth/login
+**Important Fields Explained:**
+- `name`: Your full name
+- `email`: Must be unique (no one else can use this email)
+- `phone`: Your phone number (include country code)
+- `password`: Must be strong (8+ chars, uppercase, lowercase, number, special char)
+- `accountType`: Use "business" if you plan to create stores, "family" for regular users
+- `role`: Always use "user" (admin accounts are created separately)
+
+5. Click "Execute"
+
+**Expected Response:**
+```json
 {
-  "email": "john@example.com",
+  "user": {
+    "id": "64f123456789abcdef123456",
+    "name": "John Store Owner",
+    "email": "john.storeowner@example.com",
+    "phone": "+2348123456789",
+    "accountType": "business",
+    "role": "user"
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NGYxMjM0NTY3ODlhYmNkZWYxMjM0NTYiLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciIsImFjY291bnRUeXBlIjoiYnVzaW5lc3MiLCJpYXQiOjE2OTA0NzM2MDAsImV4cCI6MTY5MDU2MDAwMH0.example_token_signature"
+}
+```
+
+**🔑 IMPORTANT:** Copy the `accessToken` value (the long string starting with "eyJ"). You'll need this for the next steps!
+
+### Step 2: Alternative - Login (if you already have an account)
+
+**If you already registered before, use this instead:**
+
+**Endpoint:** `POST /auth/login`
+
+```json
+{
+  "email": "john.storeowner@example.com",
   "password": "MySecure123!"
 }
 ```
 
-**Step 2: Use the access token to create a store**
-```bash
-POST /stores
-Headers: {
-  "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "Content-Type": "application/json"
-}
-Body: {
-  "name": "My Awesome Store",
-  "description": "The best store in town",
-  "address": "123 Main St, City, Country",
-  "phone": "+1234567890",
-  "email": "store@example.com"
+### Step 3: Authenticate Your Requests
+
+**What is this?** Every time you want to access protected endpoints, you need to include your token.
+
+**How to do it in Swagger:**
+1. Look for the "Authorize" button at the top of the Swagger page (🔒 icon)
+2. Click it
+3. In the "Value" field, type: `Bearer ` followed by your token
+   
+   Example: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+   
+   **Note:** Don't forget the space after "Bearer"!
+
+4. Click "Authorize"
+5. Close the dialog
+
+**What this does:** Now all your requests will automatically include the authentication token.
+
+### Step 4: Create Your First Store
+
+**Now the fun part!** Let's create your store.
+
+**Endpoint:** `POST /stores`
+
+**What to do:**
+1. Find the "stores" section in Swagger
+2. Click on `POST /stores`
+3. Click "Try it out"
+4. Use this data:
+
+```json
+{
+  "name": "Fresh Foods Market",
+  "description": "Premium fresh foods and organic groceries delivered to your door",
+  "address": "123 Market Street, Lagos, Nigeria",
+  "phone": "+2348123456789",
+  "email": "contact@freshfoods.com"
 }
 ```
 
-#### Get All Stores
+**Field Explanations:**
+- `name`: Your store's name (will be visible to customers)
+- `description`: What your store sells (helps customers understand your business)
+- `address`: Physical location of your store
+- `phone`: Store contact number
+- `email`: Store contact email
+
+5. Click "Execute"
+
+**Expected Response:**
+```json
+{
+  "id": "64f987654321abcdef654321",
+  "name": "Fresh Foods Market",
+  "description": "Premium fresh foods and organic groceries delivered to your door",
+  "address": "123 Market Street, Lagos, Nigeria",
+  "phone": "+2348123456789",
+  "email": "contact@freshfoods.com",
+  "createdAt": "2025-07-25T10:30:00.000Z",
+  "updatedAt": "2025-07-25T10:30:00.000Z"
+}
+```
+
+**🎉 Congratulations!** You've successfully:
+- ✅ Created a user account
+- ✅ Authenticated with the API
+- ✅ Created your first store
+
+**📝 Important Notes:**
+- **Save your store ID:** Copy the `id` from the response (you'll need it for adding products)
+- **Token expires:** Your access token expires after 24 hours, then you'll need to login again
+- **Store ownership:** Only you can update/delete stores you created
+
+## 🔍 Testing Other Endpoints
+
+Now that you're authenticated, you can test any endpoint marked with a 🔒 lock icon. Here are some next steps:
+
+1. **View your profile:** `GET /auth/profile`
+2. **Browse all stores:** `GET /stores` (no authentication needed)
+3. **Add products to your store:** `POST /products`
+4. **Create orders:** `POST /orders/checkout`
+
+## ❗ Common Issues and Solutions
+
+### Issue: "Unauthorized" or "Access token is required"
+**Solution:** Make sure you:
+1. Completed the authentication step (Step 3 above)
+2. Your token hasn't expired (login again if needed)
+3. Used "Bearer " before your token (with a space)
+
+### Issue: "User already exists"
+**Solution:** 
+1. Try logging in instead of registering
+2. Use a different email address
+
+### Issue: "Validation failed"
+**Solution:** 
+1. Check your JSON format (use the examples provided)
+2. Make sure all required fields are included
+3. Check password requirements (8+ chars, mixed case, numbers, special chars)
+
+---
+
+# 📚 Complete API Feature Guide
+
+Now that you've mastered authentication and store creation, let's explore **ALL** the amazing features this API offers! We'll go through each section step-by-step.
+
+## 🔐 Authentication Features (What You've Already Learned)
+
+### 📝 User Registration & Login
+- ✅ **Register:** `POST /auth/register` - Create a new account
+- ✅ **Login:** `POST /auth/login` - Sign in with email/phone + password
+- ✅ **Profile:** `GET /auth/profile` - View your profile info
+- ✅ **Refresh:** `POST /auth/refresh` - Get a new token when yours expires
+- ✅ **Logout:** `POST /auth/logout` - Sign out securely
+
+**🔒 Authentication Required:** All endpoints marked with 🔒 need you to be logged in.
+
+## 🏪 Store Management Features
+
+### What You Can Do With Stores:
+
+#### 🆕 Create Your Store (🔒 Authentication Required)
+**What:** Set up your business on the platform
+**Endpoint:** `POST /stores`
+**You've already done this!** ✅
+
+#### 🔍 Browse All Stores (Public - No Authentication)
+**What:** See all stores on the platform
 **Endpoint:** `GET /stores`
-**Authentication:** Not required (Public endpoint)
-- Returns list of all stores
+**Try it:** Just click and execute - no login needed!
 
-#### Get Store by ID
+#### 👀 View a Specific Store (Public)
+**What:** Get detailed info about one store
 **Endpoint:** `GET /stores/{id}`
-**Authentication:** Not required (Public endpoint)
-- Use store ID from previous response
+**How to test:**
+1. First get all stores to find a store ID
+2. Copy any store's `id` from the response
+3. Use that ID in this endpoint
 
-#### Update Store
+#### ✏️ Update Your Store (🔒 Owner Only)
+**What:** Change your store's information
 **Endpoint:** `PATCH /stores/{id}`
+**Test Data:**
 ```json
 {
-  "name": "Updated Store Name",
-  "description": "Updated description"
+  "name": "Fresh Foods Market - Updated",
+  "description": "Now with even more organic options!"
 }
 ```
+**Note:** You can only update stores you created!
 
-#### Delete Store
+#### 🗑️ Delete a Store (🔒 Admin Only)
+**What:** Remove a store permanently
 **Endpoint:** `DELETE /stores/{id}`
-- Requires admin privileges
+**Note:** Only administrators can delete stores.
 
-### 👥 2. User Management (Comprehensive)
+## 👥 User Management Features
 
-#### Create User (Admin)
-**Endpoint:** `POST /users`
-```json
-{
-  "name": "Jane Smith",
-  "email": "jane.smith@example.com",
-  "phone": "+2348123456790",
-  "password": "SecurePassword456!",
-  "role": "customer",
-  "accountType": "customer"
-}
-```
+### What You Can Do With User Accounts:
 
-#### Get All Users (Admin)
-**Endpoint:** `GET /users`
-- Filter parameters: `?role=USER&isActive=true&page=1&limit=10`
+#### 👀 View Your Own Profile (🔒 Authentication Required)
+**What:** See your account information
+**Endpoint:** `GET /auth/profile`
+**Try it:** You're already authenticated, so this should work!
 
-#### Get User by ID
-**Endpoint:** `GET /users/{id}`
-
-#### Update User
-**Endpoint:** `PATCH /users/{id}`
-```json
-{
-  "name": "Updated Name",
-  "phone": "+2348123456791",
-  "accountType": "customer"
-}
-```
-
-#### Update User Credit Score (Admin)
-**Endpoint:** `PATCH /users/{id}/credit-score`
-```json
-{
-  "score": 750,
-  "reason": "Good payment history"
-}
-```
-
-#### Delete User (Admin)
-**Endpoint:** `DELETE /users/{id}`
-
-#### Filter Users by Role
-**Endpoint:** `GET /users/filter/role/{role}`
-- Replace {role} with: USER, ADMIN, RIDER
-
-#### Filter Users by Account Type
-**Endpoint:** `GET /users/filter/account-type/{accountType}`
-- Replace {accountType} with: BASIC, PREMIUM, VIP
-
-#### Filter Users by City
-**Endpoint:** `GET /users/filter/city/{city}`
-- Replace {city} with any city name
-
-#### Get User Profile
-**Endpoint:** `GET /users/profile/{id}`
-
-#### Update User Profile
+#### 📝 Update Your Profile (🔒 Authentication Required)
+**What:** Change your personal information
 **Endpoint:** `PATCH /users/profile/{id}`
+**Test Data:**
 ```json
 {
-  "name": "John Updated Doe",
+  "name": "John Updated Store Owner",
   "phone": "+2348123456790"
 }
 ```
+**How to get your ID:** Use the `id` from your registration response or profile.
 
-#### Change Password
+#### 🔑 Change Your Password (🔒 Authentication Required)
+**What:** Update your account password
 **Endpoint:** `PATCH /users/profile/{id}/password`
+**Test Data:**
 ```json
 {
-  "currentPassword": "SecurePassword123!",
-  "newPassword": "NewSecurePassword456!"
+  "currentPassword": "MySecure123!",
+  "newPassword": "MyNewSecure456!"
 }
 ```
 
-### 🛍️ 3. Product Management (Complete)
+#### 👥 View All Users (🔒 Admin Only)
+**What:** See all registered users
+**Endpoint:** `GET /users`
+**Note:** Only administrators can see all users.
 
-#### Create a Product (Requires Authentication)
+#### 🏘️ Find Users by City (🔒 Admin Only)
+**What:** Find users in a specific location
+**Endpoint:** `GET /users/filter/city/{city}`
+**Example:** `GET /users/filter/city/Lagos`
+
+#### 🏷️ Find Users by Role (🔒 Admin Only)
+**What:** Filter users by their role (user, admin, etc.)
+**Endpoint:** `GET /users/filter/role/{role}`
+**Options:** `user`, `admin`
+
+## 🛍️ Product Management Features
+
+### What You Can Do With Products:
+
+#### ➕ Add Products to Your Store (🔒 Store Owner Required)
+**What:** List items for sale in your store
 **Endpoint:** `POST /products`
+**Test Data:**
 ```json
 {
-  "name": "Fresh Tomatoes",
-  "description": "Fresh organic tomatoes grown locally",
-  "price": 500,
-  "priceInNibia": 125.50,
+  "name": "Fresh Organic Apples",
+  "description": "Sweet and crispy organic apples, perfect for snacking",
+  "price": 800,
+  "priceInNibia": 200.00,
   "weight": 1000,
   "city": "Lagos",
-  "category": "vegetables",
-  "sellerId": "STORE_ID_FROM_PREVIOUS_STEP",
-  "tags": ["organic", "fresh", "local"],
+  "category": "fruits",
+  "sellerId": "YOUR_STORE_ID_HERE",
+  "tags": ["organic", "fresh", "healthy"],
   "deliveryType": "free",
-  "stock": 50,
-  "images": ["https://example.com/tomato1.jpg", "https://example.com/tomato2.jpg"]
+  "stock": 25,
+  "images": ["https://example.com/apple1.jpg"]
 }
 ```
+**Important:** Replace `YOUR_STORE_ID_HERE` with your store's ID from earlier!
 
-#### Search Products with Filters
+#### 🔍 Browse All Products (Public)
+**What:** See all products available on the platform
 **Endpoint:** `GET /products`
+**Try it:** No authentication needed!
 
-**Test various filters:**
-- `?search=apple` - Search by name
-- `?category=fruits` - Filter by category
-- `?city=Lagos` - Filter by location
-- `?minPrice=100&maxPrice=1000` - Price range
-- `?page=1&limit=10` - Pagination
+**Advanced Searching:**
+- Search by name: `GET /products?search=apple`
+- Filter by category: `GET /products?category=fruits`
+- Filter by city: `GET /products?city=Lagos`
+- Price range: `GET /products?minPrice=100&maxPrice=1000`
+- Pagination: `GET /products?page=1&limit=10`
 
-#### Get My Products (As Seller)
+#### 📦 View Your Products (🔒 Store Owner Required)
+**What:** See all products you've added to your store
 **Endpoint:** `GET /products/my-products`
-- Shows products created by authenticated user
+**Perfect for:** Managing your inventory
 
-#### Get Products by City
-**Endpoint:** `GET /products/city/{city}`
-
-#### Get Products by Category
-**Endpoint:** `GET /products/category/{category}`
-
-#### Get Products by Seller
+#### 🏪 View Products by Store
+**What:** See all products from a specific store
 **Endpoint:** `GET /products/seller/{sellerId}`
+**How to test:** Use any store ID you've seen in responses
 
-#### Get Product Statistics
+#### 🏙️ Products in Your City
+**What:** Find products available in a specific city
+**Endpoint:** `GET /products/city/{city}`
+**Example:** `GET /products/city/Lagos`
+
+#### 📊 Product Statistics (🔒 Admin Only)
+**What:** Get analytics about products on the platform
 **Endpoint:** `GET /products/statistics`
+**Shows:** Total products, categories, average prices, etc.
 - Returns analytics about products
 
 #### Get Product by ID
@@ -431,13 +548,117 @@ Body: {
 }
 ```
 
-### 💰 5. Wallet Management (Complete)
+## � Shopping & Orders Features
 
-#### Check My Wallet Balance
+### What You Can Do As a Customer:
+
+#### 🛍️ Place an Order (🔒 Authentication Required)
+**What:** Buy products from stores
+**Endpoint:** `POST /orders/checkout`
+**This is the main shopping feature!**
+
+**Step-by-Step Shopping Process:**
+
+**Step 1: Find products you want to buy**
+Use `GET /products` to browse available items.
+
+**Step 2: Create your order**
+```json
+{
+  "items": [
+    {
+      "productId": "PRODUCT_ID_FROM_STEP_1",
+      "quantity": 2,
+      "price": 800
+    },
+    {
+      "productId": "ANOTHER_PRODUCT_ID",
+      "quantity": 1,
+      "price": 1200
+    }
+  ],
+  "deliveryAddress": "456 Customer Street, Lagos, Nigeria",
+  "customerPhone": "+2348123456789",
+  "customerEmail": "customer@example.com",
+  "paymentMethod": "card",
+  "specialInstructions": "Please call when you arrive"
+}
+```
+
+**What happens:** 
+- Order is created with status "pending"
+- Total amount is calculated automatically
+- You get an order confirmation with tracking ID
+
+#### 📋 View Your Orders (🔒 Authentication Required)
+**What:** See all your past and current orders
+**Endpoint:** `GET /orders/my-orders`
+**Perfect for:** Tracking your shopping history
+
+#### 🔍 Track a Specific Order (🔒 Authentication Required)
+**What:** Get detailed info about one order
+**Endpoint:** `GET /orders/{orderId}`
+**Use the order ID from your checkout response**
+
+#### ⭐ Rate an Order (🔒 Authentication Required)
+**What:** Leave feedback about your shopping experience
+**Endpoint:** `POST /orders/{orderId}/rate`
+```json
+{
+  "rating": 5,
+  "review": "Excellent products and fast delivery!",
+  "deliveryRating": 5
+}
+```
+
+### What Store Owners Can Do:
+
+#### 📦 View Orders for Your Store (🔒 Store Owner Required)
+**What:** See orders placed at your store
+**Endpoint:** `GET /orders/store-orders`
+**Perfect for:** Managing your business
+
+#### ✅ Update Order Status (🔒 Store Owner Required)
+**What:** Mark orders as prepared, ready, etc.
+**Endpoint:** `PATCH /orders/{orderId}/status`
+```json
+{
+  "status": "confirmed",
+  "notes": "Order is being prepared"
+}
+```
+
+**Status Options:**
+- `pending` - Just placed
+- `confirmed` - Store accepted the order
+- `preparing` - Store is making/packing the order
+- `ready` - Ready for pickup/delivery
+- `completed` - Order finished
+- `cancelled` - Order was cancelled
+
+## 💰 Wallet & Payment Features
+
+### What You Can Do With Your Wallet:
+
+#### 💳 Check Your Balance (🔒 Authentication Required)
+**What:** See how much money you have
 **Endpoint:** `GET /wallets/my-wallet`
-- Returns Food Money, Food Points, and Food Safe balances
+**Shows:** Food Money, Food Points, and Food Safe balances
 
-#### Create Wallet
+#### 💸 Send Money to Another User (🔒 Authentication Required)
+**What:** Transfer money to friends or pay for shared orders
+**Endpoint:** `POST /wallets/transfer`
+```json
+{
+  "recipientId": "FRIEND_USER_ID",
+  "amount": 500,
+  "type": "FOOD_MONEY",
+  "description": "Splitting dinner order"
+}
+```
+
+#### 🏦 Create Your Wallet (🔒 Authentication Required)
+**What:** Set up your payment account
 **Endpoint:** `POST /wallets/create`
 ```json
 {
@@ -445,242 +666,123 @@ Body: {
 }
 ```
 
-#### Transfer Funds Between Wallets
-**Endpoint:** `POST /wallets/transfer`
-```json
-{
-  "recipientId": "RECIPIENT_USER_ID",
-  "amount": 500,
-  "type": "FOOD_MONEY",
-  "description": "Payment for shared order"
-}
-```
+**Money Types Explained:**
+- **Food Money:** Regular cash for buying food
+- **Food Points:** Loyalty points earned from purchases
+- **Food Safe:** Savings account for future use
 
-#### Lock Funds
-**Endpoint:** `POST /wallets/lock-funds`
-```json
-{
-  "amount": 1000,
-  "type": "FOOD_MONEY",
-  "reason": "Order escrow",
-  "orderId": "ORDER_ID"
-}
-```
+## 🎯 Special Features (Advanced)
 
-#### Unlock Funds
-**Endpoint:** `POST /wallets/unlock-funds`
-```json
-{
-  "amount": 1000,
-  "type": "FOOD_MONEY",
-  "reason": "Order cancelled",
-  "orderId": "ORDER_ID"
-}
-```
+### 🏆 Auctions (For Special Products)
 
-#### Admin: Get All Wallets
-**Endpoint:** `GET /wallets/admin/all`
-
-#### Admin: Get Wallet Statistics
-**Endpoint:** `GET /wallets/admin/stats`
-
-#### Admin: Get User Wallet
-**Endpoint:** `GET /wallets/admin/user/{userId}`
-
-#### Admin: Get Wallet by ID
-**Endpoint:** `GET /wallets/admin/{walletId}`
-
-#### Admin: Create Wallet for User
-**Endpoint:** `POST /wallets/admin/{userId}/create`
-```json
-{
-  "initialBalance": 5000,
-  "type": "FOOD_MONEY"
-}
-```
-
-#### Admin: Update User Balance
-**Endpoint:** `PATCH /wallets/admin/{userId}/balance`
-```json
-{
-  "amount": 5000,
-  "type": "FOOD_MONEY",
-  "operation": "ADD",
-  "description": "Initial balance top-up"
-}
-```
-
-#### Admin: Update Wallet Status
-**Endpoint:** `PATCH /wallets/admin/{walletId}/status`
-```json
-{
-  "status": "ACTIVE",
-  "reason": "Account verified"
-}
-```
-
-### 🏆 6. Auctions System (Complete)
-
-#### Create Auction (Admin Only)
-**Endpoint:** `POST /auctions`
-```json
-{
-  "productId": "PRODUCT_ID",
-  "startingBid": 1000,
-  "reservePrice": 1500,
-  "startTime": "2024-07-22T10:00:00Z",
-  "endTime": "2024-07-23T10:00:00Z",
-  "description": "Premium organic apple auction"
-}
-```
-
-#### Browse Active Auctions
+#### 🔍 Browse Active Auctions (Public)
+**What:** See special products being auctioned
 **Endpoint:** `GET /auctions`
-- Filter: `?status=ACTIVE&category=fruits`
+**Filter:** `?status=ACTIVE` to see only active auctions
 
-#### Get Auction by ID
-**Endpoint:** `GET /auctions/{id}`
-
-#### Get My Bids
-**Endpoint:** `GET /auctions/user/bids`
-
-#### Get Won Auctions
-**Endpoint:** `GET /auctions/user/won`
-
-#### Update Auction (Admin)
-**Endpoint:** `PATCH /auctions/{id}`
-```json
-{
-  "endTime": "2024-07-24T10:00:00Z",
-  "description": "Extended auction time"
-}
-```
-
-#### Place a Bid
-**Endpoint:** `POST /auctions/{id}/bid`
+#### 💰 Place a Bid (🔒 Authentication Required)
+**What:** Bid on auction items
+**Endpoint:** `POST /auctions/{auctionId}/bid`
 ```json
 {
   "amount": 1200
 }
 ```
+**Note:** Your bid must be higher than the current highest bid!
 
-#### Cancel Auction (Admin)
-**Endpoint:** `POST /auctions/{id}/cancel`
-```json
-{
-  "reason": "Product no longer available"
-}
-```
+#### 🏅 Check Your Bids (🔒 Authentication Required)
+**What:** See auctions you've bid on
+**Endpoint:** `GET /auctions/user/bids`
 
-#### Finalize Auction (Admin)
-**Endpoint:** `POST /auctions/{id}/finalize`
-```json
-{
-  "winnerId": "USER_ID_OF_WINNER"
-}
-```
+#### 🎉 Check Won Auctions (🔒 Authentication Required)
+**What:** See auctions you've won
+**Endpoint:** `GET /auctions/user/won`
 
-### 🚚 7. Delivery Management (Complete)
+### 🚚 Delivery Tracking
 
-#### Create Delivery (Admin Only)
-**Endpoint:** `POST /delivery`
-```json
-{
-  "orderId": "ORDER_ID_FROM_CHECKOUT",
-  "pickupAddress": "Store address",
-  "deliveryAddress": "Customer address",
-  "estimatedDeliveryTime": "2024-07-22T18:00:00Z"
-}
-```
-
-#### Get All Deliveries (with filters)
-**Endpoint:** `GET /delivery`
-- Filters based on user role automatically applied
-
-#### Get My Deliveries
-**Endpoint:** `GET /delivery/my-deliveries`
-- Shows deliveries for current user
-
-#### Get Delivery by Order ID
+#### � Track Your Delivery (🔒 Authentication Required)
+**What:** See where your order is in the delivery process
 **Endpoint:** `GET /delivery/order/{orderId}`
+**Use your order ID from checkout**
 
-#### Get Delivery by ID
-**Endpoint:** `GET /delivery/{id}`
-
-#### Assign Rider to Delivery
-**Endpoint:** `POST /delivery/{id}/assign`
-```json
-{
-  "riderId": "RIDER_USER_ID"
-}
-```
-
-#### Rider Response to Assignment
-**Endpoint:** `POST /delivery/{id}/respond`
-```json
-{
-  "response": "ACCEPT",
-  "estimatedPickupTime": "2024-07-22T16:00:00Z"
-}
-```
-
-#### Update Delivery Status
-**Endpoint:** `PATCH /delivery/{id}/status`
-```json
-{
-  "status": "IN_TRANSIT",
-  "notes": "Package picked up from store"
-}
-```
-
-#### Release Payment (Admin)
-**Endpoint:** `POST /delivery/{id}/release-payment`
-```json
-{
-  "amount": 500,
-  "description": "Delivery completed successfully"
-}
-```
-
-#### Rate Delivery
-**Endpoint:** `POST /delivery/{id}/rate`
+#### ⭐ Rate Your Delivery (🔒 Authentication Required)
+**What:** Give feedback on delivery service
+**Endpoint:** `POST /delivery/{deliveryId}/rate`
 ```json
 {
   "rating": 5,
-  "feedback": "Excellent delivery service",
+  "feedback": "Driver was very professional and fast!",
   "deliveryTime": "2024-07-22T18:30:00Z"
 }
 ```
 
-### 🏍️ 8. Riders Management (Complete)
+---
 
-#### Create Rider Profile
-**Endpoint:** `POST /riders`
-```json
-{
-  "userId": "USER_ID",
-  "vehicleType": "MOTORCYCLE",
-  "vehicleDetails": {
-    "make": "Honda",
-    "model": "CB125F",
-    "year": 2023,
-    "plateNumber": "ABC-123-DE"
-  },
-  "drivingLicenseNumber": "DL123456789",
-  "city": "Lagos",
-  "availability": {
-    "monday": {"start": "08:00", "end": "20:00"},
-    "tuesday": {"start": "08:00", "end": "20:00"}
-  }
-}
-```
+## 🔧 Admin-Only Features
 
-#### Get All Riders (Admin)
-**Endpoint:** `GET /riders`
-- Filter: `?city=Lagos&status=ACTIVE&page=1&limit=10`
+**Note:** These features are only available if you have admin privileges.
 
-#### Get Eligible Riders (Admin)
-**Endpoint:** `GET /riders/eligible?city=Lagos`
+### 👥 Admin User Management
+- **View all users:** `GET /users`
+- **Create new users:** `POST /users`
+- **Update any user:** `PATCH /users/{id}`
+- **Delete users:** `DELETE /users/{id}`
+
+### 🏪 Admin Store Management
+- **Delete any store:** `DELETE /stores/{id}`
+- **View store statistics:** Various admin endpoints
+
+### 🛍️ Admin Product Management
+- **View product statistics:** `GET /products/statistics`
+- **Manage any product:** Various admin endpoints
+
+### 💰 Admin Wallet Management
+- **View all wallets:** `GET /wallets/admin/all`
+- **Add money to user accounts:** `PATCH /wallets/admin/{userId}/balance`
+- **View financial statistics:** `GET /wallets/admin/stats`
+
+### 🚚 Admin Delivery Management
+- **Create deliveries:** `POST /delivery`
+- **Assign riders:** `POST /delivery/{id}/assign`
+- **Release payments:** `POST /delivery/{id}/release-payment`
+
+### 🏆 Admin Auction Management
+- **Create auctions:** `POST /auctions`
+- **Update auctions:** `PATCH /auctions/{id}`
+- **Cancel auctions:** `POST /auctions/{id}/cancel`
+- **Finalize auctions:** `POST /auctions/{id}/finalize`
+
+---
+
+## 🚀 Real-World Testing Scenarios
+
+Here are some complete workflows you can test:
+
+### 🛒 **Scenario 1: Complete Shopping Experience**
+1. **Browse products:** `GET /products`
+2. **Register/Login:** `POST /auth/register` or `POST /auth/login`
+3. **Create wallet:** `POST /wallets/create`
+4. **Place order:** `POST /orders/checkout`
+5. **Track order:** `GET /orders/{orderId}`
+6. **Rate order:** `POST /orders/{orderId}/rate`
+
+### 🏪 **Scenario 2: Store Owner Experience**
+1. **Register as business:** `POST /auth/register` (accountType: "business")
+2. **Create store:** `POST /stores`
+3. **Add products:** `POST /products`
+4. **View incoming orders:** `GET /orders/store-orders`
+5. **Update order status:** `PATCH /orders/{orderId}/status`
+
+### 🤝 **Scenario 3: Social Shopping**
+1. **User A creates order:** `POST /orders/checkout`
+2. **User B transfers money to User A:** `POST /wallets/transfer`
+3. **Both users rate the experience:** `POST /orders/{orderId}/rate`
+
+### 🎯 **Scenario 4: Auction Participation**
+1. **Browse auctions:** `GET /auctions`
+2. **Place bid:** `POST /auctions/{auctionId}/bid`
+3. **Check if you won:** `GET /auctions/user/won`
+4. **If won, create order for the item**
 
 #### Get My Rider Profile
 **Endpoint:** `GET /riders/my-profile`
