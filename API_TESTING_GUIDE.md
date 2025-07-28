@@ -81,27 +81,55 @@ Now you can test protected endpoints!
 
 ### 🏪 1. Store Management
 
-#### Create a Store
+#### Create a Store (Requires Authentication)
 **Endpoint:** `POST /stores`
-```json
+**Authentication:** Required - Include `Authorization: Bearer <token>` header
+
+**Step 1: Register/Login to get access token**
+```bash
+# Register first (if you don't have an account)
+POST /auth/register
 {
-  "name": "Fresh Foods Market",
-  "description": "Premium fresh foods and groceries",
-  "address": "123 Market Street, Lagos",
+  "name": "John Doe",
+  "email": "john@example.com",
   "phone": "+2348123456789",
-  "email": "contact@freshfoods.com",
-  "category": "GROCERY",
-  "isActive": true
+  "password": "MySecure123!",
+  "accountType": "business",
+  "role": "user"
+}
+
+# OR Login (if you already have an account)
+POST /auth/login
+{
+  "email": "john@example.com",
+  "password": "MySecure123!"
+}
+```
+
+**Step 2: Use the access token to create a store**
+```bash
+POST /stores
+Headers: {
+  "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "Content-Type": "application/json"
+}
+Body: {
+  "name": "My Awesome Store",
+  "description": "The best store in town",
+  "address": "123 Main St, City, Country",
+  "phone": "+1234567890",
+  "email": "store@example.com"
 }
 ```
 
 #### Get All Stores
 **Endpoint:** `GET /stores`
-- No authentication required
-- Returns list of all active stores
+**Authentication:** Not required (Public endpoint)
+- Returns list of all stores
 
 #### Get Store by ID
 **Endpoint:** `GET /stores/{id}`
+**Authentication:** Not required (Public endpoint)
 - Use store ID from previous response
 
 #### Update Store
@@ -109,8 +137,7 @@ Now you can test protected endpoints!
 ```json
 {
   "name": "Updated Store Name",
-  "description": "Updated description",
-  "isActive": true
+  "description": "Updated description"
 }
 ```
 
@@ -201,21 +228,18 @@ Now you can test protected endpoints!
 **Endpoint:** `POST /products`
 ```json
 {
-  "name": "Fresh Organic Apples",
-  "description": "Premium organic apples from local farms",
+  "name": "Fresh Tomatoes",
+  "description": "Fresh organic tomatoes grown locally",
   "price": 500,
-  "priceInNibia": 50,
-  "category": "FRUITS",
+  "priceInNibia": 125.50,
+  "weight": 1000,
+  "city": "Lagos",
+  "category": "vegetables",
   "sellerId": "STORE_ID_FROM_PREVIOUS_STEP",
-  "stockQuantity": 100,
-  "deliveryType": "HOME_DELIVERY",
-  "location": {
-    "city": "Lagos",
-    "state": "Lagos",
-    "address": "Victoria Island"
-  },
-  "tags": ["organic", "fresh", "healthy"],
-  "isActive": true
+  "tags": ["organic", "fresh", "local"],
+  "deliveryType": "free",
+  "stock": 50,
+  "images": ["https://example.com/tomato1.jpg", "https://example.com/tomato2.jpg"]
 }
 ```
 
@@ -224,7 +248,7 @@ Now you can test protected endpoints!
 
 **Test various filters:**
 - `?search=apple` - Search by name
-- `?category=FRUITS` - Filter by category
+- `?category=fruits` - Filter by category
 - `?city=Lagos` - Filter by location
 - `?minPrice=100&maxPrice=1000` - Price range
 - `?page=1&limit=10` - Pagination
@@ -313,8 +337,7 @@ Now you can test protected endpoints!
 ```json
 {
   "productId": "PRODUCT_ID_FROM_PREVIOUS_STEP",
-  "quantity": 2,
-  "notes": "Extra fresh please"
+  "quantity": 2
 }
 ```
 
@@ -346,13 +369,17 @@ Now you can test protected endpoints!
 **Endpoint:** `POST /orders/checkout`
 ```json
 {
+  "paymentPlan": {
+    "type": "pay_now",
+    "payNowDetails": {}
+  },
+  "deliveryMethod": "home_delivery",
   "deliveryAddress": {
     "street": "45 Allen Avenue",
     "city": "Lagos",
     "state": "Lagos",
     "postalCode": "100001"
   },
-  "paymentMethod": "FOOD_MONEY",
   "notes": "Please deliver before 6 PM"
 }
 ```
@@ -509,7 +536,7 @@ Now you can test protected endpoints!
 
 #### Browse Active Auctions
 **Endpoint:** `GET /auctions`
-- Filter: `?status=ACTIVE&category=FRUITS`
+- Filter: `?status=ACTIVE&category=fruits`
 
 #### Get Auction by ID
 **Endpoint:** `GET /auctions/{id}`

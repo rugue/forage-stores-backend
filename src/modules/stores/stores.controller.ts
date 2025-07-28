@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StoresService } from './stores.service';
 import { Store } from './entities/store.entity';
 import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
+import { Public } from '../auth/decorators';
 
 @ApiTags('stores')
 @Controller('stores')
@@ -29,6 +30,7 @@ export class StoresController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get all stores' })
   @ApiResponse({ status: 200, description: 'Return all stores', type: [Store] })
   findAll() {
@@ -36,6 +38,7 @@ export class StoresController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get a store by id' })
   @ApiResponse({ status: 200, description: 'Return the store', type: Store })
   findOne(@Param('id') id: string) {
