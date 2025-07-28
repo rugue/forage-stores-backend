@@ -6,12 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { StoresService } from './stores.service';
 import { Store } from './entities/store.entity';
 import { CreateStoreDto, UpdateStoreDto } from './dto/store.dto';
 import { Public } from '../auth/decorators';
+import { JwtAuthGuard } from '../auth/guards';
 
 @ApiTags('stores')
 @Controller('stores')
@@ -19,6 +21,8 @@ export class StoresController {
   constructor(private readonly storesService: StoresService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new store' })
   @ApiResponse({
     status: 201,
@@ -46,6 +50,8 @@ export class StoresController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update a store' })
   @ApiResponse({
     status: 200,
@@ -57,6 +63,8 @@ export class StoresController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete a store' })
   @ApiResponse({
     status: 200,
