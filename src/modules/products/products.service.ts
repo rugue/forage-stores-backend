@@ -29,9 +29,20 @@ export class ProductsService {
     userRole?: string,
   ): Promise<Product> {
     try {
+      // Add debugging logs
+      console.log('🔍 CREATE PRODUCT DEBUG:');
+      console.log('- createProductDto.sellerId:', createProductDto.sellerId);
+      console.log('- userId:', userId);
+      console.log('- userRole:', userRole);
+      
       // If user is not admin, set sellerId to current user
       if (userRole !== 'admin' && !createProductDto.sellerId) {
         createProductDto.sellerId = userId;
+        console.log('✅ AUTO-ASSIGNED sellerId to:', userId);
+      } else if (createProductDto.sellerId) {
+        console.log('📝 sellerId already provided:', createProductDto.sellerId);
+      } else {
+        console.log('⚠️ No sellerId assignment (admin without sellerId?)');
       }
 
       // Only admin can create products for other sellers
@@ -44,10 +55,15 @@ export class ProductsService {
         ...createProductDto,
         sellerId: createProductDto.sellerId ? new Types.ObjectId(createProductDto.sellerId) : undefined,
       };
+      
+      console.log('💾 Final productData.sellerId:', productData.sellerId);
 
       const product = new this.productModel(productData);
-      return await product.save();
+      const savedProduct = await product.save();
+      console.log('✅ Product saved with sellerId:', savedProduct.sellerId);
+      return savedProduct;
     } catch (error) {
+      console.log('❌ Error in create:', error.message);
       if (error instanceof ForbiddenException) {
         throw error;
       }

@@ -45,7 +45,7 @@ export class ProductsController {
   ) {
     return this.productsService.create(
       createProductDto,
-      user.sub,
+      user.id,  // Changed from user.sub to user.id
       user.role,
     );
   }
@@ -82,7 +82,7 @@ export class ProductsController {
     @CurrentUser() user: any,
     @Query() filterDto: ProductFilterDto,
   ) {
-    return this.productsService.findBySeller(user.sub, filterDto);
+    return this.productsService.findBySeller(user.id, filterDto);  // Changed from user.sub to user.id
   }
 
   @Get('city/:city')
@@ -155,7 +155,7 @@ export class ProductsController {
     return this.productsService.update(
       id,
       updateProductDto,
-      user.sub,
+      user.id,  // Changed from user.sub to user.id
       user.role,
     );
   }
@@ -169,7 +169,7 @@ export class ProductsController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async remove(@Param('id') id: string, @CurrentUser() user: any) {
-    await this.productsService.remove(id, user.sub, user.role);
+    await this.productsService.remove(id, user.id, user.role);  // Changed from user.sub to user.id
     return { message: 'Product deleted successfully' };
   }
 
