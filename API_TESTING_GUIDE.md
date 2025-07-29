@@ -319,6 +319,14 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 }
 ```
 
+**Latest and updated Data:**
+```json
+{
+  "email": "john.doe@example.com",
+  "password": "MyNewSecure456!"
+}
+```
+
 #### 👥 View All Users (🔒 Admin Only)
 **What:** See all registered users
 **Endpoint:** `GET /users`

@@ -23,6 +23,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators';
 import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('Products')
@@ -50,6 +51,7 @@ export class ProductsController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get all products with optional filtering' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   @ApiQuery({ name: 'search', required: false, description: 'Search term' })
@@ -84,6 +86,7 @@ export class ProductsController {
   }
 
   @Get('city/:city')
+  @Public()
   @ApiOperation({ summary: 'Get products by city' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   async findByCity(
@@ -94,6 +97,7 @@ export class ProductsController {
   }
 
   @Get('category/:category')
+  @Public()
   @ApiOperation({ summary: 'Get products by category' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   async findByCategory(
@@ -104,6 +108,7 @@ export class ProductsController {
   }
 
   @Get('seller/:sellerId')
+  @Public()
   @ApiOperation({ summary: 'Get products by seller ID' })
   @ApiResponse({ status: 200, description: 'Products retrieved successfully' })
   @ApiResponse({ status: 400, description: 'Invalid seller ID' })
@@ -125,6 +130,7 @@ export class ProductsController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get a product by ID' })
   @ApiResponse({ status: 200, description: 'Product retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Product not found' })
