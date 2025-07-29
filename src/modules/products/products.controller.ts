@@ -18,7 +18,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
-import { CreateProductDto, UpdateProductDto, ProductFilterDto } from './dto';
+import { CreateProductDto, UpdateProductDto, ProductFilterDto, UpdateStockDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -179,16 +179,16 @@ export class ProductsController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update product stock' })
   @ApiResponse({ status: 200, description: 'Stock updated successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid quantity or insufficient stock' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async updateStock(
     @Param('id') id: string,
-    @Body() body: { quantity: number; operation?: 'add' | 'subtract' },
+    @Body() updateStockDto: UpdateStockDto,
   ) {
     return this.productsService.updateStock(
       id,
-      body.quantity,
-      body.operation || 'subtract',
+      updateStockDto.quantity,
+      updateStockDto.operation || 'subtract',
     );
   }
 
