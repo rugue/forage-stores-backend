@@ -39,7 +39,13 @@ export class ProductsService {
         throw new ForbiddenException('You can only create products for yourself');
       }
 
-      const product = new this.productModel(createProductDto);
+      // Convert sellerId to ObjectId if it's a string
+      const productData = {
+        ...createProductDto,
+        sellerId: createProductDto.sellerId ? new Types.ObjectId(createProductDto.sellerId) : undefined,
+      };
+
+      const product = new this.productModel(productData);
       return await product.save();
     } catch (error) {
       if (error instanceof ForbiddenException) {
