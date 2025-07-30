@@ -431,14 +431,75 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 #### Delete Product
 **Endpoint:** `DELETE /products/{id}`
 
-#### Update Product Stock
+#### Update Product Stock (🔒 Store Owner Required)
 **Endpoint:** `PATCH /products/{id}/stock`
+
+**⚡ NEW ENHANCED STOCK MANAGEMENT!**
+
+**Request Body:**
 ```json
 {
-  "quantity": 200,
-  "operation": "ADD"
+  "quantity": 25,
+  "operation": "add"
 }
 ```
+
+**Stock Operations:**
+- `"add"`: Add to current stock (increase inventory)
+- `"subtract"`: Remove from current stock (decrease inventory, default)
+
+**Examples:**
+
+**Add Stock (Restocking):**
+```json
+{
+  "quantity": 50,
+  "operation": "add"
+}
+```
+
+**Remove Stock (Sales, Damage, etc.):**
+```json
+{
+  "quantity": 10,
+  "operation": "subtract"
+}
+```
+
+**Default Operation (Subtract):**
+```json
+{
+  "quantity": 5
+}
+```
+
+**What Happens:**
+- ✅ Validates you own the product
+- ✅ Performs the specified operation on current stock
+- ✅ Prevents stock from going below 0 for subtract operations
+- ✅ Updates product immediately in database
+- ✅ Returns updated product with new stock level
+
+**Expected Response:**
+```json
+{
+  "message": "Stock updated successfully",
+  "product": {
+    "id": "64f987654321abcdef654321",
+    "name": "Premium Organic Bananas",
+    "stock": 75,
+    "previousStock": 50,
+    "operation": "add",
+    "quantityChanged": 25,
+    "updatedAt": "2025-07-30T10:30:00.000Z"
+  }
+}
+```
+
+**Error Handling:**
+- `404 Not Found`: Product doesn't exist or you don't own it
+- `400 Bad Request`: Trying to subtract more than available stock
+- `400 Bad Request`: Invalid quantity (must be positive number)
 
 #### Admin: Bulk Stock Update
 **Endpoint:** `POST /products/admin/bulk-stock-update`
@@ -475,10 +536,22 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 }
 ```
 
-### 🛒 4. Shopping Cart & Orders (Complete)
+### 🛒 4. Shopping Cart & Orders (Complete) - NEW PERSISTENT CART SYSTEM! 
+
+**🎉 MAJOR UPDATE:** The cart system now uses **persistent database storage** with automatic expiration and validation!
+
+**Key Features:**
+- ✅ **Persistent Storage:** Your cart is saved in the database, not memory
+- ✅ **Auto-Expiration:** Carts automatically expire after 30 days
+- ✅ **Real-time Validation:** Stock levels checked on every operation
+- ✅ **Price Tracking:** Prices locked when items added to prevent surprises
+- ✅ **Scheduled Cleanup:** Expired carts cleaned automatically daily at 2 AM
+- ✅ **Detailed Responses:** Rich product information in all cart operations
 
 #### Add Item to Cart (🔒 Authentication Required)
 **Endpoint:** `POST /orders/cart/add`
+
+**Request Body:**
 ```json
 {
   "productId": "PRODUCT_ID_FROM_PREVIOUS_STEP",
@@ -486,28 +559,197 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 }
 ```
 
+**What Happens:**
+- ✅ Validates product exists and has sufficient stock
+- ✅ Creates new cart if none exists (expires in 30 days)
+- ✅ Adds new item OR increases quantity if already in cart
+- ✅ Locks current product price and details
+- ✅ Validates total quantity doesn't exceed available stock
+- ✅ Extends cart expiration to 30 days from now
+
+**Expected Response:**
+```json
+{
+  "message": "Item added to cart successfully",
+  "cart": {
+    "items": [
+      {
+        "_id": "64f123456789abcdef123456",
+        "productId": {
+          "_id": "64f987654321abcdef654321",
+          "name": "Premium Organic Bananas",
+          "price": 500,
+          "priceInNibia": 50,
+          "category": "Fruits",
+          "images": ["image1.jpg"],
+          "seller": "64f111222333abcdef111222",
+          "stock": 48
+        },
+        "productName": "Premium Organic Bananas",
+        "productDescription": "Fresh organic bananas from local farms",
+        "quantity": 2,
+        "unitPrice": 500,
+        "unitPriceInNibia": 50,
+        "totalPrice": 1000,
+        "totalPriceInNibia": 100,
+        "addedAt": "2025-07-30T10:30:00.000Z",
+        "updatedAt": "2025-07-30T10:30:00.000Z"
+      }
+    ],
+    "totalPriceInNaira": 1000,
+    "totalPriceInNibia": 100,
+    "itemCount": 1
+  }
+}
+```
+
 #### Update Cart Item Quantity (🔒 Authentication Required)
 **Endpoint:** `PATCH /orders/cart/{productId}`
+
+**Request Body:**
 ```json
 {
   "quantity": 3
 }
 ```
 
+**What Happens:**
+- ✅ Validates product still exists and has sufficient stock
+- ✅ Updates quantity to the exact number specified (not additive)
+- ✅ Recalculates totals using locked-in prices
+- ✅ Extends cart expiration
+
+**Expected Response:**
+```json
+{
+  "message": "Cart item updated successfully",
+  "cart": {
+    // Same structure as add to cart response with updated quantities
+  }
+}
+```
+
 #### Remove Item from Cart (🔒 Authentication Required)
 **Endpoint:** `DELETE /orders/cart/{productId}`
-**Note:** Just use the product ID in the URL path, no body needed.
+
+**Request:** No body needed, just the productId in the URL path.
+
+**What Happens:**
+- ✅ Removes the specific product from cart completely
+- ✅ Recalculates cart totals
+- ✅ Returns updated cart
+
+**Expected Response:**
+```json
+{
+  "message": "Item removed from cart successfully",
+  "cart": {
+    // Updated cart without the removed item
+  }
+}
+```
 
 #### View Cart (🔒 Authentication Required)
 **Endpoint:** `GET /orders/cart`
-**Returns:** Current user's cart items with product details and totals
+
+**What Happens:**
+- ✅ Returns only non-expired cart items
+- ✅ Populates full product details for each item
+- ✅ Filters out items where products have been deleted
+- ✅ Calculates current totals
+
+**Expected Response:**
+```json
+{
+  "items": [
+    {
+      "_id": "64f123456789abcdef123456",
+      "productId": {
+        "_id": "64f987654321abcdef654321",
+        "name": "Premium Organic Bananas",
+        "price": 500,
+        "priceInNibia": 50,
+        "category": "Fruits",
+        "images": ["image1.jpg"],
+        "seller": "64f111222333abcdef111222",
+        "stock": 48
+      },
+      "productName": "Premium Organic Bananas",
+      "productDescription": "Fresh organic bananas from local farms",
+      "quantity": 2,
+      "unitPrice": 500,
+      "unitPriceInNibia": 50,
+      "totalPrice": 1000,
+      "totalPriceInNibia": 100,
+      "addedAt": "2025-07-30T10:30:00.000Z",
+      "updatedAt": "2025-07-30T10:30:00.000Z"
+    }
+  ],
+  "totalPriceInNaira": 1000,
+  "totalPriceInNibia": 100,
+  "itemCount": 1
+}
+```
+
+**Empty Cart Response:**
+```json
+{
+  "items": [],
+  "totalPriceInNaira": 0,
+  "totalPriceInNibia": 0,
+  "itemCount": 0
+}
+```
 
 #### Clear Cart (🔒 Authentication Required)
 **Endpoint:** `DELETE /orders/cart`
-**What:** Removes all items from your cart
 
-#### Checkout Cart
+**What Happens:**
+- ✅ Removes ALL items from your cart
+- ✅ Cart record remains for future use
+- ✅ Returns empty cart confirmation
+
+**Expected Response:**
+```json
+{
+  "message": "Cart cleared successfully",
+  "cart": {
+    "items": [],
+    "totalPriceInNaira": 0,
+    "totalPriceInNibia": 0,
+    "itemCount": 0
+  }
+}
+```
+
+#### 🚨 Important Cart Behaviors
+
+**Cart Expiration:**
+- Carts automatically expire after 30 days of inactivity
+- Any cart operation extends expiration to 30 days from that moment
+- Expired carts are automatically cleaned up daily at 2 AM
+
+**Stock Validation:**
+- Stock is checked in real-time for every cart operation
+- If a product goes out of stock, you'll get an error when trying to add/update
+- The system prevents adding more items than available stock
+
+**Price Locking:**
+- Prices are locked when items are added to cart
+- Even if product prices change, your cart keeps the original prices
+- This prevents checkout surprises
+
+**Error Handling:**
+- `404 Not Found`: Product doesn't exist or cart is empty
+- `400 Bad Request`: Invalid quantity, insufficient stock, or general validation errors
+- All errors include descriptive messages
+
+#### Checkout Cart (🔒 Authentication Required)
 **Endpoint:** `POST /orders/checkout`
+
+**⚠️ Prerequisites:** You must have items in your cart before checkout!
+
+**Request Body:**
 ```json
 {
   "paymentPlan": {
@@ -519,11 +761,263 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
     "street": "45 Allen Avenue",
     "city": "Lagos",
     "state": "Lagos",
-    "postalCode": "100001"
+    "postalCode": "100001",
+    "country": "Nigeria",
+    "instructions": "Please call when you arrive"
   },
   "notes": "Please deliver before 6 PM"
 }
 ```
+
+**Payment Plan Options:**
+```json
+// Option 1: Pay Now (immediate payment)
+{
+  "paymentPlan": {
+    "type": "pay_now",
+    "payNowDetails": {}
+  }
+}
+
+// Option 2: Pay Later (credit-based)
+{
+  "paymentPlan": {
+    "type": "pay_later",
+    "payLaterDetails": {
+      "creditLimit": 5000,
+      "dueDate": "2025-08-15T00:00:00.000Z"
+    }
+  }
+}
+
+// Option 3: Pay Small Small (installments)
+{
+  "paymentPlan": {
+    "type": "pay_small_small",
+    "paySmallSmallDetails": {
+      "initialPayment": 500,
+      "installmentAmount": 250,
+      "installmentFrequency": "weekly",
+      "numberOfInstallments": 4
+    }
+  }
+}
+
+// Option 4: Price Lock (reserve at current price)
+{
+  "paymentPlan": {
+    "type": "price_lock",
+    "priceLockDetails": {
+      "lockDuration": 7,
+      "lockAmount": 100
+    }
+  }
+}
+```
+
+**Delivery Method Options:**
+- `"home_delivery"`: Delivery to specified address (deliveryAddress required)
+- `"pickup"`: Customer pickup (deliveryAddress optional)
+
+**What Happens During Checkout:**
+- ✅ Validates you have items in cart
+- ✅ Checks all products still exist and have sufficient stock
+- ✅ Calculates total amount including delivery fees
+- ✅ Creates order from cart items using locked-in prices
+- ✅ Clears your cart automatically
+- ✅ Generates order tracking ID
+- ✅ Sets initial order status to "pending"
+
+**Expected Success Response:**
+```json
+{
+  "order": {
+    "id": "64f555666777abcdef555666",
+    "orderNumber": "ORD-1690473600-ABC123",
+    "status": "pending",
+    "items": [
+      {
+        "productId": "64f987654321abcdef654321",
+        "productName": "Premium Organic Bananas",
+        "quantity": 2,
+        "unitPrice": 500,
+        "unitPriceInNibia": 50,
+        "totalPrice": 1000,
+        "totalPriceInNibia": 100,
+        "seller": "64f111222333abcdef111222"
+      }
+    ],
+    "totalAmount": 1000,
+    "totalAmountInNibia": 100,
+    "deliveryFee": 200,
+    "grandTotal": 1200,
+    "paymentPlan": {
+      "type": "pay_now",
+      "payNowDetails": {}
+    },
+    "deliveryMethod": "home_delivery",
+    "deliveryAddress": {
+      "street": "45 Allen Avenue",
+      "city": "Lagos",
+      "state": "Lagos",
+      "postalCode": "100001",
+      "country": "Nigeria",
+      "instructions": "Please call when you arrive"
+    },
+    "notes": "Please deliver before 6 PM",
+    "createdAt": "2025-07-30T10:30:00.000Z",
+    "estimatedDeliveryTime": "2025-07-30T16:00:00.000Z"
+  },
+  "message": "Order placed successfully! Your cart has been cleared."
+}
+```
+
+**Common Checkout Errors:**
+- `400 Bad Request - "Cart is empty"`: Add items to cart first
+- `400 Bad Request - "Insufficient stock"`: One or more products don't have enough stock
+- `400 Bad Request - "Product no longer available"`: Product was deleted after adding to cart
+- `400 Bad Request - "Invalid delivery address"`: Required address fields missing for home delivery
+
+---
+
+## 🧪 NEW CART SYSTEM - COMPREHENSIVE TESTING SCENARIOS
+
+**Test these scenarios to understand the new cart system's capabilities:**
+
+### Scenario 1: Basic Shopping Flow
+```bash
+# Step 1: Add items to cart
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID_1",
+  "quantity": 2
+}
+
+# Step 2: Add another item
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID_2", 
+  "quantity": 1
+}
+
+# Step 3: View cart
+GET /orders/cart
+
+# Step 4: Update quantity
+PATCH /orders/cart/PRODUCT_ID_1
+{
+  "quantity": 3
+}
+
+# Step 5: Checkout
+POST /orders/checkout
+{
+  "paymentPlan": {"type": "pay_now", "payNowDetails": {}},
+  "deliveryMethod": "home_delivery",
+  "deliveryAddress": {"street": "123 Test St", "city": "Lagos", "state": "Lagos", "postalCode": "100001"}
+}
+```
+
+### Scenario 2: Stock Validation Testing
+```bash
+# Test stock limits - try adding more than available
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_WITH_LOW_STOCK",
+  "quantity": 999  # This should fail with stock error
+}
+
+# Add valid quantity first
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID",
+  "quantity": 5
+}
+
+# Try adding more than remaining stock
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID",  # Same product
+  "quantity": 10  # If total exceeds stock, this fails
+}
+```
+
+### Scenario 3: Cart Persistence Testing
+```bash
+# Add items to cart
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID",
+  "quantity": 2
+}
+
+# Wait some time or logout/login
+
+# Check cart is still there
+GET /orders/cart  # Should return items added before
+```
+
+### Scenario 4: Price Locking Testing
+```bash
+# Step 1: Add item to cart (price locked)
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID",
+  "quantity": 1
+}
+
+# Step 2: Store owner updates product price
+PATCH /products/PRODUCT_ID
+{
+  "price": 2000  # Changed from 1000 to 2000
+}
+
+# Step 3: Check cart still has old price
+GET /orders/cart  # unitPrice should still be 1000, not 2000
+
+# Step 4: Checkout uses locked price
+POST /orders/checkout
+# Order total uses the locked price (1000), not new price (2000)
+```
+
+### Scenario 5: Cart Expiration Testing
+```bash
+# This would require waiting 30 days or manually updating database
+# For testing, admin can manually set expiration date in past
+
+# Check expired cart behavior
+GET /orders/cart  # Should return empty cart if expired
+
+# Add to expired cart creates new cart
+POST /orders/cart/add
+{
+  "productId": "PRODUCT_ID",
+  "quantity": 1
+}
+```
+
+### Scenario 6: Error Handling Testing
+```bash
+# Test empty cart checkout
+DELETE /orders/cart  # Clear cart first
+POST /orders/checkout  # Should fail with "Cart is empty"
+
+# Test invalid product
+POST /orders/cart/add
+{
+  "productId": "000000000000000000000000",  # Invalid ID
+  "quantity": 1
+}
+
+# Test negative quantity
+POST /orders/cart/add
+{
+  "productId": "VALID_PRODUCT_ID",
+  "quantity": -1  # Should fail validation
+}
+```
+
+---
 
 #### Process Payment
 **Endpoint:** `POST /orders/{orderId}/payment`
@@ -799,6 +1293,44 @@ This shows all items in your cart with prices and totals.
 - **View all wallets:** `GET /wallets/admin/all`
 - **Add money to user accounts:** `PATCH /wallets/admin/{userId}/balance`
 - **View financial statistics:** `GET /wallets/admin/stats`
+
+### 🛒 NEW: Admin Cart Management & Cleanup System
+**🆕 Automated Cart Cleanup System Active!**
+
+The system now includes an automated cart cleanup service that:
+
+**📅 Daily Cleanup (2 AM):**
+- Automatically removes expired carts (older than 30 days)
+- Logs cleanup activities for monitoring
+- Runs every day at 2:00 AM server time
+
+**🔍 How the Cleanup Works:**
+- Finds all carts with `expiresAt` date in the past
+- Safely deletes expired cart documents from database
+- Logs the number of carts cleaned up
+- Prevents database bloat from abandoned carts
+
+**📊 Cleanup Monitoring:**
+- Check server logs for cleanup reports: `"Cart cleanup completed. Removed X expired carts"`
+- Cleanup runs automatically via @Cron decorator
+- No manual intervention needed
+
+**⚙️ Technical Details:**
+- Uses NestJS @Cron and ScheduleModule
+- Cleanup method: `CartService.cleanupExpiredCarts()`
+- Service: `CartCleanupService` with scheduled task
+- Frequency: Daily at 2 AM (configurable)
+
+**🛠️ Admin Cart Monitoring (Future Enhancement):**
+```bash
+# Potential admin endpoints for cart monitoring:
+GET /admin/carts/statistics     # Cart usage stats
+GET /admin/carts/expired        # View expired carts before cleanup
+POST /admin/carts/cleanup       # Manual cleanup trigger
+GET /admin/carts/cleanup-logs   # View cleanup history
+```
+
+*Note: The cleanup system is fully automated and requires no admin intervention. These monitoring endpoints could be added for advanced cart management.*
 
 ### 🚚 Admin Delivery Management
 - **Create deliveries:** `POST /delivery`
@@ -1588,6 +2120,66 @@ Test these error scenarios:
 3. Role-based access verification
 4. Performance under load
 5. Data consistency checks
+
+---
+
+## 🎉 RECENT MAJOR UPDATES - JULY 2025
+
+### 🛒 Revolutionary Cart System Overhaul
+**Complete migration from in-memory to persistent database storage!**
+
+**✨ What's New:**
+1. **Persistent Storage:** Carts saved in MongoDB, never lost on server restart
+2. **Smart Expiration:** 30-day automatic expiration with extension on activity
+3. **Price Locking:** Prices frozen when items added, protecting from price changes
+4. **Real-time Validation:** Stock checks on every cart operation
+5. **Automated Cleanup:** Daily cleanup of expired carts at 2 AM
+6. **Rich Responses:** Full product details in all cart operations
+7. **Error Resilience:** Graceful handling of deleted products and stock changes
+
+**🔧 Technical Improvements:**
+- New `CartService` with comprehensive CRUD operations
+- New `Cart` entity with TTL index for automatic expiration
+- New `CartCleanupService` with scheduled tasks
+- Enhanced validation and error handling
+- Optimized database queries with proper population
+
+### ⚡ Enhanced Stock Management
+**Redesigned product stock update system!**
+
+**✨ What's New:**
+1. **Flexible Operations:** Add or subtract stock with clear operations
+2. **Enhanced Validation:** Prevents negative stock levels
+3. **Detailed Responses:** Shows before/after stock levels and operation details
+4. **Real-time Updates:** Immediate reflection in database and cart validations
+
+### 🔄 Improved Order Management
+**Streamlined integration between cart and orders!**
+
+**✨ What's New:**
+1. **Cart-to-Order Integration:** Seamless checkout process
+2. **Enhanced DTOs:** Proper validation for all cart operations
+3. **Smart Stock Checking:** Validates stock availability during checkout
+4. **Automatic Cart Clearing:** Cart emptied after successful checkout
+
+### 📊 System Architecture Improvements
+**Backend infrastructure enhancements!**
+
+**✨ What's New:**
+1. **Scheduled Tasks:** NestJS ScheduleModule integration for automated cleanup
+2. **Service Separation:** Clear separation between CartService and OrdersService
+3. **Database Optimization:** TTL indexes for automatic document expiration
+4. **Comprehensive Logging:** Detailed logs for cart operations and cleanup
+
+### 🧪 Enhanced Testing Capabilities
+**New testing scenarios and comprehensive examples!**
+
+**✨ What's New:**
+1. **Complete Cart Workflows:** Step-by-step testing scenarios
+2. **Stock Validation Testing:** Edge cases and error conditions
+3. **Price Locking Verification:** Testing locked prices during checkout
+4. **Persistence Testing:** Validating cart survival across sessions
+5. **Error Handling Examples:** Comprehensive error scenario testing
 
 ---
 
