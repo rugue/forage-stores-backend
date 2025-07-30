@@ -1721,6 +1721,672 @@ GET /admin/carts/cleanup-logs   # View cleanup history
 
 ---
 
+## 🔐 COMPLETE ADMIN ENDPOINTS GUIDE
+
+**⚠️ IMPORTANT:** All admin endpoints require authentication with admin role. To test these endpoints:
+
+1. **Create or get admin credentials**
+2. **Login as admin** to get JWT token
+3. **Include token** in `Authorization: Bearer <token>` header
+
+### 🎯 Prerequisites for Admin Testing
+
+Before testing admin endpoints, ensure you have admin access:
+
+#### Option 1: Create Admin User (Backend/Database)
+```javascript
+// In MongoDB shell or database tool
+db.users.insertOne({
+  email: "admin@forage.com",
+  name: "System Admin",
+  password: "$2b$10$hashed_password_here", // Use bcrypt to hash "admin123"
+  role: "admin",
+  isVerified: true,
+  createdAt: new Date(),
+  updatedAt: new Date()
+});
+```
+
+#### Option 2: Promote Existing User to Admin
+```javascript
+// In MongoDB shell
+db.users.updateOne(
+  { email: "your-email@example.com" },
+  { $set: { role: "admin" } }
+);
+```
+
+#### Option 3: Use Admin Login Endpoint (if available)
+```bash
+POST /admin/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@forage.com",
+  "password": "your-admin-password"
+}
+```
+
+---
+
+## 👑 ADMIN MODULE ENDPOINTS
+
+### 👥 User Management
+
+#### Get All Users
+**Endpoint:** `GET /admin/users`
+**Description:** Retrieve all users in the system with pagination and filtering
+**Response:** Array of user objects with all user details
+
+#### Get User by ID
+**Endpoint:** `GET /admin/users/{userId}`
+**Description:** Get detailed information about a specific user
+**Parameters:** 
+- `userId` (path): MongoDB ObjectId of the user
+
+#### Get User Wallet (Admin View)
+**Endpoint:** `GET /admin/users/{userId}/wallet`
+**Description:** View any user's wallet details
+**Parameters:**
+- `userId` (path): User ID to check wallet for
+
+---
+
+### 💰 Wallet Management (Admin)
+
+#### Get All Wallets
+**Endpoint:** `GET /admin/wallets`
+**Description:** View all user wallets in the system
+
+#### Get Wallet by ID
+**Endpoint:** `GET /admin/wallets/{walletId}`
+**Description:** Get detailed wallet information by wallet ID
+**Parameters:**
+- `walletId` (path): Wallet MongoDB ObjectId
+
+#### Fund User Wallet (Requires Admin Password)
+**Endpoint:** `POST /admin/wallets/fund`
+**Description:** Add money to any user's wallet (requires admin password verification)
+**Request Body:**
+```json
+{
+  "userId": "64a1234567890abcdef12345",
+  "amount": 1000.00,
+  "currencyType": "foodMoney",
+  "adminPassword": "your-admin-password",
+  "reason": "Promotional credit for user"
+}
+```
+**Notes:**
+- `currencyType`: "foodMoney" or "foodPoints"
+- `adminPassword`: Required for security verification
+- `reason`: Mandatory description for audit trail
+
+#### Wipe User Wallet (Requires Admin Password)
+**Endpoint:** `POST /admin/wallets/wipe`
+**Description:** Clear/reset any user's wallet balance
+**Request Body:**
+```json
+{
+  "userId": "64a1234567890abcdef12345",
+  "currencyType": "both",
+  "adminPassword": "your-admin-password",
+  "reason": "Account suspension - fraud investigation"
+}
+```
+**Notes:**
+- `currencyType`: "foodMoney", "foodPoints", or "both"
+- Use with extreme caution - this action is irreversible
+
+---
+
+### 📊 Analytics & Reporting
+
+#### Orders Analytics
+**Endpoint:** `GET /admin/analytics/orders`
+**Description:** Get comprehensive order statistics and trends
+**Query Parameters:**
+```json
+{
+  "dateRange": {
+    "startDate": "2024-01-01T00:00:00.000Z",
+    "endDate": "2024-12-31T23:59:59.999Z"
+  },
+  "categoryId": "64a1234567890abcdef12345",
+  "productId": "64a1234567890abcdef12345",
+  "city": "Lagos"
+}
+```
+
+#### Subscription Analytics
+**Endpoint:** `GET /admin/analytics/subscriptions`
+**Description:** View subscription service usage and statistics
+
+#### Commission Analytics
+**Endpoint:** `GET /admin/analytics/commissions`
+**Description:** Track commission earnings and payouts
+
+---
+
+### 🏷️ Category Management
+
+#### Get All Categories (Admin)
+**Endpoint:** `GET /admin/categories`
+**Description:** View all product categories with admin details
+
+#### Get Category by ID
+**Endpoint:** `GET /admin/categories/{categoryId}`
+**Parameters:**
+- `categoryId` (path): Category MongoDB ObjectId
+
+#### Create New Category
+**Endpoint:** `POST /admin/categories`
+**Request Body:**
+```json
+{
+  "name": "Electronics",
+  "description": "Electronic devices and gadgets",
+  "iconUrl": "https://example.com/electronics-icon.png",
+  "parentCategoryId": "64a1234567890abcdef12345"
+}
+```
+
+#### Update Category
+**Endpoint:** `PATCH /admin/categories/{categoryId}`
+**Request Body:**
+```json
+{
+  "name": "Updated Electronics",
+  "description": "Updated description",
+  "isActive": true
+}
+```
+
+#### Delete Category
+**Endpoint:** `DELETE /admin/categories/{categoryId}`
+**Note:** Cannot delete categories that are in use by products
+
+---
+
+### 💰 Price History Management
+
+#### Get Product Price History
+**Endpoint:** `GET /admin/products/{productId}/price-history`
+**Description:** View complete price change history for any product
+
+#### Add Price History & Update Product
+**Endpoint:** `POST /admin/products/price-history`
+**Description:** Record price change and update product price
+**Request Body:**
+```json
+{
+  "productId": "64a1234567890abcdef12345",
+  "price": 2500.00,
+  "effectiveDate": "2024-01-15T00:00:00.000Z",
+  "reason": "Market adjustment due to supply chain costs"
+}
+```
+
+---
+
+## 🏪 WALLET MODULE (Admin Endpoints)
+
+### Get All Wallets (Admin)
+**Endpoint:** `GET /wallets/admin/all`
+**Description:** Comprehensive view of all system wallets
+
+### Get Wallet Statistics
+**Endpoint:** `GET /wallets/admin/stats`
+**Description:** System-wide wallet statistics
+**Response Example:**
+```json
+{
+  "totalWallets": 1500,
+  "activeWallets": 1450,
+  "totalFoodMoney": 2500000.50,
+  "totalFoodPoints": 875000.25,
+  "totalFoodSafe": 1200000.00,
+  "totalBalance": 3700000.50
+}
+```
+
+### Get User Wallet by User ID
+**Endpoint:** `GET /wallets/admin/user/{userId}`
+**Description:** Get wallet details for specific user
+
+### Get Wallet by Wallet ID
+**Endpoint:** `GET /wallets/admin/{walletId}`
+**Description:** Get wallet details by wallet ID
+
+### Create Wallet for User
+**Endpoint:** `POST /wallets/admin/{userId}/create`
+**Description:** Create wallet for specific user (admin only)
+
+### Update User Wallet Balance
+**Endpoint:** `PATCH /wallets/admin/{userId}/balance`
+**Description:** Directly modify user wallet balance
+**Request Body:**
+```json
+{
+  "operation": "add",
+  "amount": 500.00,
+  "currencyType": "foodMoney",
+  "description": "Admin credit adjustment"
+}
+```
+
+### Update Wallet Status
+**Endpoint:** `PATCH /wallets/admin/{walletId}/status`
+**Description:** Change wallet status (active/suspended/frozen)
+**Request Body:**
+```json
+{
+  "status": "suspended"
+}
+```
+
+---
+
+## 🎪 AUCTIONS MODULE (Admin Endpoints)
+
+### Create Auction
+**Endpoint:** `POST /auctions`
+**Description:** Create new product auction
+**Request Body:**
+```json
+{
+  "productId": "64a1234567890abcdef12345",
+  "startingBid": 1000.00,
+  "minimumBidIncrement": 50.00,
+  "startTime": "2024-02-01T10:00:00.000Z",
+  "endTime": "2024-02-07T22:00:00.000Z",
+  "description": "Weekly fresh produce auction"
+}
+```
+
+### Update Auction
+**Endpoint:** `PATCH /auctions/{id}`
+**Description:** Modify auction details (admin only)
+
+### Cancel Auction
+**Endpoint:** `POST /auctions/{id}/cancel`
+**Description:** Cancel auction and refund all bids
+
+### Finalize Auction
+**Endpoint:** `POST /auctions/{id}/finalize`
+**Description:** Manually finalize auction and determine winner
+
+---
+
+## 🛒 ORDERS MODULE (Admin Endpoints)
+
+### Get Order Analytics
+**Endpoint:** `GET /orders/analytics`
+**Description:** Comprehensive order statistics and insights
+**Query Parameters:**
+- `startDate`: Filter orders from date
+- `endDate`: Filter orders to date
+- `status`: Filter by order status
+- `city`: Filter by delivery city
+
+### Update Order (Admin)
+**Endpoint:** `PATCH /orders/{orderId}/admin`
+**Description:** Admin override for order modifications
+**Request Body:**
+```json
+{
+  "status": "confirmed",
+  "deliveryAddress": "Updated delivery address",
+  "adminNotes": "Order manually verified and approved"
+}
+```
+
+### Approve/Reject Credit Check
+**Endpoint:** `POST /orders/{orderId}/credit-check`
+**Description:** Approve or reject Pay Later orders
+**Request Body:**
+```json
+{
+  "decision": "approved",
+  "creditLimit": 50000.00,
+  "notes": "Good credit history, approved for pay later"
+}
+```
+
+---
+
+## 🛍️ PRODUCTS MODULE (Admin Endpoints)
+
+### Get Product Statistics
+**Endpoint:** `GET /products/statistics`
+**Description:** Overall product statistics and insights
+
+### Bulk Stock Update
+**Endpoint:** `POST /products/admin/bulk-stock-update`
+**Description:** Update stock for multiple products at once
+**Request Body:**
+```json
+{
+  "updates": [
+    {
+      "productId": "64a1234567890abcdef12345",
+      "stock": 100,
+      "operation": "set"
+    },
+    {
+      "productId": "64a1234567890abcdef12346",
+      "stock": 50,
+      "operation": "add"
+    }
+  ]
+}
+```
+
+### Create Product for Seller
+**Endpoint:** `POST /products/admin/{sellerId}`
+**Description:** Create product on behalf of specific seller
+
+### Get Products by Seller (Admin)
+**Endpoint:** `GET /products/admin/seller/{sellerId}`
+**Description:** View all products for specific seller
+
+### Update Product Status
+**Endpoint:** `PATCH /products/admin/{id}/status`
+**Description:** Change product status (active/inactive/suspended)
+**Request Body:**
+```json
+{
+  "status": "suspended",
+  "reason": "Policy violation - inappropriate content"
+}
+```
+
+---
+
+## 👥 USERS MODULE (Admin Endpoints)
+
+### Get All Users
+**Endpoint:** `GET /users/admin/all`
+**Description:** List all users with admin details and filters
+**Query Parameters:**
+- `role`: Filter by user role
+- `city`: Filter by user city
+- `isVerified`: Filter by verification status
+- `page`: Pagination
+- `limit`: Items per page
+
+### Get User by ID (Admin)
+**Endpoint:** `GET /users/admin/{userId}`
+**Description:** Get complete user profile (admin view)
+
+### Create User (Admin)
+**Endpoint:** `POST /users/admin/create`
+**Description:** Create new user account
+**Request Body:**
+```json
+{
+  "email": "newuser@example.com",
+  "name": "New User",
+  "password": "securePassword123",
+  "role": "user",
+  "phoneNumber": "+2341234567890",
+  "city": "Lagos"
+}
+```
+
+### Update User (Admin)
+**Endpoint:** `PATCH /users/admin/{userId}`
+**Description:** Modify any user account details
+
+### Update User Credit Score
+**Endpoint:** `PATCH /users/admin/{userId}/credit-score`
+**Description:** Adjust user credit score for Pay Later eligibility
+**Request Body:**
+```json
+{
+  "creditScore": 750,
+  "reason": "Manual adjustment after verification"
+}
+```
+
+### Delete User
+**Endpoint:** `DELETE /users/admin/{userId}`
+**Description:** Permanently delete user account
+**Note:** Use with extreme caution - this action is irreversible
+
+### Get User Statistics
+**Endpoint:** `GET /users/admin/statistics`
+**Description:** User registration and activity statistics
+
+---
+
+## 🚚 DELIVERY MODULE (Admin Endpoints)
+
+### Create Delivery
+**Endpoint:** `POST /delivery`
+**Description:** Create delivery record for an order
+**Request Body:**
+```json
+{
+  "orderId": "64a1234567890abcdef12345",
+  "deliveryAddress": "123 Main St, Lagos",
+  "estimatedDeliveryTime": "2024-01-15T14:00:00.000Z",
+  "deliveryFee": 500.00
+}
+```
+
+### Assign Rider to Delivery
+**Endpoint:** `POST /delivery/{id}/assign`
+**Description:** Assign specific rider to delivery
+**Request Body:**
+```json
+{
+  "riderId": "64a1234567890abcdef12345",
+  "notes": "Priority delivery - handle with care"
+}
+```
+
+### Release Payment to Rider
+**Endpoint:** `POST /delivery/{id}/release-payment`
+**Description:** Release payment to rider for completed delivery
+**Request Body:**
+```json
+{
+  "amount": 1500.00,
+  "bonusAmount": 200.00,
+  "notes": "Excellent service, bonus included"
+}
+```
+
+---
+
+## 🏍️ RIDERS MODULE (Admin Endpoints)
+
+### Get All Riders
+**Endpoint:** `GET /riders/admin/all`
+**Description:** List all registered riders
+
+### Create Rider Account
+**Endpoint:** `POST /riders/admin/create`
+**Description:** Create new rider account
+
+### Update Rider Status
+**Endpoint:** `PATCH /riders/admin/{riderId}/status`
+**Description:** Change rider status (active/inactive/suspended)
+
+### Get Rider Statistics
+**Endpoint:** `GET /riders/admin/{riderId}/stats`
+**Description:** View rider performance statistics
+
+### Delete Rider
+**Endpoint:** `DELETE /riders/admin/{riderId}`
+**Description:** Remove rider from system
+
+---
+
+## 🎫 SUPPORT MODULE (Admin Endpoints)
+
+### Get All Support Tickets
+**Endpoint:** `GET /support/admin/tickets`
+**Description:** View all support tickets with filtering
+**Query Parameters:**
+- `status`: Filter by ticket status
+- `priority`: Filter by priority level
+- `category`: Filter by issue category
+- `assignedTo`: Filter by assigned admin
+
+### Update Support Ticket
+**Endpoint:** `PATCH /support/admin/tickets/{id}`
+**Description:** Update ticket status, priority, or assignment
+**Request Body:**
+```json
+{
+  "status": "in_progress",
+  "priority": "high",
+  "assignedTo": "64a1234567890abcdef12345",
+  "adminNotes": "Escalated to technical team"
+}
+```
+
+### Close Support Ticket
+**Endpoint:** `POST /support/admin/tickets/{id}/close`
+**Description:** Close support ticket with resolution
+**Request Body:**
+```json
+{
+  "message": "Issue resolved. User account reactivated and wallet restored."
+}
+```
+
+### Get Support Analytics
+**Endpoint:** `GET /support/admin/analytics`
+**Description:** Support ticket statistics and trends
+
+---
+
+## 🔔 SUBSCRIPTIONS MODULE (Admin Endpoints)
+
+### Cancel User Subscription
+**Endpoint:** `DELETE /subscriptions/admin/{userId}/cancel`
+**Description:** Cancel any user's subscription (admin override)
+
+---
+
+## 🤝 REFERRALS MODULE (Admin Endpoints)
+
+### Get All Referrals
+**Endpoint:** `GET /referrals/admin/all`
+**Description:** View all referral activities system-wide
+
+### Process Referral Payout
+**Endpoint:** `POST /referrals/admin/{referralId}/payout`
+**Description:** Manually process referral commission payout
+
+---
+
+## 🔐 Admin Testing Workflow
+
+### 1. Authentication Setup
+```bash
+# Login as admin
+POST /auth/login
+{
+  "email": "admin@forage.com",
+  "password": "your-admin-password"
+}
+
+# Copy the JWT token from response
+# Use in all subsequent requests as: Authorization: Bearer <token>
+```
+
+### 2. System Overview Dashboard
+```bash
+# Get user statistics
+GET /users/admin/statistics
+
+# Get wallet statistics  
+GET /wallets/admin/stats
+
+# Get order analytics
+GET /orders/analytics
+
+# Get support ticket count
+GET /support/admin/analytics
+```
+
+### 3. User Management Tasks
+```bash
+# View all users
+GET /users/admin/all?page=1&limit=20
+
+# Create new user
+POST /users/admin/create
+
+# Update user role
+PATCH /users/admin/{userId}
+
+# Fund user wallet
+POST /admin/wallets/fund
+```
+
+### 4. Content Management
+```bash
+# Manage categories
+GET /admin/categories
+POST /admin/categories
+
+# Manage products
+GET /products/admin/seller/{sellerId}
+PATCH /products/admin/{id}/status
+
+# Manage auctions
+POST /auctions
+POST /auctions/{id}/finalize
+```
+
+### 5. Support & Monitoring
+```bash
+# Review support tickets
+GET /support/admin/tickets
+
+# Monitor deliveries
+GET /delivery?page=1&limit=50
+
+# Check system health
+GET /wallets/admin/stats
+GET /orders/analytics
+```
+
+---
+
+## ⚠️ Admin Security Best Practices
+
+### Authentication
+- Always verify admin JWT token is valid
+- Use strong, unique passwords for admin accounts
+- Regularly rotate admin passwords
+- Monitor admin activity logs
+
+### Authorization
+- Verify admin role before accessing any admin endpoint
+- Some endpoints require additional password verification
+- Log all admin actions for audit trail
+- Use principle of least privilege
+
+### Data Protection
+- Be extremely careful with destructive operations (delete, wipe)
+- Always include reason/notes for admin actions
+- Backup data before bulk operations
+- Verify user consent for sensitive operations
+
+### Monitoring
+- Monitor admin endpoint usage
+- Set up alerts for unusual admin activity
+- Regular security audits of admin accounts
+- Track admin action success/failure rates
+
+---
+
 ## 🚀 Real-World Testing Scenarios
 
 Here are some complete workflows you can test:
