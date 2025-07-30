@@ -49,7 +49,7 @@ export class OrdersController {
   @ApiResponse({ status: 400, description: 'Bad request - insufficient stock or invalid data' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   addToCart(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Body() addToCartDto: AddToCartDto,
   ) {
     return this.ordersService.addToCart(userId, addToCartDto);
@@ -61,7 +61,7 @@ export class OrdersController {
   @ApiResponse({ status: 400, description: 'Bad request - insufficient stock' })
   @ApiResponse({ status: 404, description: 'Item not found in cart' })
   updateCartItem(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Param('productId') productId: string,
     @Body() updateCartItemDto: UpdateCartItemDto,
   ) {
@@ -73,7 +73,7 @@ export class OrdersController {
   @ApiResponse({ status: 200, description: 'Item removed from cart successfully' })
   @HttpCode(HttpStatus.OK)
   removeFromCart(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Body() removeFromCartDto: RemoveFromCartDto,
   ) {
     return this.ordersService.removeFromCart(userId, removeFromCartDto);
@@ -82,7 +82,7 @@ export class OrdersController {
   @Get('cart')
   @ApiOperation({ summary: 'Get user cart' })
   @ApiResponse({ status: 200, description: 'Cart retrieved successfully' })
-  getCart(@CurrentUser('sub') userId: string) {
+  getCart(@CurrentUser('id') userId: string) {
     return this.ordersService.getCart(userId);
   }
 
@@ -90,7 +90,7 @@ export class OrdersController {
   @ApiOperation({ summary: 'Clear user cart' })
   @ApiResponse({ status: 200, description: 'Cart cleared successfully' })
   @HttpCode(HttpStatus.OK)
-  clearCart(@CurrentUser('sub') userId: string) {
+  clearCart(@CurrentUser('id') userId: string) {
     return this.ordersService.clearCart(userId);
   }
 
@@ -101,7 +101,7 @@ export class OrdersController {
   @ApiResponse({ status: 400, description: 'Bad request - empty cart or validation error' })
   @ApiResponse({ status: 404, description: 'Product not found or insufficient stock' })
   checkout(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Body() checkoutDto: CheckoutDto,
   ) {
     return this.ordersService.checkout(userId, checkoutDto);
@@ -115,7 +115,7 @@ export class OrdersController {
   @ApiResponse({ status: 404, description: 'Order not found' })
   makePayment(
     @Param('id') orderId: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('role') userRole: UserRole,
     @Body() paymentDto: PaymentDto,
   ) {
@@ -138,7 +138,7 @@ export class OrdersController {
   @ApiQuery({ name: 'sortOrder', required: false, description: 'Sort order (asc/desc)' })
   findAll(
     @Query() filterDto: OrderFilterDto,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('role') userRole: UserRole,
   ) {
     return this.ordersService.findAll(filterDto, userId, userRole);
@@ -161,7 +161,7 @@ export class OrdersController {
   @ApiResponse({ status: 404, description: 'Order not found' })
   findOne(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('role') userRole: UserRole,
   ) {
     return this.ordersService.findOne(id, userId, userRole);
@@ -191,7 +191,7 @@ export class OrdersController {
   @HttpCode(HttpStatus.OK)
   cancelOrder(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('role') userRole: UserRole,
     @Body('reason') reason: string,
   ) {

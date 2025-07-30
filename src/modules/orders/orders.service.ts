@@ -16,6 +16,7 @@ import { Product, ProductDocument } from '../products/entities/product.entity';
 import { User, UserDocument, UserRole } from '../users/entities/user.entity';
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { OrdersReferralHookService } from './orders-referral-hook.service';
+import { CartService } from './cart.service';
 import {
   AddToCartDto,
   UpdateCartItemDto,
@@ -34,8 +35,6 @@ import {
 
 @Injectable()
 export class OrdersService {
-  private readonly cartStorage = new Map<string, any[]>(); // In-memory cart storage (use Redis in production)
-
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
@@ -43,108 +42,44 @@ export class OrdersService {
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
     @Inject(forwardRef(() => OrdersReferralHookService))
     private readonly referralHook: OrdersReferralHookService,
+    private readonly cartService: CartService,
   ) {}
 
-  // Cart Management
+  // Cart Management - Now delegated to CartService
   async addToCart(userId: string, addToCartDto: AddToCartDto) {
-    const { productId, quantity } = addToCartDto;
-
-    // Verify product exists and is available
-    const product = await this.productModel.findById(productId);
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    if (product.stock < quantity) {
-      throw new BadRequestException(`Insufficient stock. Available: ${product.stock}`);
-    }
-
-    // Get or create cart
-    let cart = this.cartStorage.get(userId) || [];
-
-    // Check if product already in cart
-    const existingItemIndex = cart.findIndex(item => item.productId === productId);
-
-    if (existingItemIndex > -1) {
-      // Update quantity
-      const newQuantity = cart[existingItemIndex].quantity + quantity;
-      if (product.stock < newQuantity) {
-        throw new BadRequestException(`Insufficient stock. Available: ${product.stock}`);
-      }
-      cart[existingItemIndex].quantity = newQuantity;
-      cart[existingItemIndex].totalPrice = newQuantity * product.price;
-      cart[existingItemIndex].totalPriceInNibia = newQuantity * product.priceInNibia;
-    } else {
-      // Add new item
-      cart.push({
-        productId,
-        quantity,
-        unitPrice: product.price,
-        unitPriceInNibia: product.priceInNibia,
-        totalPrice: quantity * product.price,
-        totalPriceInNibia: quantity * product.priceInNibia,
-        productName: product.name,
-        productDescription: product.description,
-      });
-    }
-
-    this.cartStorage.set(userId, cart);
-    return { message: 'Item added to cart', cart: this.calculateCartSummary(cart) };
+    return this.cartService.addToCart(userId, addToCartDto.productId, addToCartDto.quantity);
   }
 
   async updateCartItem(userId: string, productId: string, updateCartItemDto: UpdateCartItemDto) {
-    const { quantity } = updateCartItemDto;
-
-    const cart = this.cartStorage.get(userId) || [];
-    const itemIndex = cart.findIndex(item => item.productId === productId);
-
-    if (itemIndex === -1) {
-      throw new NotFoundException('Item not found in cart');
-    }
-
-    // Verify stock
-    const product = await this.productModel.findById(productId);
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    if (product.stock < quantity) {
-      throw new BadRequestException(`Insufficient stock. Available: ${product.stock}`);
-    }
-
-    cart[itemIndex].quantity = quantity;
-    cart[itemIndex].totalPrice = quantity * cart[itemIndex].unitPrice;
-    cart[itemIndex].totalPriceInNibia = quantity * cart[itemIndex].unitPriceInNibia;
-
-    this.cartStorage.set(userId, cart);
-    return { message: 'Cart item updated', cart: this.calculateCartSummary(cart) };
+    return this.cartService.updateCartItem(userId, productId, updateCartItemDto.quantity);
   }
 
   async removeFromCart(userId: string, removeFromCartDto: RemoveFromCartDto) {
-    const { productId } = removeFromCartDto;
-
-    let cart = this.cartStorage.get(userId) || [];
-    cart = cart.filter(item => item.productId !== productId);
-
-    this.cartStorage.set(userId, cart);
-    return { message: 'Item removed from cart', cart: this.calculateCartSummary(cart) };
+    return this.cartService.removeFromCart(userId, removeFromCartDto.productId);
   }
 
   async getCart(userId: string) {
-    const cart = this.cartStorage.get(userId) || [];
-    return this.calculateCartSummary(cart);
+    return this.cartService.getCart(userId);
   }
 
   async clearCart(userId: string) {
-    this.cartStorage.delete(userId);
-    return { message: 'Cart cleared' };
+    return this.cartService.clearCart(userId);
   }
 
   // Order Management
+  // Order Management
   async checkout(userId: string, checkoutDto: CheckoutDto) {
-    const cart = this.cartStorage.get(userId) || [];
+    // Get cart with validation from CartService
+    const cartValidation = await this.cartService.validateCartForCheckout(userId);
     
-    if (cart.length === 0) {
+    if (!cartValidation.valid) {
+      throw new BadRequestException(`Cart validation failed: ${cartValidation.issues.join(', ')}`);
+    }
+
+    // Get the actual cart data
+    const cart = await this.cartService.getCart(userId);
+    
+    if (!cart || cart.items.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
 
@@ -153,28 +88,20 @@ export class OrdersService {
       throw new BadRequestException('Delivery address is required for home delivery');
     }
 
-    // Verify all products are still available and update prices
+    // Prepare order items from cart
     const updatedItems = [];
     let totalAmount = 0;
     let totalAmountInNibia = 0;
 
-    for (const item of cart) {
-      const product = await this.productModel.findById(item.productId);
-      if (!product) {
-        throw new NotFoundException(`Product ${item.productName} not found`);
-      }
-
-      if (product.stock < item.quantity) {
-        throw new BadRequestException(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
-      }
-
+    for (const item of cart.items) {
+      // Cart items are already validated by CartService
       const cartItem = {
-        productId: new Types.ObjectId(item.productId),
+        productId: new Types.ObjectId(item.productId.toString()),
         quantity: item.quantity,
-        unitPrice: product.price, // Use current price
-        unitPriceInNibia: product.priceInNibia,
-        totalPrice: item.quantity * product.price,
-        totalPriceInNibia: item.quantity * product.priceInNibia,
+        unitPrice: item.unitPrice,
+        unitPriceInNibia: item.unitPriceInNibia,
+        totalPrice: item.totalPrice,
+        totalPriceInNibia: item.totalPriceInNibia,
       };
 
       updatedItems.push(cartItem);
@@ -233,7 +160,7 @@ export class OrdersService {
     const savedOrder = await order.save();
 
     // Clear cart after successful order creation
-    this.cartStorage.delete(userId);
+    await this.cartService.clearCart(userId);
 
     return savedOrder;
   }
@@ -771,22 +698,6 @@ export class OrdersService {
   }
 
   // Helper methods
-  private calculateCartSummary(cart: any[]) {
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const totalAmount = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-    const totalAmountInNibia = cart.reduce((sum, item) => sum + item.totalPriceInNibia, 0);
-
-    return {
-      items: cart,
-      summary: {
-        totalItems,
-        totalAmount,
-        totalAmountInNibia,
-        estimatedDeliveryFee: 500, // Fixed delivery fee for estimation
-      },
-    };
-  }
-
   private generateOrderNumber(): string {
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -844,3 +755,4 @@ export class OrdersService {
     };
   }
 }
+// Updated
