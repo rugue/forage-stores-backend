@@ -1,7 +1,4 @@
 export {
-  CreateCartItemDto,
-  UpdateCartItemDto,
-  RemoveFromCartDto,
   CreateDeliveryAddressDto,
   CreateOrderDto,
   UpdateOrderStatusDto,
@@ -14,10 +11,13 @@ export {
 } from './order.dto';
 
 export { 
-  CreateCartItemDto as AddToCartDto,
-  ProcessPaymentDto as CheckoutDto,
-  ProcessPaymentDto as PaymentDto,
-} from './order.dto';
+  AddToCartDto,
+  UpdateCartItemDto,
+  RemoveFromCartDto,
+  CheckoutDto,
+  PaymentDto,
+  DeliveryAddressDto,
+} from './create-order.dto';
 
 export { UpdateOrderDto } from './update-order.dto';
 export { OrderFilterDto } from './order-filter.dto';

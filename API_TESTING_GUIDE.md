@@ -630,7 +630,7 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 ```
 
 #### Remove Item from Cart (🔒 Authentication Required)
-**Endpoint:** `DELETE /orders/cart/{productId}`
+**Endpoint:** `DELETE /orders/cart/remove`
 
 **Request:** No body needed, just the productId in the URL path.
 
@@ -877,6 +877,62 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 - `400 Bad Request - "Insufficient stock"`: One or more products don't have enough stock
 - `400 Bad Request - "Product no longer available"`: Product was deleted after adding to cart
 - `400 Bad Request - "Invalid delivery address"`: Required address fields missing for home delivery
+
+**🚨 Recently Fixed Issues:**
+- ✅ **DTO Validation Error**: Fixed incorrect `CheckoutDto` export that was causing validation errors for `amount` and `paymentMethod` fields
+- ✅ **ObjectId Error**: Fixed "input must be a 24 character hex string" error when processing populated cart items during checkout
+
+**🚨 IMPORTANT - Don't Confuse Checkout with Payment!**
+
+**Checkout vs Payment:**
+- **Checkout (`POST /orders/checkout`)**: Creates an order from your cart items. Uses `CheckoutDto` format shown above.
+- **Payment (`POST /orders/{orderId}/payment`)**: Processes payment for an existing order. Uses `PaymentDto` format below.
+
+**If you get validation errors mentioning `amount` and `paymentMethod` on checkout:**
+This likely means there's a DTO configuration issue. The checkout endpoint should NOT require these fields - they're for the payment endpoint. Restart the server to ensure the latest DTO fixes are applied.
+
+#### Process Payment for Order (🔒 Authentication Required)
+**Endpoint:** `POST /orders/{orderId}/payment`
+
+**⚠️ Prerequisites:** You must have a created order from checkout first!
+
+**Request Body:**
+```json
+{
+  "amount": 1200,
+  "paymentMethod": "food_money",
+  "transactionRef": "TXN123456789",
+  "notes": "Payment via Food Money wallet"
+}
+```
+
+**Payment Method Options:**
+- `"food_money"`: Payment from Food Money wallet
+- `"food_points"`: Payment using Food Points
+- `"cash"`: Cash payment (for pickup orders)
+- `"card"`: Credit/debit card payment
+- `"bank_transfer"`: Bank transfer payment
+
+**Expected Response:**
+```json
+{
+  "payment": {
+    "id": "64f777888999abcdef777888",
+    "orderId": "64f555666777abcdef555666",
+    "amount": 1200,
+    "paymentMethod": "food_money",
+    "status": "completed",
+    "transactionRef": "TXN123456789",
+    "processedAt": "2025-07-30T11:00:00.000Z"
+  },
+  "order": {
+    "id": "64f555666777abcdef555666",
+    "status": "paid",
+    "paymentStatus": "completed"
+  },
+  "message": "Payment processed successfully"
+}
+```
 
 ---
 

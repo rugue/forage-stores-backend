@@ -95,8 +95,20 @@ export class OrdersService {
 
     for (const item of cart.items) {
       // Cart items are already validated by CartService
+      // Extract the actual ObjectId from the populated productId
+      let productObjectId;
+      if (item.productId._id) {
+        // productId is populated, get the _id
+        productObjectId = item.productId._id;
+      } else if (Types.ObjectId.isValid(item.productId)) {
+        // productId is already an ObjectId or valid string
+        productObjectId = item.productId;
+      } else {
+        throw new BadRequestException(`Invalid product ID format for item: ${JSON.stringify(item)}`);
+      }
+      
       const cartItem = {
-        productId: new Types.ObjectId(item.productId.toString()),
+        productId: new Types.ObjectId(productObjectId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         unitPriceInNibia: item.unitPriceInNibia,
