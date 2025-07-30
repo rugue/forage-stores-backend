@@ -882,6 +882,141 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 - ✅ **DTO Validation Error**: Fixed incorrect `CheckoutDto` export that was causing validation errors for `amount` and `paymentMethod` fields
 - ✅ **ObjectId Error**: Fixed "input must be a 24 character hex string" error when processing populated cart items during checkout
 
+**💳 Payment Process - IMPORTANT WORKFLOW:**
+
+⚠️ **CRITICAL**: You MUST complete checkout first before making payment!
+
+**Step 1: Complete Checkout Process**
+```bash
+POST /orders/checkout
+# This creates an order and returns an order ID
+```
+
+**Step 2: Use the Returned Order ID for Payment**
+```bash
+POST /orders/{ORDER_ID_FROM_CHECKOUT}/payment
+# Use the "_id" field from checkout response as the order ID
+```
+
+**📋 Example Checkout Response:**
+```json
+{
+  "orderNumber": "ORD-926860154",
+  "_id": "688a01eeabaaabdea89fa204",  // ← THIS is the Order ID to use!
+  "remainingAmount": 1000,           // ← Use this as payment amount
+  "finalTotal": 1000,
+  "status": "pending",
+  // ... other fields
+}
+```
+
+**📝 Payment Request Example:**
+```bash
+POST /orders/688a01eeabaaabdea89fa204/payment
+{
+  "amount": 1000,                    // ← Must match remainingAmount
+  "paymentMethod": "food_money",
+  "transactionRef": "TXN123456789",
+  "notes": "Payment via Food Money wallet"
+}
+```
+
+**🚨 Common Mistakes:**
+- ❌ Using `orderNumber` instead of `_id`
+- ❌ Using `productId` instead of order `_id`
+- ❌ Wrong payment amount (must match `remainingAmount`)
+
+**🔍 Troubleshooting Payment Errors:**
+
+**Error: "Order not found" (404)**
+- ✅ **Most Common Cause**: Using an invalid or non-existent order ID
+- ✅ **Solution**: First complete checkout to get a valid order ID
+- ✅ **Check**: Ensure the order ID is exactly as returned from checkout response
+
+**Error: "You can only make payments for your own orders" (403)**
+- ✅ **Cause**: Authentication mismatch - you're not logged in as the user who created the order
+- ✅ **Solution**: Login as the same user who created the order
+- ✅ **Check**: Compare your current user ID with the order's `userId` field
+
+**Error: "Wallet not found for this user" (404)**
+- ✅ **Cause**: You don't have a wallet created yet
+- ✅ **Solution**: Create a wallet first before making payments
+- ✅ **Check**: GET `/wallets/my-wallet` should return your wallet details
+
+**🔧 Quick Fixes for Wallet Issues:**
+```bash
+# 1. Create your wallet first (No request body needed!)
+POST /wallets/create
+
+# 2. Verify wallet creation
+GET /wallets/my-wallet
+
+# 3. If wallet has 0 balance, get admin to top up:
+# Admin endpoint to add funds:
+PATCH /wallets/admin/{YOUR_USER_ID}/balance
+{
+  "amount": 2000.00,
+  "walletType": "foodMoney",
+  "transactionType": "credit",
+  "description": "Initial wallet funding"
+}
+
+# 4. Then make payment
+POST /orders/{ORDER_ID}/payment
+{
+  "amount": 1000,
+  "paymentMethod": "food_money"
+}
+```
+
+**Alternative Payment Methods if No Wallet Balance:**
+- `"cash"`: Cash on delivery
+- `"card"`: Credit/debit card payment
+- `"bank_transfer"`: Bank transfer payment
+
+**💡 Pro Tip:** For testing purposes, use admin endpoints to fund your wallet, or use alternative payment methods like `"cash"` which don't require wallet balance.
+
+**🚨 Non-Admin Users:** If you don't have admin privileges, use these payment methods instead:
+- ✅ `"cash"` - Cash on delivery (works without wallet)
+- ✅ `"card"` - Credit/debit card payment (works without wallet)  
+- ✅ `"bank_transfer"` - Bank transfer payment (works without wallet)
+
+**🔑 For Admin Testing:** Create an admin user to test wallet top-up features:
+```bash
+POST /auth/register
+{
+  "name": "Admin Tester",
+  "email": "admin@test.com", 
+  "password": "AdminPass123!",
+  "accountType": "business",
+  "role": "admin"
+}
+```
+
+**🔧 Quick Fixes for 403 Error:**
+```bash
+# 1. Check your current user
+GET /users/profile
+
+# 2. Check the order details
+GET /orders/{ORDER_ID}
+
+# 3. Login as the correct user
+POST /auth/login
+{
+  "email": "correct_user_email",
+  "password": "correct_password"
+}
+
+# 4. Then retry payment
+POST /orders/{ORDER_ID}/payment
+```
+
+**Steps to Fix:**
+1. **First, add items to cart**: `POST /orders/cart/add`
+2. **Then checkout**: `POST /orders/checkout` → Save the returned order ID!
+3. **Finally, make payment**: `POST /orders/{ACTUAL_ORDER_ID}/payment`
+
 **🚨 IMPORTANT - Don't Confuse Checkout with Payment!**
 
 **Checkout vs Payment:**
@@ -1228,57 +1363,242 @@ This shows all items in your cart with prices and totals.
 - `completed` - Order finished
 - `cancelled` - Order was cancelled
 
-## 💰 Wallet & Payment Features
+## 💰 Wallet & Payment Features (Complete with All Operations)
 
-### What You Can Do With Your Wallet:
+### 🏦 User Wallet Management
 
 #### 💳 Check Your Balance (🔒 Authentication Required)
-**What:** See how much money you have
 **Endpoint:** `GET /wallets/my-wallet`
-**Shows:** Food Money, Food Points, and Food Safe balances
+**What:** See how much money you have in all your wallet currencies
+
+**Expected Response:**
+```json
+{
+  "foodMoney": 5000.50,
+  "foodPoints": 1250.75,
+  "foodSafe": 2000.00,
+  "totalBalance": 7000.50,
+  "status": "active",
+  "lastTransactionAt": "2025-07-30T12:00:00.000Z"
+}
+```
+
+#### 🆕 Create Your Wallet (🔒 Authentication Required)
+**Endpoint:** `POST /wallets/create`
+**What:** Set up your payment account (No request body needed!)
+**Note:** Creates a wallet with default balances (typically starts with 0 in all currencies)
+
+**Expected Response:**
+```json
+{
+  "_id": "688a123456789abcdef12345",
+  "userId": "6887e979193e051560861753",
+  "foodMoney": 0,
+  "foodPoints": 0,
+  "foodSafe": 0,
+  "status": "active",
+  "createdAt": "2025-07-30T12:00:00.000Z",
+  "updatedAt": "2025-07-30T12:00:00.000Z"
+}
+```
 
 #### 💸 Send Money to Another User (🔒 Authentication Required)
-**What:** Transfer money to friends or pay for shared orders
 **Endpoint:** `POST /wallets/transfer`
+**What:** Transfer money to friends or pay for shared orders
+
+**Request Body:**
 ```json
 {
   "toUserId": "FRIEND_USER_ID",
-  "amount": 500,
-  "currency": "food_money",
-  "description": "Splitting dinner order",
-  "reference": "TXN123456"
+  "amount": 500.00,
+  "description": "Splitting dinner order"
 }
 ```
 
-**Field Explanations:**
-- `toUserId`: ID of the user receiving the money (required)
-- `amount`: Amount to transfer (required)
-- `currency`: Type of currency - options: "food_money", "food_points", "food_safe" (required)
-- `description`: Description of the transfer (required)
-- `reference`: Optional reference number
-
-#### 🏦 Create Your Wallet (🔒 Authentication Required)
-**What:** Set up your payment account
-**Endpoint:** `POST /wallets/create`
+**Expected Response:**
 ```json
 {
-  "userId": "YOUR_USER_ID",
-  "foodMoney": 1000,
-  "foodPoints": 50,
-  "foodSafe": 0
+  "success": true,
+  "message": "Successfully transferred ₦500.00 to recipient",
+  "transactionId": "TXN_1234567890_abc123def"
 }
 ```
 
-**Field Explanations:**
-- `userId`: Your user ID (required)
-- `foodMoney`: Initial Food Money balance (optional, default: 0)
-- `foodPoints`: Initial Food Points balance (optional, default: 0)
-- `foodSafe`: Initial Food Safe balance (optional, default: 0)
+#### 🔒 Lock Funds in Food Safe (🔒 Authentication Required)
+**Endpoint:** `POST /wallets/lock-funds`
+**What:** Move money from Food Money to Food Safe (savings)
 
-**Money Types Explained:**
-- **Food Money:** Regular cash for buying food
-- **Food Points:** Loyalty points earned from purchases
-- **Food Safe:** Savings account for future use
+**Request Body:**
+```json
+{
+  "amount": 200.00,
+  "description": "Saving for future orders"
+}
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully locked ₦200.00 in food safe"
+}
+```
+
+#### 🔓 Unlock Funds from Food Safe (🔒 Authentication Required)
+**Endpoint:** `POST /wallets/unlock-funds`
+**What:** Move money from Food Safe back to Food Money (for spending)
+
+**Request Body:**
+```json
+{
+  "amount": 100.00,
+  "description": "Unlocking for current order"
+}
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Successfully unlocked ₦100.00 from food safe"
+}
+```
+
+### 🏛️ Admin Wallet Management (Admin Only)
+
+#### 📊 View All Wallets (🔒 Admin Only)
+**Endpoint:** `GET /wallets/admin/all`
+**What:** See all user wallets in the system
+
+#### 📈 Get Wallet Statistics (🔒 Admin Only)
+**Endpoint:** `GET /wallets/admin/stats`
+**What:** View system-wide wallet statistics
+
+**Expected Response:**
+```json
+{
+  "totalWallets": 1500,
+  "activeWallets": 1450,
+  "totalFoodMoney": 2500000.50,
+  "totalFoodPoints": 875000.25,
+  "totalFoodSafe": 1200000.00,
+  "totalBalance": 3700000.50
+}
+```
+
+#### 👤 Get User Wallet (🔒 Admin Only)
+**Endpoint:** `GET /wallets/admin/user/{userId}`
+**What:** View specific user's wallet details
+
+#### 💰 Top-Up User Wallet (🔒 Admin Only)
+**Endpoint:** `PATCH /wallets/admin/{userId}/balance`
+**What:** Add or subtract money from any user's wallet
+
+**Request Body:**
+```json
+{
+  "amount": 1000.00,
+  "walletType": "foodMoney",
+  "transactionType": "credit",
+  "description": "Admin wallet top-up",
+  "reference": "ADMIN_TOPUP_001"
+}
+```
+
+**Wallet Types:**
+- `"foodMoney"`: Regular spending money
+- `"foodPoints"`: Loyalty points
+- `"foodSafe"`: Savings account
+
+**Transaction Types:**
+- `"credit"`: Add money to wallet
+- `"debit"`: Remove money from wallet
+
+#### 🔧 Update Wallet Status (🔒 Admin Only)
+**Endpoint:** `PATCH /wallets/admin/{walletId}/status`
+**What:** Change wallet status (active, suspended, frozen)
+
+**Request Body:**
+```json
+{
+  "status": "active"
+}
+```
+
+**Status Options:**
+- `"active"`: Wallet can be used normally
+- `"suspended"`: Temporarily disabled
+- `"frozen"`: Locked pending investigation
+
+#### 🏗️ Create Wallet for User (🔒 Admin Only)
+**Endpoint:** `POST /wallets/admin/{userId}/create`
+**What:** Create wallet for specific user (No request body needed)
+
+### 💱 Money Types Explained
+
+- **Food Money:** Regular cash for buying food (primary spending currency)
+- **Food Points:** Loyalty points earned from purchases (can be used for discounts)
+- **Food Safe:** Savings account for future use (locked funds that earn interest)
+
+### 🔄 Complete Wallet Workflow for New Users
+
+1. **Create Account:** `POST /auth/register`
+2. **Create Wallet:** `POST /wallets/create`
+3. **🚨 IMPORTANT: Wallet Top-Up Limitation**
+   - ❌ **Users CANNOT add money to their own wallets**
+   - ✅ **Only admins can add money using:** `PATCH /wallets/admin/{userId}/balance`
+   - ✅ **This is by design for security and compliance**
+4. **For Payments: Use Alternative Methods**
+   - `"cash"` - Cash on delivery (no wallet needed)
+   - `"card"` - Credit/debit card (no wallet needed)
+   - `"bank_transfer"` - Bank transfer (no wallet needed)
+5. **For Testing: Create Admin Account** to manage wallet top-ups
+
+### 💡 **Why Can't Users Add Money to Their Own Wallets?**
+
+**Security Reasons:**
+- Prevents unauthorized money creation
+- Ensures proper financial audit trails
+- Requires external payment validation
+- Complies with financial regulations
+
+**In Production:**
+- Users would top up via payment gateways (Paystack, Flutterwave, etc.)
+- Bank transfers verified by admins
+- Card payments processed by payment processors
+- All transactions properly tracked and verified
+
+### 🎯 **Recommended Testing Approach:**
+
+**Option 1: Use Non-Wallet Payments** (Easiest)
+```bash
+POST /orders/{ORDER_ID}/payment
+{
+  "amount": 1000,
+  "paymentMethod": "cash",  # No wallet required
+  "transactionRef": "CASH_001"
+}
+```
+
+**Option 2: Create Admin for Wallet Testing**
+```bash
+# 1. Register admin
+POST /auth/register
+{
+  "name": "Test Admin",
+  "email": "admin@test.com",
+  "password": "AdminPass123!",
+  "role": "admin"
+}
+
+# 2. Login as admin and fund user wallets
+PATCH /wallets/admin/{USER_ID}/balance
+{
+  "amount": 2000.00,
+  "walletType": "foodMoney",
+  "transactionType": "credit"
+}
+```
 
 ## 🎯 Special Features (Advanced)
 
