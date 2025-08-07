@@ -22,6 +22,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { SupportModule } from './modules/support/support.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CreditScoringModule } from './modules/credit-scoring/credit-scoring.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { validate } from './config/env.validation';
 import { LoggingMiddleware } from './common/middleware';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -69,6 +70,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     SupportModule,
     TasksModule,
     CreditScoringModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
