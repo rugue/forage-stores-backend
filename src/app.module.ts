@@ -23,8 +23,10 @@ import { SupportModule } from './modules/support/support.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CreditScoringModule } from './modules/credit-scoring/credit-scoring.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { SecurityModule } from './modules/security/security.module';
 import { validate } from './config/env.validation';
 import { LoggingMiddleware } from './common/middleware';
+import { SecurityMiddleware } from './modules/security/middleware';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 
@@ -71,6 +73,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     TasksModule,
     CreditScoringModule,
     AnalyticsModule,
+    SecurityModule,
   ],
   controllers: [AppController],
   providers: [
@@ -93,6 +96,8 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggingMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL })
+      .apply(SecurityMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
