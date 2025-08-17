@@ -53,6 +53,22 @@ Successfully completed comprehensive admin module enhancements for the Forage St
   - Integration with existing profit pool service
   - Admin audit trails for all actions
 
+### 5. Scheduled Jobs Management System
+- **Endpoints**:
+  - `GET /scheduled-jobs/status` - View scheduled jobs status
+  - `POST /scheduled-jobs/manual/qualification-check` - Manual GA/GE qualification
+  - `POST /scheduled-jobs/manual/profit-distribution` - Manual profit distribution
+  - `POST /scheduled-jobs/manual/daily-notifications` - Manual daily notifications
+  - `GET /scheduled-jobs/city-caps` - View city capacity limits
+- **Features**:
+  - Automated nightly GA/GE qualification processing
+  - Automated monthly profit pool distribution
+  - Automated daily notifications for GA/GE users
+  - Manual admin triggers for all scheduled jobs
+  - Comprehensive job status monitoring
+  - City capacity limit management
+  - Complete audit trail for all job executions
+
 ## 🔧 Technical Implementation Details
 
 ### Security Features
@@ -81,6 +97,7 @@ Successfully completed comprehensive admin module enhancements for the Forage St
 - ✅ **Profit Pool Module**: Complete admin management
 - ✅ **Auth Module**: Admin authentication
 - ✅ **Admin Module**: Central coordination
+- ✅ **Scheduled Jobs Module**: Automated backend processing
 
 ### Database Operations
 - **Read Operations**: Efficient queries with proper indexing

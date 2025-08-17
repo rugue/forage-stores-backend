@@ -25,6 +25,7 @@ import { CreditScoringModule } from './modules/credit-scoring/credit-scoring.mod
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SecurityModule } from './modules/security/security.module';
 import { ProfitPoolModule } from './modules/profit-pool/profit-pool.module';
+import { ScheduledJobsModule } from './modules/scheduled-jobs/scheduled-jobs.module';
 import { validate } from './config/env.validation';
 import { LoggingMiddleware } from './common/middleware';
 import { SecurityMiddleware } from './modules/security/middleware';
@@ -76,6 +77,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     AnalyticsModule,
     SecurityModule,
     ProfitPoolModule,
+    ScheduledJobsModule,
   ],
   controllers: [AppController],
   providers: [

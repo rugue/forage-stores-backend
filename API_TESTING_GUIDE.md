@@ -3820,7 +3820,70 @@ Here are some complete workflows you can test:
 }
 ```
 
-### 🎧 13. Support System (Complete)
+### ⏰ 13. Scheduled Jobs Management (Admin Only)
+
+The scheduled jobs system provides automated backend processes for GA/GE management, profit pool distribution, and user notifications. These jobs run automatically based on cron schedules, but can also be triggered manually by administrators.
+
+#### View Scheduled Jobs Status
+**Endpoint:** `GET /scheduled-jobs/status`
+**Authentication:** Admin only
+**What:** View status and schedules of all automated jobs
+
+**Response includes:**
+- Job names and descriptions
+- Cron schedule expressions  
+- Next execution times
+- Current status (active/inactive)
+
+#### Manual GA/GE Qualification Check
+**Endpoint:** `POST /scheduled-jobs/manual/qualification-check`
+**Authentication:** Admin only
+**What:** Manually trigger the nightly GA/GE qualification and promotion process
+
+**This job:**
+- Evaluates all users for GA/GE qualification
+- Promotes eligible users based on referral performance
+- Demotes users who no longer meet requirements
+- Respects city capacity limits
+- Updates user roles and Nibia withdrawal permissions
+- Sends notifications to affected users
+
+#### Manual Profit Pool Distribution
+**Endpoint:** `POST /scheduled-jobs/manual/profit-distribution`
+**Authentication:** Admin only
+**What:** Manually trigger the monthly profit pool distribution
+
+**This job:**
+- Calculates monthly profit pools per city
+- Distributes 1% of city revenue to Growth Elites
+- Creates profit pool records
+- Distributes Nibia credits to GE wallets
+- Generates distribution reports
+
+#### Manual Daily GA/GE Notifications
+**Endpoint:** `POST /scheduled-jobs/manual/daily-notifications`
+**Authentication:** Admin only
+**What:** Manually trigger daily notifications for GA/GE users
+
+**This job:**
+- Sends personalized updates to all GA/GE users
+- Includes recent referral activity
+- Shows pending withdrawal status
+- Displays weekly commission earnings
+- Provides role-specific insights
+
+#### View City Capacity Limits
+**Endpoint:** `GET /scheduled-jobs/city-caps`
+**Authentication:** Admin only
+**What:** View GA/GE capacity limits and current counts per city
+
+**Shows:**
+- Maximum GA slots per city
+- Maximum GE slots per city
+- Current GA/GE counts
+- Available promotion slots
+
+### 🎧 14. Support System (Complete)
 
 #### Create Support Ticket
 **Endpoint:** `POST /support/tickets`
@@ -3887,7 +3950,7 @@ Here are some complete workflows you can test:
 #### Admin: Get Support Analytics
 **Endpoint:** `GET /support/admin/analytics`
 
-### 🏠 14. Application Health & Status
+### 🏠 15. Application Health & Status
 
 #### Get Application Status
 **Endpoint:** `GET /`
@@ -4146,6 +4209,27 @@ Test these error scenarios:
 - [ ] Late payment notifications
 - [ ] Auction event notifications
 - [ ] Rider assignment notifications
+
+### ✅ Scheduled Jobs Management (NEW - August 2025)
+- [ ] View scheduled jobs status (admin)
+- [ ] Manual GA/GE qualification check (admin)
+- [ ] Manual profit pool distribution (admin)
+- [ ] Manual daily GA/GE notifications (admin)
+- [ ] View city capacity limits (admin)
+- [ ] Verify nightly GA/GE qualification job schedule
+- [ ] Verify monthly profit pool distribution job schedule
+- [ ] Verify daily notifications job schedule
+- [ ] Test qualification logic with various user scenarios
+- [ ] Test city capacity enforcement
+- [ ] Test user role updates and permissions
+- [ ] Test Nibia withdrawal permission updates
+- [ ] Verify notification delivery to users
+- [ ] Test profit pool calculation accuracy
+- [ ] Test equal distribution among Growth Elites
+- [ ] Verify admin audit trail for manual triggers
+- [ ] Test job execution logging and error handling
+- [ ] Verify timezone handling (Africa/Lagos)
+- [ ] Test concurrent job execution prevention
 
 ### ✅ Support System
 - [ ] Create support tickets
