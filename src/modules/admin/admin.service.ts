@@ -8,13 +8,22 @@ import { Order, OrderDocument } from '../orders/entities/order.entity';
 import { Subscription, SubscriptionDocument } from '../subscriptions/entities/subscription.entity';
 import { Referral, ReferralDocument } from '../referrals/entities/referral.entity';
 import { Product, ProductDocument } from '../products/entities/product.entity';
+import { ProfitPool, ProfitPoolDocument, ProfitPoolStatus } from '../profit-pool/entities/profit-pool.entity';
+import { WithdrawalRequest, WithdrawalRequestDocument } from '../wallets/entities/withdrawal-request.entity';
 import { 
   AdminWalletFundDto, 
   AdminWalletWipeDto, 
   CreateCategoryDto, 
   UpdateCategoryDto, 
   PriceHistoryDto,
-  AnalyticsFilterDto
+  AnalyticsFilterDto,
+  GetGrowthUsersByCityDto,
+  AdminWithdrawalDecisionDto,
+  BulkWithdrawalProcessingDto,
+  OverrideReferralCommissionDto,
+  CommissionOverrideHistoryDto,
+  ProfitPoolAdjustmentDto,
+  MonthlyProfitPoolReportDto,
 } from './dto';
 
 @Injectable()
@@ -26,8 +35,11 @@ export class AdminService {
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
     @InjectModel(Referral.name) private referralModel: Model<ReferralDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    @InjectModel(ProfitPool.name) private profitPoolModel: Model<ProfitPoolDocument>,
+    @InjectModel(WithdrawalRequest.name) private withdrawalRequestModel: Model<WithdrawalRequestDocument>,
     @InjectModel('Category') private categoryModel: Model<any>,
     @InjectModel('PriceHistory') private priceHistoryModel: Model<any>,
+    @InjectModel('CommissionOverride') private commissionOverrideModel: Model<any>,
   ) {}
 
   /**
@@ -645,5 +657,614 @@ export class AdminService {
     );
     
     return priceHistory.save();
+  }
+
+  /**
+   * Growth Associates & Elite Management
+   */
+  async getGrowthUsersByCity(dto: GetGrowthUsersByCityDto) {
+    const { city, role, page = 1, limit = 20 } = dto;
+    const skip = (page - 1) * limit;
+
+    // Build query for growth users in the city
+    const query: any = {
+      city: new RegExp(city, 'i'),
+    };
+
+    if (role) {
+      query.role = role;
+    } else {
+      query.role = { $in: ['growth_associate', 'growth_elite'] };
+    }
+
+    const users = await this.userModel
+      .find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .exec();
+
+    const total = await this.userModel.countDocuments(query);
+
+    // Get stats for each user
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const referrals = await this.referralModel.find({ referrerId: user._id });
+        const directReferralCount = referrals.length;
+
+        // Calculate total spend of referred users
+        const referredUserIds = referrals.map(ref => ref.referredUserId);
+        const referredUsersOrders = await this.orderModel.find({
+          userId: { $in: referredUserIds },
+          status: 'completed'
+        });
+
+        const totalReferredSpend = referredUsersOrders.reduce(
+          (sum, order) => sum + (order.totalAmount || 0), 0
+        );
+
+        // Calculate commission earned
+        const totalCommissionEarned = referrals.reduce(
+          (sum, ref) => sum + (ref.totalCommissionsEarned || 0), 0
+        );
+
+        // Active referrals this month
+        const currentMonth = new Date();
+        currentMonth.setDate(1);
+        const activeReferralsThisMonth = await this.orderModel.countDocuments({
+          userId: { $in: referredUserIds },
+          createdAt: { $gte: currentMonth },
+          status: 'completed'
+        });
+
+        return {
+          userId: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          city: user.city,
+          directReferralCount,
+          totalReferredSpend,
+          totalCommissionEarned,
+          activeReferralsThisMonth,
+          joinDate: user.createdAt,
+          lastActivity: user.updatedAt || user.createdAt,
+        };
+      })
+    );
+
+    return {
+      users: usersWithStats,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getGrowthUserDetailedStats(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user || !['growth_associate', 'growth_elite'].includes(user.role)) {
+      throw new NotFoundException('Growth user not found');
+    }
+
+    const referrals = await this.referralModel
+      .find({ referrerId: userId })
+      .populate('referredUserId', 'name email createdAt')
+      .sort({ createdAt: -1 });
+
+    const referredUserIds = referrals.map(ref => ref.referredUserId);
+
+    // Get detailed order stats
+    const orders = await this.orderModel.find({
+      userId: { $in: referredUserIds },
+      status: 'completed'
+    }).populate('userId', 'name email');
+
+    const monthlyStats = await this.orderModel.aggregate([
+      {
+        $match: {
+          userId: { $in: referredUserIds.map(id => new Types.ObjectId(id)) },
+          status: 'completed',
+          createdAt: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          totalOrders: { $sum: 1 },
+          totalAmount: { $sum: '$totalAmount' },
+          avgOrderValue: { $avg: '$totalAmount' }
+        }
+      },
+      { $sort: { '_id.year': -1, '_id.month': -1 } }
+    ]);
+
+    return {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        city: user.city,
+        joinDate: user.createdAt,
+      },
+      referralStats: {
+        totalReferrals: referrals.length,
+        totalCommissionEarned: referrals.reduce((sum, ref) => sum + (ref.totalCommissionsEarned || 0), 0),
+        averageCommissionPerReferral: referrals.length > 0 
+          ? referrals.reduce((sum, ref) => sum + (ref.totalCommissionsEarned || 0), 0) / referrals.length 
+          : 0,
+      },
+      orderStats: {
+        totalOrdersFromReferrals: orders.length,
+        totalRevenueFromReferrals: orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
+        averageOrderValue: orders.length > 0 
+          ? orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0) / orders.length 
+          : 0,
+      },
+      monthlyStats,
+      recentReferrals: referrals.slice(0, 10),
+    };
+  }
+
+  /**
+   * Nibia Withdrawal Management
+   */
+  async getPendingWithdrawals(filters: { city?: string; priority?: number }) {
+    const query: any = { status: 'pending' };
+
+    if (filters.city) {
+      // Find users in the city first
+      const usersInCity = await this.userModel.find({ city: new RegExp(filters.city, 'i') });
+      const userIds = usersInCity.map(user => user._id);
+      query.userId = { $in: userIds };
+    }
+
+    if (filters.priority) {
+      query.priority = filters.priority;
+    }
+
+    return this.withdrawalRequestModel
+      .find(query)
+      .populate('userId', 'name email city role')
+      .sort({ priority: 1, createdAt: 1 })
+      .exec();
+  }
+
+  async processWithdrawalDecision(withdrawalId: string, dto: AdminWithdrawalDecisionDto, adminId: string) {
+    // Verify admin password
+    const admin = await this.userModel.findById(adminId);
+    if (!admin || !await bcrypt.compare(dto.adminPassword, admin.password)) {
+      throw new UnauthorizedException('Invalid admin password');
+    }
+
+    const withdrawal = await this.withdrawalRequestModel.findById(withdrawalId);
+    if (!withdrawal) {
+      throw new NotFoundException('Withdrawal request not found');
+    }
+
+    if (withdrawal.status !== 'pending') {
+      throw new BadRequestException('Withdrawal request is not in pending status');
+    }
+
+    const updateData: any = {
+      status: dto.action === 'approve' ? 'approved' : 'rejected',
+      processedBy: new Types.ObjectId(adminId),
+      processedAt: new Date(),
+      adminNotes: dto.adminNotes,
+      priority: dto.priority || withdrawal.priority,
+    };
+
+    if (dto.action === 'approve') {
+      // Check user's Nibia balance
+      const wallet = await this.walletModel.findOne({ userId: withdrawal.userId });
+      if (!wallet || wallet.foodPoints < withdrawal.nibiaAmount) {
+        throw new BadRequestException('Insufficient Nibia balance');
+      }
+
+      await this.walletModel.findOneAndUpdate(
+        { userId: withdrawal.userId },
+        { 
+          $inc: { foodPoints: -withdrawal.nibiaAmount },
+          updatedAt: new Date()
+        }
+      );
+    }
+
+    return this.withdrawalRequestModel.findByIdAndUpdate(withdrawalId, updateData, { new: true });
+  }
+
+  async bulkProcessWithdrawals(dto: BulkWithdrawalProcessingDto, adminId: string) {
+    // Verify admin password
+    const admin = await this.userModel.findById(adminId);
+    if (!admin || !await bcrypt.compare(dto.adminPassword, admin.password)) {
+      throw new UnauthorizedException('Invalid admin password');
+    }
+
+    const withdrawals = await this.withdrawalRequestModel.find({
+      _id: { $in: dto.withdrawalIds.map(id => new Types.ObjectId(id)) },
+      status: 'pending'
+    });
+
+    if (withdrawals.length === 0) {
+      throw new BadRequestException('No valid pending withdrawals found');
+    }
+
+    const results = [];
+
+    for (const withdrawal of withdrawals) {
+        try {
+          if (dto.action === 'approve') {
+            // Check user's Nibia balance
+            const wallet = await this.walletModel.findOne({ userId: withdrawal.userId });
+            if (!wallet || wallet.foodPoints < withdrawal.nibiaAmount) {
+              results.push({
+                withdrawalId: withdrawal._id,
+                success: false,
+                error: 'Insufficient Nibia balance'
+              });
+              continue;
+            }
+
+            // Deduct from balance
+            await this.walletModel.findOneAndUpdate(
+              { userId: withdrawal.userId },
+              { 
+                $inc: { foodPoints: -withdrawal.nibiaAmount },
+                updatedAt: new Date()
+              }
+            );
+          }        // Update withdrawal status
+        await this.withdrawalRequestModel.findByIdAndUpdate(withdrawal._id, {
+          status: dto.action === 'approve' ? 'approved' : 'rejected',
+          processedBy: new Types.ObjectId(adminId),
+          processedAt: new Date(),
+          adminNotes: dto.bulkNotes,
+        });
+
+        results.push({
+          withdrawalId: withdrawal._id,
+          success: true,
+          action: dto.action
+        });
+      } catch (error) {
+        results.push({
+          withdrawalId: withdrawal._id,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+
+    return {
+      processed: results.length,
+      successful: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+      results
+    };
+  }
+
+  /**
+   * Referral Commission Override
+   */
+  async overrideReferralCommission(dto: OverrideReferralCommissionDto, adminId: string) {
+    // Verify admin password
+    const admin = await this.userModel.findById(adminId);
+    if (!admin || !await bcrypt.compare(dto.adminPassword, admin.password)) {
+      throw new UnauthorizedException('Invalid admin password');
+    }
+
+    const referral = await this.referralModel.findById(dto.referralId);
+    if (!referral) {
+      throw new NotFoundException('Referral not found');
+    }
+
+    const originalAmount = referral.totalCommissionsEarned;
+    const difference = dto.newCommissionAmount - originalAmount;
+
+    // Update referral commission
+    await this.referralModel.findByIdAndUpdate(dto.referralId, {
+      totalCommissionsEarned: dto.newCommissionAmount,
+      isOverridden: true,
+      overrideHistory: {
+        originalAmount,
+        newAmount: dto.newCommissionAmount,
+        difference,
+        overrideType: dto.overrideType,
+        reason: dto.reason,
+        adminNotes: dto.adminNotes,
+        overriddenBy: new Types.ObjectId(adminId),
+        overriddenAt: new Date(),
+      }
+    });
+
+    // Update user's wallet balance
+    if (difference !== 0) {
+      await this.walletModel.findOneAndUpdate(
+        { userId: referral.referrerId },
+        { 
+          $inc: { foodPoints: difference },
+          updatedAt: new Date()
+        }
+      );
+    }
+
+    // Log override action
+    const overrideLog = new this.commissionOverrideModel({
+      referralId: new Types.ObjectId(dto.referralId),
+      userId: referral.referrerId,
+      originalAmount,
+      newAmount: dto.newCommissionAmount,
+      difference,
+      overrideType: dto.overrideType,
+      reason: dto.reason,
+      adminNotes: dto.adminNotes,
+      adminId: new Types.ObjectId(adminId),
+      createdAt: new Date(),
+    });
+
+    await overrideLog.save();
+
+    return {
+      referralId: dto.referralId,
+      originalAmount,
+      newAmount: dto.newCommissionAmount,
+      difference,
+      overrideType: dto.overrideType,
+      processedAt: new Date(),
+    };
+  }
+
+  async getCommissionOverrideHistory(dto: CommissionOverrideHistoryDto) {
+    const query: any = {};
+
+    if (dto.userId) {
+      query.userId = new Types.ObjectId(dto.userId);
+    }
+
+    if (dto.overrideType) {
+      query.overrideType = dto.overrideType;
+    }
+
+    if (dto.startDate || dto.endDate) {
+      query.createdAt = {};
+      if (dto.startDate) query.createdAt.$gte = dto.startDate;
+      if (dto.endDate) query.createdAt.$lte = dto.endDate;
+    }
+
+    return this.commissionOverrideModel
+      .find(query)
+      .populate('userId', 'name email')
+      .populate('adminId', 'name email')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async getReferralCommissionHistory(referralId: string) {
+    const referral = await this.referralModel.findById(referralId)
+      .populate('referrerId', 'name email')
+      .populate('referredUserId', 'name email');
+
+    if (!referral) {
+      throw new NotFoundException('Referral not found');
+    }
+
+    const overrideHistory = await this.commissionOverrideModel
+      .find({ referralId: new Types.ObjectId(referralId) })
+      .populate('adminId', 'name email')
+      .sort({ createdAt: -1 });
+
+    return {
+      referral,
+      overrideHistory,
+    };
+  }
+
+    /**
+   * Profit Pool Management
+   * TODO: Implement these methods when ProfitPool service is ready
+   */
+  async getAllProfitPools(filters: { city?: string; status?: string }) {
+    // Placeholder - will implement when ProfitPool service is ready
+    return { message: 'Profit pool management not yet implemented', filters };
+  }
+
+  async getProfitPoolDetails(poolId: string) {
+    const pool = await this.profitPoolModel.findById(poolId);
+    if (!pool) {
+      throw new NotFoundException('Profit pool not found');
+    }
+
+    // Get user details for distributed recipients
+    const distributionDetails = await Promise.all(
+      pool.distributedTo.map(async (distribution: any) => {
+        const user = await this.userModel.findById(distribution.userId).select('email name city role');
+        return {
+          ...distribution,
+          user: user ? {
+            email: user.email,
+            name: user.name,
+            city: user.city,
+            role: user.role,
+          } : null,
+        };
+      })
+    );
+
+    return {
+      ...pool.toObject(),
+      distributionDetails,
+      calculatedMetrics: {
+        percentageDistributed: pool.poolAmount > 0 ? (pool.totalDistributed / pool.poolAmount) * 100 : 0,
+        remainingAmount: pool.poolAmount - pool.totalDistributed,
+        averageAmountPerRecipient: pool.distributedTo.length > 0 ? pool.totalDistributed / pool.distributedTo.length : 0,
+      },
+    };
+  }
+
+  async adjustProfitPool(poolId: string, dto: ProfitPoolAdjustmentDto, adminId: string) {
+    // Verify admin password
+    const admin = await this.userModel.findById(adminId);
+    if (!admin || !await bcrypt.compare(dto.adminPassword, admin.password)) {
+      throw new UnauthorizedException('Invalid admin password');
+    }
+
+    const pool = await this.profitPoolModel.findById(poolId);
+    if (!pool) {
+      throw new NotFoundException('Profit pool not found');
+    }
+
+    const originalAmount = pool.poolAmount;
+    let adjustmentAmount = dto.adjustmentAmount || 0;
+
+    switch (dto.adjustmentType) {
+      case 'increase':
+        pool.poolAmount += adjustmentAmount;
+        break;
+      case 'decrease':
+        if (adjustmentAmount > pool.poolAmount) {
+          throw new BadRequestException('Adjustment amount exceeds pool total');
+        }
+        pool.poolAmount -= adjustmentAmount;
+        break;
+      case 'redistribute':
+        // Reset distributions and recalculate
+        pool.totalDistributed = 0;
+        pool.distributedTo = [];
+        pool.status = ProfitPoolStatus.CALCULATED; // Reset to calculated status
+        break;
+    }
+
+    // Add admin metadata if the field supports it
+    if (pool.metadata && typeof pool.metadata === 'object') {
+      const metadata = pool.metadata as any;
+      if (!metadata.adminActions) {
+        metadata.adminActions = [];
+      }
+      metadata.adminActions.push({
+        action: `${dto.adjustmentType}_adjustment`,
+        adminId,
+        timestamp: new Date(),
+        originalAmount,
+        newAmount: pool.poolAmount,
+        adjustmentAmount,
+        reason: dto.reason,
+      });
+    }
+
+    await pool.save();
+
+    return {
+      poolId,
+      adjustmentType: dto.adjustmentType,
+      originalAmount,
+      newAmount: pool.poolAmount,
+      adjustmentAmount,
+      processedAt: new Date(),
+      reason: dto.reason,
+    };
+  }
+
+  async getMonthlyProfitPoolReport(dto: MonthlyProfitPoolReportDto) {
+    const [year, month] = dto.month.split('-').map(Number);
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    const query: any = {
+      createdAt: { $gte: startDate, $lte: endDate }
+    };
+
+    if (dto.city) {
+      query.city = new RegExp(dto.city, 'i');
+    }
+
+    const pools = await this.profitPoolModel.find(query).sort({ createdAt: -1 });
+
+    const summary = {
+      totalPools: pools.length,
+      totalAmount: pools.reduce((sum, pool) => sum + pool.poolAmount, 0),
+      totalDistributed: pools.reduce((sum, pool) => sum + pool.totalDistributed, 0),
+      totalRemaining: pools.reduce((sum, pool) => sum + (pool.poolAmount - pool.totalDistributed), 0),
+      completedPools: pools.filter(pool => pool.status === ProfitPoolStatus.DISTRIBUTED).length,
+      pendingPools: pools.filter(pool => pool.status === ProfitPoolStatus.CALCULATED).length,
+    };
+
+    const result: any = {
+      month: dto.month,
+      summary,
+      pools: dto.includeDetails ? pools : undefined,
+    };
+
+    if (dto.includeDetails) {
+      // Group by city for detailed breakdown
+      result.cityBreakdown = {};
+      pools.forEach(pool => {
+        if (!result.cityBreakdown[pool.city]) {
+          result.cityBreakdown[pool.city] = {
+            totalAmount: 0,
+            distributedAmount: 0,
+            poolsCount: 0,
+          };
+        }
+        result.cityBreakdown[pool.city].totalAmount += pool.poolAmount;
+        result.cityBreakdown[pool.city].distributedAmount += pool.totalDistributed;
+        result.cityBreakdown[pool.city].poolsCount++;
+      });
+    }
+
+    return result;
+  }
+
+  async redistributeProfitPool(poolId: string, adminPassword: string, adminId: string) {
+    // Verify admin password
+    const admin = await this.userModel.findById(adminId);
+    if (!admin || !await bcrypt.compare(adminPassword, admin.password)) {
+      throw new UnauthorizedException('Invalid admin password');
+    }
+
+    const pool = await this.profitPoolModel.findById(poolId);
+    if (!pool) {
+      throw new NotFoundException('Profit pool not found');
+    }
+
+    // Reset the pool for redistribution
+    const originalDistributedAmount = pool.totalDistributed;
+    const originalDistributedTo = [...pool.distributedTo];
+    
+    pool.totalDistributed = 0;
+    pool.distributedTo = [];
+    pool.status = ProfitPoolStatus.CALCULATED; // Reset to calculated status
+
+    // Add admin metadata for audit trail
+    if (pool.metadata && typeof pool.metadata === 'object') {
+      const metadata = pool.metadata as any;
+      if (!metadata.adminActions) {
+        metadata.adminActions = [];
+      }
+      metadata.adminActions.push({
+        action: 'redistribute',
+        adminId,
+        timestamp: new Date(),
+        originalDistributedAmount,
+        originalDistributedTo: originalDistributedTo.length,
+        reason: 'Admin triggered redistribution',
+      });
+    }
+
+    await pool.save();
+
+    return {
+      poolId,
+      message: 'Profit pool prepared for redistribution',
+      originalDistributedAmount,
+      originalRecipientsCount: originalDistributedTo.length,
+      resetAt: new Date(),
+    };
   }
 }

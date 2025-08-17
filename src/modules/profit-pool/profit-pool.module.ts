@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ProfitPoolController } from './profit-pool.controller';
-import { ProfitPoolService } from './services/profit-pool.service';
+import { ProfitPoolService } from './profit-pool.service';
 import { RevenueCalculationService } from './services/revenue-calculation.service';
 import { ProfitPool, ProfitPoolSchema } from './entities/profit-pool.entity';
 import { User, UserSchema } from '../users/entities/user.entity';

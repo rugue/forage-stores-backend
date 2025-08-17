@@ -9,6 +9,8 @@ import { Order, OrderSchema } from '../orders/entities/order.entity';
 import { Subscription, SubscriptionSchema } from '../subscriptions/entities/subscription.entity';
 import { Referral, ReferralSchema } from '../referrals/entities/referral.entity';
 import { Product, ProductSchema } from '../products/entities/product.entity';
+import { ProfitPool, ProfitPoolSchema } from '../profit-pool/entities/profit-pool.entity';
+import { WithdrawalRequest, WithdrawalRequestSchema } from '../wallets/entities/withdrawal-request.entity';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -21,6 +23,8 @@ import { AuthModule } from '../auth/auth.module';
       { name: Subscription.name, schema: SubscriptionSchema },
       { name: Referral.name, schema: ReferralSchema },
       { name: Product.name, schema: ProductSchema },
+      { name: ProfitPool.name, schema: ProfitPoolSchema },
+      { name: WithdrawalRequest.name, schema: WithdrawalRequestSchema },
       { name: 'Category', schema: new Schema({
         name: { type: String, required: true },
         description: { type: String },
@@ -35,6 +39,18 @@ import { AuthModule } from '../auth/auth.module';
         newPrice: { type: Number, required: true },
         effectiveDate: { type: Date, required: true },
         reason: { type: String },
+        adminId: { type: Types.ObjectId, ref: 'User', required: true },
+        createdAt: { type: Date, default: Date.now }
+      }) },
+      { name: 'CommissionOverride', schema: new Schema({
+        referralId: { type: Types.ObjectId, ref: 'Referral', required: true },
+        userId: { type: Types.ObjectId, ref: 'User', required: true },
+        originalAmount: { type: Number, required: true },
+        newAmount: { type: Number, required: true },
+        difference: { type: Number, required: true },
+        overrideType: { type: String, enum: ['bonus', 'penalty', 'adjustment'], required: true },
+        reason: { type: String, required: true },
+        adminNotes: { type: String },
         adminId: { type: Types.ObjectId, ref: 'User', required: true },
         createdAt: { type: Date, default: Date.now }
       }) }

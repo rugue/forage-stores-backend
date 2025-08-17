@@ -2498,6 +2498,324 @@ Content-Type: application/json
 }
 ```
 
+---
+
+## 🚀 NEW ENHANCED ADMIN FEATURES
+
+### 🏢 Growth Associates/Growth Elites Management
+
+#### Get Growth Users by City
+**Endpoint:** `GET /admin/growth-users/city`
+**Description:** View GA/GE users organized by city with comprehensive analytics
+**Authentication:** Admin only
+**Query Parameters:**
+```
+?city=Lagos&role=GrowthElite&status=active&dateFrom=2024-01-01&dateTo=2024-12-31&page=1&limit=20
+```
+
+**Response Format:**
+```json
+{
+  "cityBreakdown": {
+    "Lagos": {
+      "totalUsers": 15,
+      "growthElites": 8,
+      "growthAssociates": 7,
+      "totalReferrals": 145,
+      "totalSpend": 450000,
+      "averageSpendPerUser": 30000,
+      "users": [
+        {
+          "_id": "64a1234567890abcdef12345",
+          "email": "ge1@example.com",
+          "name": "John Doe",
+          "role": "GrowthElite",
+          "city": "Lagos",
+          "referralCount": 25,
+          "totalSpend": 75000,
+          "joinedAt": "2024-01-15T10:30:00.000Z",
+          "lastActive": "2024-02-01T14:20:00.000Z"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "totalCities": 5,
+    "totalGrowthUsers": 42,
+    "totalReferrals": 380,
+    "totalSpend": 1250000
+  }
+}
+```
+
+**Key Features:**
+- **City Organization**: Users grouped by city with aggregated metrics
+- **Role Analytics**: Separate counts for GA vs GE users
+- **Performance Metrics**: Referral counts and spending analytics per user
+- **Filtering**: Comprehensive filtering by city, role, status, and date range
+- **Detailed User Info**: Complete user profiles with activity timestamps
+
+### 💰 Enhanced Nibia Withdrawal Management
+
+#### Approve Withdrawal Request
+**Endpoint:** `PUT /admin/withdrawals/{requestId}/approve`
+**Description:** Approve a pending withdrawal request with admin verification
+**Authentication:** Admin with password verification
+**Request Body:**
+```json
+{
+  "adminPassword": "your-admin-password",
+  "adminNotes": "User verified, withdrawal approved for legitimate business expense"
+}
+```
+
+**Response:**
+```json
+{
+  "requestId": "64a1234567890abcdef12345",
+  "status": "approved",
+  "processedAt": "2024-02-01T15:30:00.000Z",
+  "adminId": "64a9876543210fedcba54321",
+  "adminNotes": "User verified, withdrawal approved for legitimate business expense"
+}
+```
+
+#### Reject Withdrawal Request
+**Endpoint:** `PUT /admin/withdrawals/{requestId}/reject`
+**Description:** Reject a withdrawal request with detailed reasoning
+**Request Body:**
+```json
+{
+  "adminPassword": "your-admin-password",
+  "rejectionReason": "Insufficient documentation provided",
+  "adminNotes": "User needs to provide additional proof of business registration"
+}
+```
+
+#### Bulk Process Withdrawals
+**Endpoint:** `POST /admin/withdrawals/bulk-process`
+**Description:** Process multiple withdrawal requests in a single operation
+**Request Body:**
+```json
+{
+  "adminPassword": "your-admin-password",
+  "requests": [
+    {
+      "requestId": "64a1234567890abcdef12345",
+      "action": "approve",
+      "adminNotes": "Verified business expense"
+    },
+    {
+      "requestId": "64a1234567890abcdef12346",
+      "action": "reject",
+      "rejectionReason": "Duplicate request"
+    }
+  ]
+}
+```
+
+**Features:**
+- **Security**: Admin password verification for all actions
+- **Audit Trail**: Complete logging of admin decisions
+- **Bulk Operations**: Process multiple requests efficiently
+- **Detailed Reasoning**: Mandatory notes for all decisions
+- **Email Notifications**: Users notified of approval/rejection (ready for integration)
+
+### 🔄 Referral Commission Override System
+
+#### Override Referral Commission
+**Endpoint:** `POST /admin/referrals/{referralId}/override-commission`
+**Description:** Apply bonus or penalty to referral commission
+**Authentication:** Admin with password verification
+**Request Body:**
+```json
+{
+  "adminPassword": "your-admin-password",
+  "overrideType": "bonus",
+  "adjustmentType": "percentage",
+  "adjustmentValue": 25,
+  "reason": "Exceptional performance bonus for top referrer",
+  "notes": "User exceeded monthly target by 200%"
+}
+```
+
+**Parameters:**
+- `overrideType`: "bonus" or "penalty"
+- `adjustmentType`: "percentage" or "fixed"
+- `adjustmentValue`: Number value for adjustment
+- `reason`: Required explanation for override
+- `notes`: Additional admin notes
+
+**Response:**
+```json
+{
+  "referralId": "64a1234567890abcdef12345",
+  "originalCommission": 5000,
+  "adjustmentApplied": 1250,
+  "newCommission": 6250,
+  "overrideType": "bonus",
+  "processedAt": "2024-02-01T16:45:00.000Z",
+  "adminId": "64a9876543210fedcba54321"
+}
+```
+
+#### Get Commission Override History
+**Endpoint:** `GET /admin/referrals/commission-history`
+**Description:** View all commission override actions with filtering
+**Query Parameters:**
+```
+?userId=64a123...&overrideType=bonus&dateFrom=2024-01-01&page=1&limit=20
+```
+
+**Response:**
+```json
+{
+  "overrides": [
+    {
+      "referralId": "64a1234567890abcdef12345",
+      "userId": "64a1234567890abcdef12346",
+      "originalCommission": 5000,
+      "adjustmentApplied": 1250,
+      "newCommission": 6250,
+      "overrideType": "bonus",
+      "reason": "Exceptional performance bonus",
+      "adminId": "64a9876543210fedcba54321",
+      "processedAt": "2024-02-01T16:45:00.000Z"
+    }
+  ],
+  "summary": {
+    "totalOverrides": 45,
+    "totalBonuses": 38,
+    "totalPenalties": 7,
+    "totalAdjustmentValue": 125000
+  }
+}
+```
+
+### 🎯 Advanced Profit Pool Management
+
+#### Get Profit Pool Details
+**Endpoint:** `GET /admin/profit-pools/{poolId}/details`
+**Description:** View comprehensive profit pool information with distribution details
+**Authentication:** Admin only
+
+**Response:**
+```json
+{
+  "poolId": "64a1234567890abcdef12345",
+  "city": "Lagos",
+  "month": "2024-02",
+  "poolAmount": 50000,
+  "totalDistributed": 45000,
+  "status": "distributed",
+  "distributionDetails": [
+    {
+      "userId": "64a1234567890abcdef12346",
+      "amount": 7500,
+      "distributedAt": "2024-02-01T12:00:00.000Z",
+      "user": {
+        "email": "ge1@example.com",
+        "name": "John Doe",
+        "city": "Lagos",
+        "role": "GrowthElite"
+      }
+    }
+  ],
+  "calculatedMetrics": {
+    "percentageDistributed": 90,
+    "remainingAmount": 5000,
+    "averageAmountPerRecipient": 7500
+  },
+  "createdAt": "2024-02-01T00:00:00.000Z"
+}
+```
+
+#### Adjust Profit Pool
+**Endpoint:** `PUT /admin/profit-pools/{poolId}/adjust`
+**Description:** Increase, decrease, or redistribute profit pool amounts
+**Request Body:**
+```json
+{
+  "adminPassword": "your-admin-password",
+  "adjustmentType": "increase",
+  "adjustmentAmount": 10000,
+  "reason": "Additional revenue from late orders included"
+}
+```
+
+**Adjustment Types:**
+- `increase`: Add funds to pool
+- `decrease`: Remove funds from pool  
+- `redistribute`: Reset and recalculate distributions
+
+#### Redistribute Profit Pool
+**Endpoint:** `POST /admin/profit-pools/{poolId}/redistribute`
+**Description:** Reset pool distributions and prepare for redistribution
+**Request Body:**
+```json
+{
+  "adminPassword": "your-admin-password"
+}
+```
+
+**Response:**
+```json
+{
+  "poolId": "64a1234567890abcdef12345",
+  "message": "Profit pool prepared for redistribution",
+  "originalDistributedAmount": 45000,
+  "originalRecipientsCount": 6,
+  "resetAt": "2024-02-01T17:30:00.000Z"
+}
+```
+
+#### Monthly Profit Pool Report
+**Endpoint:** `GET /admin/profit-pools/monthly-report`
+**Description:** Comprehensive monthly analytics with city breakdowns
+**Query Parameters:**
+```
+?month=2024-02&city=Lagos&includeDetails=true
+```
+
+**Response:**
+```json
+{
+  "month": "2024-02",
+  "summary": {
+    "totalPools": 5,
+    "totalAmount": 250000,
+    "totalDistributed": 225000,
+    "totalRemaining": 25000,
+    "completedPools": 4,
+    "pendingPools": 1
+  },
+  "cityBreakdown": {
+    "Lagos": {
+      "totalAmount": 150000,
+      "distributedAmount": 135000,
+      "poolsCount": 3
+    },
+    "Abuja": {
+      "totalAmount": 100000,
+      "distributedAmount": 90000,
+      "poolsCount": 2
+    }
+  },
+  "pools": [
+    // Detailed pool information if includeDetails=true
+  ]
+}
+```
+
+**Advanced Features:**
+- **Comprehensive Analytics**: City-wise breakdowns and metrics
+- **Distribution Tracking**: See exactly who received what amounts
+- **Admin Controls**: Adjust, redistribute, and override pool calculations
+- **Audit Trails**: Complete logging of all admin actions
+- **Integration Ready**: Works seamlessly with existing profit pool service
+
+---
+
 ### Update User (Admin)
 **Endpoint:** `PATCH /users/admin/{userId}`
 **Description:** Modify any user account details

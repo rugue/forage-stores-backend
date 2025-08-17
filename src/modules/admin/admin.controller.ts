@@ -28,7 +28,14 @@ import {
   CreateCategoryDto, 
   UpdateCategoryDto, 
   PriceHistoryDto,
-  AnalyticsFilterDto
+  AnalyticsFilterDto,
+  GetGrowthUsersByCityDto,
+  AdminWithdrawalDecisionDto,
+  BulkWithdrawalProcessingDto,
+  OverrideReferralCommissionDto,
+  CommissionOverrideHistoryDto,
+  ProfitPoolAdjustmentDto,
+  MonthlyProfitPoolReportDto,
 } from './dto';
 
 @ApiTags('admin')
@@ -196,5 +203,138 @@ export class AdminController {
     @CurrentUser() user: any
   ) {
     return this.adminService.addPriceHistory(priceHistoryDto, user.id);
+  }
+
+  /**
+   * Growth Associates & Elite Management Endpoints
+   */
+  @Get('growth-users/:city')
+  @ApiOperation({ summary: 'Get GA/GE users by city with referral stats (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return growth users with stats' })
+  async getGrowthUsersByCity(@Param('city') city: string, @Query() query: GetGrowthUsersByCityDto) {
+    return this.adminService.getGrowthUsersByCity({ ...query, city });
+  }
+
+  @Get('growth-users/:userId/detailed-stats')
+  @ApiOperation({ summary: 'Get detailed stats for a specific growth user (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return detailed user stats' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getGrowthUserDetailedStats(@Param('userId') userId: string) {
+    return this.adminService.getGrowthUserDetailedStats(userId);
+  }
+
+  /**
+   * Nibia Withdrawal Management Endpoints
+   */
+  @Get('withdrawals/pending')
+  @ApiOperation({ summary: 'Get all pending Nibia withdrawal requests (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return pending withdrawal requests' })
+  async getPendingWithdrawals(@Query('city') city?: string, @Query('priority') priority?: number) {
+    return this.adminService.getPendingWithdrawals({ city, priority });
+  }
+
+  @Patch('withdrawals/:withdrawalId/decision')
+  @ApiOperation({ summary: 'Approve or reject a withdrawal request (admin only)' })
+  @ApiResponse({ status: 200, description: 'Withdrawal request processed' })
+  @ApiResponse({ status: 404, description: 'Withdrawal request not found' })
+  @ApiResponse({ status: 400, description: 'Invalid admin password or request' })
+  async processWithdrawalDecision(
+    @Param('withdrawalId') withdrawalId: string,
+    @Body() decisionDto: AdminWithdrawalDecisionDto,
+    @CurrentUser() user: any
+  ) {
+    return this.adminService.processWithdrawalDecision(withdrawalId, decisionDto, user.id);
+  }
+
+  @Post('withdrawals/bulk-process')
+  @ApiOperation({ summary: 'Bulk approve or reject withdrawal requests (admin only)' })
+  @ApiResponse({ status: 200, description: 'Bulk processing completed' })
+  @ApiResponse({ status: 400, description: 'Invalid admin password or requests' })
+  async bulkProcessWithdrawals(
+    @Body() bulkDto: BulkWithdrawalProcessingDto,
+    @CurrentUser() user: any
+  ) {
+    return this.adminService.bulkProcessWithdrawals(bulkDto, user.id);
+  }
+
+  /**
+   * Referral Commission Override Endpoints
+   */
+  @Post('commissions/override')
+  @ApiOperation({ summary: 'Override referral commission amount (admin only)' })
+  @ApiResponse({ status: 200, description: 'Commission successfully overridden' })
+  @ApiResponse({ status: 404, description: 'Referral not found' })
+  @ApiResponse({ status: 400, description: 'Invalid admin password' })
+  async overrideReferralCommission(
+    @Body() overrideDto: OverrideReferralCommissionDto,
+    @CurrentUser() user: any
+  ) {
+    return this.adminService.overrideReferralCommission(overrideDto, user.id);
+  }
+
+  @Get('commissions/override-history')
+  @ApiOperation({ summary: 'Get commission override history (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return commission override history' })
+  async getCommissionOverrideHistory(@Query() historyDto: CommissionOverrideHistoryDto) {
+    return this.adminService.getCommissionOverrideHistory(historyDto);
+  }
+
+  @Get('commissions/:referralId/history')
+  @ApiOperation({ summary: 'Get specific referral commission history (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return referral commission history' })
+  @ApiResponse({ status: 404, description: 'Referral not found' })
+  async getReferralCommissionHistory(@Param('referralId') referralId: string) {
+    return this.adminService.getReferralCommissionHistory(referralId);
+  }
+
+  /**
+   * Profit Pool Management Endpoints
+   */
+  @Get('profit-pools')
+  @ApiOperation({ summary: 'Get all profit pools with stats (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return profit pools data' })
+  async getAllProfitPools(@Query('city') city?: string, @Query('status') status?: string) {
+    return this.adminService.getAllProfitPools({ city, status });
+  }
+
+  @Get('profit-pools/:poolId')
+  @ApiOperation({ summary: 'Get specific profit pool details (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return profit pool details' })
+  @ApiResponse({ status: 404, description: 'Profit pool not found' })
+  async getProfitPoolDetails(@Param('poolId') poolId: string) {
+    return this.adminService.getProfitPoolDetails(poolId);
+  }
+
+  @Post('profit-pools/:poolId/adjust')
+  @ApiOperation({ summary: 'Adjust profit pool distribution (admin only)' })
+  @ApiResponse({ status: 200, description: 'Profit pool adjusted successfully' })
+  @ApiResponse({ status: 404, description: 'Profit pool not found' })
+  @ApiResponse({ status: 400, description: 'Invalid admin password or adjustment' })
+  async adjustProfitPool(
+    @Param('poolId') poolId: string,
+    @Body() adjustmentDto: ProfitPoolAdjustmentDto,
+    @CurrentUser() user: any
+  ) {
+    return this.adminService.adjustProfitPool(poolId, adjustmentDto, user.id);
+  }
+
+  @Get('profit-pools/reports/monthly')
+  @ApiOperation({ summary: 'Generate monthly profit pool report (admin only)' })
+  @ApiResponse({ status: 200, description: 'Return monthly profit pool report' })
+  async getMonthlyProfitPoolReport(@Query() reportDto: MonthlyProfitPoolReportDto) {
+    return this.adminService.getMonthlyProfitPoolReport(reportDto);
+  }
+
+  @Post('profit-pools/:poolId/redistribute')
+  @ApiOperation({ summary: 'Force redistribution of profit pool (admin only)' })
+  @ApiResponse({ status: 200, description: 'Profit pool redistributed successfully' })
+  @ApiResponse({ status: 404, description: 'Profit pool not found' })
+  @ApiResponse({ status: 400, description: 'Invalid admin password' })
+  async redistributeProfitPool(
+    @Param('poolId') poolId: string,
+    @Body('adminPassword') adminPassword: string,
+    @CurrentUser() user: any
+  ) {
+    return this.adminService.redistributeProfitPool(poolId, adminPassword, user.id);
   }
 }
