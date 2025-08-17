@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import {
   IsString,
   IsNotEmpty,
@@ -25,6 +25,8 @@ export enum UserRole {
   ADMIN = 'admin',
   RIDER = 'rider',
   PRO_AFFILIATE = 'pro-affiliate',
+  GROWTH_ASSOCIATE = 'growth_associate', // GA: at least 100 referrals with ₦600k total spend
+  GROWTH_ELITE = 'growth_elite', // GE: at least 1000 referrals with ₦600k/year for 2 years
   SYSTEM = 'system', // For system-triggered operations
 }
 
@@ -92,6 +94,11 @@ export class User implements IUser {
   @IsString()
   @IsOptional()
   referralCode?: string;
+
+  @ApiProperty({ description: 'ID of the user who referred this user' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'User', index: true })
+  @IsOptional()
+  referrerId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'User credit score',

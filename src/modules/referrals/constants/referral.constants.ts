@@ -12,6 +12,33 @@ export const REFERRAL_CONSTANTS = {
   MIN_ORDER_AMOUNT_FOR_COMMISSION: 1000, // Minimum order amount (NGN)
   PURCHASES_REQUIRED_FOR_COMPLETION: 3, // Number of purchases to complete referral
   
+  // Growth Associate (GA) and Growth Elite (GE) settings
+  GA_QUALIFICATION: {
+    MIN_REFERRALS: 100, // Minimum referrals required
+    MIN_TOTAL_SPEND: 600000, // ₦600k total spend by referrals in first year
+    MAX_PER_CITY: 50, // Maximum 50 GA per city
+    COMMISSION_RATE_MIN: 0.5, // 0.5% minimum commission
+    COMMISSION_RATE_MAX: 2.5, // 2.5% maximum commission
+    QUALIFICATION_PERIOD_DAYS: 365, // 1 year qualification period
+  },
+  
+  GE_QUALIFICATION: {
+    MIN_REFERRALS: 1000, // Minimum referrals required
+    MIN_ANNUAL_SPEND_PER_REFERRAL: 600000, // ₦600k per referral per year
+    CONSECUTIVE_YEARS: 2, // 2 consecutive years
+    MAX_PER_CITY: 5, // Maximum 5 GE per city
+    COMMISSION_RATE_MIN: 0.5, // 0.5% minimum commission
+    COMMISSION_RATE_MAX: 2.5, // 2.5% maximum commission
+    CITY_REVENUE_SHARE: 1, // 1% of city revenue
+  },
+  
+  // Commission rates for normal users
+  NORMAL_USER: {
+    COMMISSION_RATE_MIN: 0.5, // 0.5% minimum commission
+    COMMISSION_RATE_MAX: 2.5, // 2.5% maximum commission
+    MAX_QUALIFYING_PURCHASES: 3, // Only first 3 purchases earn commission
+  },
+  
   // Referral code settings
   REFERRAL_CODE_LENGTH: 8,
   REFERRAL_CODE_PREFIX: 'REF',

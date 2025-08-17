@@ -2272,15 +2272,80 @@ Content-Type: application/json
 
 ---
 
-## 🤝 REFERRALS MODULE (Admin Endpoints)
+## 🤝 ENHANCED REFERRALS MODULE (Admin Endpoints)
+
+### Growth Associates & Growth Elites Management
+
+#### Get Growth Program Statistics
+**Endpoint:** `GET /referrals/growth/stats`
+**Description:** View comprehensive GA/GE program metrics and performance
+**Authentication:** Admin JWT required
+**Response includes:**
+- Total GA/GE counts by city
+- Commission totals and breakdowns  
+- Performance metrics and trends
+- Top performers and qualification pipeline
+
+#### Promote User to Growth Associate
+**Endpoint:** `POST /referrals/growth/promote-ga`
+**Description:** Manually promote qualified user to GA status
+**Requires:** Admin JWT + 2FA + Admin Password
+```json
+{
+  "userId": "user_id_to_promote",
+  "adminPassword": "your_admin_password", 
+  "reason": "Manual promotion - exceptional performance"
+}
+```
+
+#### Promote Growth Associate to Growth Elite
+**Endpoint:** `POST /referrals/growth/promote-ge` 
+**Description:** Promote GA to GE with city assignment
+**Requires:** Admin JWT + 2FA + Admin Password
+```json
+{
+  "userId": "ga_user_id_to_promote",
+  "adminPassword": "your_admin_password",
+  "city": "Lagos", 
+  "reason": "Leadership excellence and qualification met"
+}
+```
+
+#### Trigger System-Wide Qualification Check
+**Endpoint:** `POST /referrals/growth/check-all-qualifications`
+**Description:** Run automatic qualification check and promote eligible users
+**Authentication:** Admin JWT required
+**Response:** Summary of new promotions and qualification status
+
+### Commission Management
+
+#### Get User Commission Details  
+**Endpoint:** `GET /referrals/admin/commissions/{userId}`
+**Description:** View detailed commission history for any user
+**Authentication:** Admin JWT required
+**Includes:** Complete commission trail, performance metrics, earnings breakdown
+
+#### Process All Pending Commissions
+**Endpoint:** `POST /referrals/admin/process-pending-commissions`
+**Description:** Batch process all pending commission payments
+**Requires:** Admin JWT + 2FA + Admin Password
+```json
+{
+  "adminPassword": "your_admin_password",
+  "batchLimit": 100,    // Optional processing limit
+  "dryRun": false       // Preview mode (true = no actual processing)
+}
+```
+
+### Legacy Referral Management
 
 ### Get All Referrals
-**Endpoint:** `GET /referrals/admin/all`
-**Description:** View all referral activities system-wide
+**Endpoint:** `GET /referrals/admin/all` 
+**Description:** View all referral activities system-wide (legacy endpoint)
 
 ### Process Referral Payout
 **Endpoint:** `POST /referrals/admin/{referralId}/payout`
-**Description:** Manually process referral commission payout
+**Description:** Manually process referral commission payout (legacy endpoint)
 
 ---
 
@@ -2417,6 +2482,51 @@ Here are some complete workflows you can test:
 3. **Check if you won:** `GET /auctions/user/won`
 4. **If won, create order for the item**
 
+### 🚀 **Scenario 5: Growth Associates (GA) & Growth Elites (GE) Journey**
+**Complete workflow for testing the enhanced referral system:**
+
+#### Phase 1: Starting as Regular User
+1. **Register with referral:** `POST /auth/register` (include referralCode)
+2. **Check initial qualification:** `GET /referrals/growth/qualification`
+3. **View commission history:** `GET /referrals/commissions` (should be empty initially)
+
+#### Phase 2: Building Referral Network  
+1. **Generate referral code:** Share your user ID or referral code
+2. **Get friends to register:** Have 5+ people register with your referral code
+3. **Create orders:** Generate ₦500,000+ in referral-linked orders
+4. **Check qualification progress:** `GET /referrals/growth/qualification`
+
+#### Phase 3: Growth Associate Promotion
+1. **Automatic qualification:** System checks daily at 2 AM (or admin triggers)
+2. **Manual check:** Admin can run `POST /referrals/growth/check-all-qualifications`
+3. **Verify GA status:** `GET /referrals/growth/qualification` (role should be "ga")
+4. **Enhanced commissions:** Start earning 7% instead of 5% on referrals
+
+#### Phase 4: Growth Elite Qualification  
+1. **Expand network:** Reach 20+ direct referrals
+2. **Increase volume:** Generate ₦2,000,000+ in total referral revenue
+3. **Time requirement:** Maintain GA status for 3+ months
+4. **GE promotion:** Admin promotes with city assignment `POST /referrals/growth/promote-ge`
+
+#### Phase 5: Growth Elite Benefits
+1. **Premium commissions:** Earn 10% on direct referrals
+2. **City revenue sharing:** Get 5% of total city revenue monthly  
+3. **Leadership dashboard:** Access `GET /referrals/growth/stats` for city metrics
+4. **Commission tracking:** Monitor all earnings via `GET /referrals/commissions/stats`
+
+#### Admin Management Flow:
+1. **Monitor growth program:** `GET /referrals/growth/stats`
+2. **Review qualifications:** Check user progress and promote manually if needed
+3. **Process commissions:** `POST /referrals/admin/process-pending-commissions`
+4. **Audit user performance:** `GET /referrals/admin/commissions/{userId}`
+
+**Testing Tips:**
+- Use the provided test script: `node test-enhanced-referrals.js`
+- Create multiple test users to simulate referral networks
+- Test both automatic and manual promotion workflows
+- Verify commission calculations at each tier (5%, 7%, 10%)
+- Test city revenue sharing for GE users
+
 #### Get My Rider Profile
 **Endpoint:** `GET /riders/my-profile`
 
@@ -2480,42 +2590,212 @@ Here are some complete workflows you can test:
 #### Delete Rider Profile (Admin)
 **Endpoint:** `DELETE /riders/{id}`
 
-### 🎯 9. Referral System (Complete)
+### 🎯 9. Enhanced Referral System with Growth Associates (GA) & Growth Elites (GE)
+
+#### 📊 User Commission Endpoints
+
+#### Get My Commissions
+**Endpoint:** `GET /referrals/commissions`
+**Description:** Get your personal commission history and earnings
+**Authentication:** Required (User JWT)
+```json
+// Response includes:
+{
+  "commissions": [
+    {
+      "id": "commission_id",
+      "type": "REFERRAL_COMMISSION",
+      "amount": 1000,
+      "currency": "FoodMoney",
+      "status": "PROCESSED",
+      "userId": "your_user_id",
+      "orderId": "related_order_id",
+      "createdAt": "2025-08-17T10:00:00.000Z"
+    }
+  ],
+  "stats": {
+    "totalEarned": 15000,
+    "totalPending": 2500,
+    "totalProcessed": 12500,
+    "thisMonth": 3000
+  }
+}
+```
+
+#### Get Commission Statistics  
+**Endpoint:** `GET /referrals/commissions/stats`
+**Description:** Get detailed commission statistics and breakdowns
+**Authentication:** Required (User JWT)
+```json
+// Response includes commission breakdown by type, period, currency
+{
+  "totalCommissions": 25000,
+  "byType": {
+    "REFERRAL_COMMISSION": 20000,
+    "GA_COMMISSION": 3000,
+    "GE_CITY_REVENUE": 2000
+  },
+  "byPeriod": {
+    "thisWeek": 1500,
+    "thisMonth": 5000,
+    "thisYear": 25000
+  }
+}
+```
+
+#### 🚀 Growth Management Endpoints
+
+#### Check Growth Qualification
+**Endpoint:** `GET /referrals/growth/qualification`
+**Description:** Check your qualification status for Growth Associate (GA) or Growth Elite (GE)
+**Authentication:** Required (User JWT)
+```json
+// Response shows qualification progress:
+{
+  "currentRole": "user", // or "ga" or "ge"
+  "gaQualification": {
+    "qualified": false,
+    "requirements": {
+      "directReferrals": { "current": 3, "required": 5, "met": false },
+      "totalGenerated": { "current": 300000, "required": 500000, "met": false }
+    }
+  },
+  "geQualification": {
+    "qualified": false,
+    "requirements": {
+      "directReferrals": { "current": 3, "required": 20, "met": false },
+      "totalGenerated": { "current": 300000, "required": 2000000, "met": false },
+      "gaForMonths": { "current": 0, "required": 3, "met": false }
+    }
+  }
+}
+```
+
+#### 👑 Admin Growth Management Endpoints
+
+#### Get Growth Statistics (Admin Only)
+**Endpoint:** `GET /referrals/growth/stats`
+**Description:** Get system-wide growth statistics for GA/GE program
+**Authentication:** Required (Admin JWT)
+```json
+// Response includes GA/GE counts and performance metrics
+{
+  "totalUsers": 1500,
+  "growthAssociates": 45,
+  "growthElites": 12,
+  "totalCommissionsPaid": 500000,
+  "cityBreakdown": {
+    "Lagos": { "gas": 20, "ges": 5 },
+    "Abuja": { "gas": 15, "ges": 4 }
+  }
+}
+```
+
+#### Promote User to GA (Admin Only)
+**Endpoint:** `POST /referrals/growth/promote-ga`
+**Description:** Manually promote a user to Growth Associate
+**Authentication:** Required (Admin JWT + 2FA)
+```json
+{
+  "userId": "USER_ID_TO_PROMOTE",
+  "adminPassword": "your_admin_password",
+  "reason": "Manual promotion - met all requirements"
+}
+```
+
+#### Promote User to GE (Admin Only)  
+**Endpoint:** `POST /referrals/growth/promote-ge`
+**Description:** Manually promote a Growth Associate to Growth Elite
+**Authentication:** Required (Admin JWT + 2FA)
+```json
+{
+  "userId": "GA_USER_ID_TO_PROMOTE", 
+  "adminPassword": "your_admin_password",
+  "city": "Lagos",
+  "reason": "Exceptional performance and leadership"
+}
+```
+
+#### Check All User Qualifications (Admin Only)
+**Endpoint:** `POST /referrals/growth/check-all-qualifications`
+**Description:** Trigger system-wide qualification check and automatic promotions
+**Authentication:** Required (Admin JWT)
+```json
+// Response shows promotion results:
+{
+  "newGAs": 5,
+  "newGEs": 2, 
+  "promotedUsers": [
+    { "userId": "123", "newRole": "ga", "previousRole": "user" },
+    { "userId": "456", "newRole": "ge", "previousRole": "ga" }
+  ],
+  "processedAt": "2025-08-17T10:30:00.000Z"
+}
+```
+
+#### 💰 Admin Commission Management
+
+#### Get User Commissions (Admin Only)
+**Endpoint:** `GET /referrals/admin/commissions/{userId}`
+**Description:** Get detailed commission history for any user
+**Authentication:** Required (Admin JWT)
+```json
+// Response includes full commission history with metadata
+{
+  "user": {
+    "id": "user_id", 
+    "name": "John Doe",
+    "role": "ga"
+  },
+  "commissions": [...], // Full commission history
+  "stats": {
+    "totalEarned": 50000,
+    "avgMonthly": 5000,
+    "topPerformingMonth": "2025-07"
+  }
+}
+```
+
+#### Process Pending Commissions (Admin Only)
+**Endpoint:** `POST /referrals/admin/process-pending-commissions`
+**Description:** Process all pending commissions system-wide
+**Authentication:** Required (Admin JWT + 2FA)
+```json
+{
+  "adminPassword": "your_admin_password",
+  "batchLimit": 100, // Optional: limit processing batch size
+  "dryRun": false    // Optional: set true to preview without processing
+}
+// Response shows processing results:
+{
+  "processedCount": 45,
+  "totalAmount": 125000,
+  "errors": [],
+  "processedAt": "2025-08-17T11:00:00.000Z"
+}
+```
+
+#### 🎯 Legacy Referral Endpoints (Still Active)
 
 #### Create Referral
 **Endpoint:** `POST /referrals`
+**Description:** Create a new referral relationship (auto-created during user registration)
 ```json
 {
   "referrerId": "REFERRING_USER_ID",
-  "referredUserId": "NEW_USER_ID",
+  "referredUserId": "NEW_USER_ID", 
   "type": "USER_REGISTRATION"
 }
 ```
 
 #### Get All Referrals (Admin)
 **Endpoint:** `GET /referrals`
-- Filter: `?status=ACTIVE&page=1&limit=10`
+**Description:** View all referral relationships system-wide
+**Filter:** `?status=ACTIVE&page=1&limit=10`
 
 #### View My Referrals
 **Endpoint:** `GET /referrals/my-referrals`
-
-#### Get Referral Statistics
-**Endpoint:** `GET /referrals/stats`
-
-#### Generate Referral Code
-**Endpoint:** `GET /referrals/generate-code`
-
-#### Get Referral by ID
-**Endpoint:** `GET /referrals/{id}`
-
-#### Update Referral
-**Endpoint:** `PATCH /referrals/{id}`
-```json
-{
-  "status": "COMPLETED",
-  "commissionAmount": 100
-}
-```
+**Description:** Get your referral network and earnings
 
 #### Process Commission
 **Endpoint:** `POST /referrals/process-commission/{userId}`

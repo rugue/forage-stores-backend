@@ -5,11 +5,14 @@ import {
   Referral,
   ReferralDocument,
   ReferralStatus,
-  CommissionType,
+  CommissionType as LegacyCommissionType,
 } from '../referrals/entities/referral.entity';
 import { ICommissionHistory } from '../referrals/interfaces/referral.interface';
 import { User, UserDocument, UserRole } from '../users/entities/user.entity';
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
+import { Commission, CommissionDocument, CommissionType } from './entities/commission.entity';
+import { CommissionService } from './services/commission.service';
+import { GrowthManagementService } from './services/growth-management.service';
 import {
   CreateReferralDto,
   ProcessCommissionDto,
@@ -27,6 +30,9 @@ export class ReferralsService {
     @InjectModel(Referral.name) private referralModel: Model<ReferralDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    @InjectModel(Commission.name) private commissionModel: Model<CommissionDocument>,
+    private commissionService: CommissionService,
+    private growthManagementService: GrowthManagementService,
   ) {}
 
   async create(createReferralDto: CreateReferralDto): Promise<ReferralDocument> {
@@ -67,6 +73,10 @@ export class ReferralsService {
     if (!referredUser) {
       throw new NotFoundException('Referred user not found');
     }
+
+    // Set referrerId in referred user for easy lookup
+    referredUser.referrerId = new Types.ObjectId(actualReferrerId);
+    await referredUser.save();
 
     // Create the referral
     const referral = new this.referralModel({
@@ -134,74 +144,37 @@ export class ReferralsService {
       return null;
     }
 
-    // Check if this is a duplicate order commission
-    const duplicateCommission = referral.commissionHistory.find(
-      history => history.orderId.toString() === processDto.orderId
-    );
+    // Use the new commission service to process commissions
+    const commissions = await this.commissionService.processCommissionsForOrder(processDto.orderId);
     
-    if (duplicateCommission) {
-      this.logger.log(`Commission already processed for order ${processDto.orderId}`);
-      return referral;
+    if (commissions.length > 0) {
+      // Update legacy referral for backward compatibility
+      const commission = commissions[0];
+      const commissionHistory: ICommissionHistory = {
+        orderId: new Types.ObjectId(processDto.orderId),
+        amount: commission.amount,
+        type: processDto.commissionType,
+        date: new Date(),
+        orderAmount: processDto.orderAmount,
+        commissionPercentage: commission.rate,
+        isProcessed: false,
+      };
+
+      referral.commissionHistory.push(commissionHistory);
+      referral.totalCommissionsEarned += commission.amount;
+      referral.purchaseCount += 1;
+
+      // Check if this is a regular user and has reached the limit
+      const referrer = await this.userModel.findById(referral.referrerId);
+      if (referrer && 
+          (referrer.role === UserRole.USER || referrer.role === UserRole.PRO_AFFILIATE) && 
+          referral.purchaseCount >= this.MAX_REGULAR_USER_COMMISSIONS) {
+        referral.isCommissionCompleted = true;
+      }
+
+      await referral.save();
     }
 
-    // Get the referrer to check their role
-    const referrer = await this.userModel.findById(referral.referrerId);
-    if (!referrer) {
-      throw new NotFoundException('Referrer user not found');
-    }
-
-    // If referrer is not a pro-affiliate and already completed commissions, no more commissions
-    const isProAffiliate = referrer.role === UserRole.PRO_AFFILIATE;
-    if (!isProAffiliate && referral.isCommissionCompleted) {
-      this.logger.log(`Regular user ${referrer._id} has already reached max commissions`);
-      return referral;
-    }
-
-    // If regular user and purchase count >= MAX_REGULAR_USER_COMMISSIONS, mark as completed
-    if (!isProAffiliate && referral.purchaseCount >= this.MAX_REGULAR_USER_COMMISSIONS - 1) {
-      referral.isCommissionCompleted = true;
-    }
-
-    // Calculate commission amount
-    const commissionPercentage = processDto.commissionPercentage || this.DEFAULT_COMMISSION_PERCENTAGE;
-    const commissionAmount = (processDto.orderAmount * commissionPercentage) / 100;
-
-    // Create commission history entry
-    const commissionHistory: ICommissionHistory = {
-      orderId: new Types.ObjectId(processDto.orderId),
-      amount: commissionAmount,
-      type: processDto.commissionType,
-      date: new Date(),
-      orderAmount: processDto.orderAmount,
-      commissionPercentage,
-      isProcessed: false,
-    };
-
-    // Add to referral
-    referral.commissionHistory.push(commissionHistory);
-    referral.totalCommissionsEarned += commissionAmount;
-    referral.purchaseCount += 1;
-
-    // Update wallet
-    const wallet = await this.walletModel.findOne({ userId: referral.referrerId });
-    if (!wallet) {
-      throw new NotFoundException('Referrer wallet not found');
-    }
-
-    // Add commission to appropriate wallet balance
-    if (processDto.commissionType === CommissionType.FOOD_MONEY) {
-      wallet.foodMoney += commissionAmount;
-    } else {
-      wallet.foodPoints += commissionAmount;
-    }
-
-    // Save both referral and wallet
-    await Promise.all([
-      referral.save(),
-      wallet.save(),
-    ]);
-
-    this.logger.log(`Processed commission of ${commissionAmount} for referrer ${referrer._id}`);
     return referral;
   }
 
@@ -215,29 +188,34 @@ export class ReferralsService {
     const activeReferrals = referrals.filter(r => r.status === ReferralStatus.ACTIVE).length;
     const completedReferrals = referrals.filter(r => r.isCommissionCompleted).length;
     
-    // Calculate total earnings by type
-    const totalFoodMoneyEarned = referrals.reduce((sum, referral) => {
-      const foodMoneyCommissions = referral.commissionHistory
-        .filter(c => c.type === CommissionType.FOOD_MONEY)
-        .reduce((total, commission) => total + commission.amount, 0);
-      return sum + foodMoneyCommissions;
-    }, 0);
-
-    const totalFoodPointsEarned = referrals.reduce((sum, referral) => {
-      const foodPointsCommissions = referral.commissionHistory
-        .filter(c => c.type === CommissionType.FOOD_POINTS)
-        .reduce((total, commission) => total + commission.amount, 0);
-      return sum + foodPointsCommissions;
-    }, 0);
+    // Get commission stats from the new commission service
+    const commissionStats = await this.commissionService.getCommissionStats(referrerId);
 
     return {
       totalReferrals,
       activeReferrals,
       completedReferrals,
-      totalCommissionsEarned: totalFoodMoneyEarned + totalFoodPointsEarned,
-      totalFoodMoneyEarned,
-      totalFoodPointsEarned,
+      totalCommissionsEarned: commissionStats.totalEarned,
+      totalFoodMoneyEarned: commissionStats.totalProcessed,
+      totalFoodPointsEarned: 0, // Legacy field
+      newCommissionSystem: commissionStats,
     };
+  }
+
+  async getGrowthQualification(userId: string) {
+    return this.growthManagementService.checkGrowthQualification(userId);
+  }
+
+  async promoteToGrowthAssociate(userId: string) {
+    return this.growthManagementService.promoteToGrowthAssociate(userId);
+  }
+
+  async promoteToGrowthElite(userId: string) {
+    return this.growthManagementService.promoteToGrowthElite(userId);
+  }
+
+  async getCommissions(userId: string, filters?: any) {
+    return this.commissionService.getCommissionsByUser(userId, filters);
   }
 
   async generateReferralCode(userId: string): Promise<string> {

@@ -4,6 +4,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { AuctionsModule } from '../auctions/auctions.module';
 import { ProductsModule } from '../products/products.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { ProductsModule } from '../products/products.module';
     SubscriptionsModule,
     AuctionsModule,
     ProductsModule,
+    ReferralsModule,
   ],
   providers: [TasksService],
   exports: [TasksService],

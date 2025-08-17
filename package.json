@@ -32,6 +32,7 @@
     "@nestjs/throttler": "^6.4.0",
     "@types/bcrypt": "^5.0.2",
     "@types/nodemailer": "^6.4.17",
+    "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "class-sanitizer": "^1.0.1",
     "class-transformer": "^0.5.1",
