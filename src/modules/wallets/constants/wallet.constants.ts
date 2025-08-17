@@ -12,8 +12,19 @@ export const WALLET_CONSTANTS = {
   MONTHLY_TRANSACTION_LIMIT: 10000000, // 10M NGN per month
   
   // Conversion rates
-  NIBIA_TO_NGN_RATE: 0.01, // 1 Nibia = 0.01 NGN
-  NGN_TO_NIBIA_RATE: 100, // 1 NGN = 100 Nibia
+  NIBIA_TO_NGN_RATE: 1.0, // 1 Nibia = 1 NGN (updated for GA/GE withdrawal)
+  NGN_TO_NIBIA_RATE: 1.0, // 1 NGN = 1 Nibia (updated for GA/GE withdrawal)
+  
+  // Withdrawal limits for GA/GE users
+  MIN_WITHDRAWAL_AMOUNT: 1, // 1 Nibia minimum
+  MAX_WITHDRAWAL_AMOUNT: 100000, // 100k Nibia per request
+  DAILY_WITHDRAWAL_LIMIT: 500000, // 500k Nibia per day
+  MONTHLY_WITHDRAWAL_LIMIT: 2000000, // 2M Nibia per month
+  
+  // Withdrawal processing
+  WITHDRAWAL_PROCESSING_FEE: 0, // No fee for GA/GE withdrawals
+  AUTO_APPROVE_LIMIT: 10000, // Auto-approve withdrawals under 10k Nibia for GE
+  PRIORITY_PROCESSING_HOURS: 24, // GE requests processed within 24 hours
   
   // Fees and charges
   TRANSFER_FEE_PERCENTAGE: 0.005, // 0.5% transfer fee

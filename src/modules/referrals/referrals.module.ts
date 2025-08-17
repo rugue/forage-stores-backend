@@ -10,6 +10,7 @@ import { User, UserSchema } from '../users/entities/user.entity';
 import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
 import { Order, OrderSchema } from '../orders/entities/order.entity';
 import { OrdersModule } from '../orders/orders.module';
+import { WalletsModule } from '../wallets/wallets.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { OrdersModule } from '../orders/orders.module';
       { name: Order.name, schema: OrderSchema },
     ]),
     forwardRef(() => OrdersModule),
+    forwardRef(() => WalletsModule),
   ],
   controllers: [ReferralsController],
   providers: [

@@ -85,6 +85,14 @@ export class Wallet {
   @Prop({ required: false, type: Date })
   @IsOptional()
   lastTransactionAt?: Date;
+
+  @ApiProperty({
+    description: 'Whether Nibia withdrawal is enabled (GA/GE users only)',
+    example: false,
+  })
+  @Prop({ required: true, type: Boolean, default: false })
+  @IsOptional()
+  nibiaWithdrawEnabled: boolean;
 }
 
 export const WalletSchema = SchemaFactory.createForClass(Wallet);

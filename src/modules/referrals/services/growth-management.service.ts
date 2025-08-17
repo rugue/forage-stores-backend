@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { User, UserDocument, UserRole } from '../../users/entities/user.entity';
 import { Order, OrderDocument } from '../../orders/entities/order.entity';
 import { Commission, CommissionDocument, CommissionType } from '../entities/commission.entity';
+import { WalletsService } from '../../wallets/wallets.service';
 import { REFERRAL_CONSTANTS } from '../constants/referral.constants';
 
 export interface GrowthQualificationResult {
@@ -34,6 +35,7 @@ export class GrowthManagementService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Commission.name) private commissionModel: Model<CommissionDocument>,
+    private walletsService: WalletsService,
   ) {}
 
   async checkGrowthQualification(userId: string): Promise<GrowthQualificationResult> {
@@ -229,6 +231,14 @@ export class GrowthManagementService {
     user.role = UserRole.GROWTH_ASSOCIATE;
     await user.save();
 
+    // Enable Nibia withdrawal for GA users
+    try {
+      await this.walletsService.enableNibiaWithdrawal(userId);
+      this.logger.log(`Enabled Nibia withdrawal for GA user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to enable withdrawal for GA user ${userId}:`, error);
+    }
+
     this.logger.log(`Promoted user ${userId} to Growth Associate`);
     return user;
   }
@@ -246,6 +256,14 @@ export class GrowthManagementService {
 
     user.role = UserRole.GROWTH_ELITE;
     await user.save();
+
+    // Enable Nibia withdrawal for GE users (if not already enabled from GA)
+    try {
+      await this.walletsService.enableNibiaWithdrawal(userId);
+      this.logger.log(`Enabled Nibia withdrawal for GE user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to enable withdrawal for GE user ${userId}:`, error);
+    }
 
     this.logger.log(`Promoted user ${userId} to Growth Elite`);
     return user;

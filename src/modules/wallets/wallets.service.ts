@@ -36,6 +36,7 @@ export class WalletsService {
         foodPoints: 0.0,
         foodSafe: 0.0,
         status: 'active',
+        nibiaWithdrawEnabled: false, // Default to false, enabled when promoted to GA/GE
       });
 
       return await wallet.save();
@@ -353,5 +354,37 @@ export class WalletsService {
       totalFoodSafe: 0,
       totalBalance: 0,
     };
+  }
+
+  // Enable Nibia withdrawal for GA/GE users
+  async enableNibiaWithdrawal(userId: string): Promise<void> {
+    const result = await this.walletModel.findOneAndUpdate(
+      { userId: new Types.ObjectId(userId) },
+      { nibiaWithdrawEnabled: true },
+      { new: true },
+    );
+
+    if (!result) {
+      throw new NotFoundException('Wallet not found for user');
+    }
+  }
+
+  // Disable Nibia withdrawal (when user is demoted)
+  async disableNibiaWithdrawal(userId: string): Promise<void> {
+    const result = await this.walletModel.findOneAndUpdate(
+      { userId: new Types.ObjectId(userId) },
+      { nibiaWithdrawEnabled: false },
+      { new: true },
+    );
+
+    if (!result) {
+      throw new NotFoundException('Wallet not found for user');
+    }
+  }
+
+  // Check if user can withdraw Nibia
+  async canWithdrawNibia(userId: string): Promise<boolean> {
+    const wallet = await this.walletModel.findOne({ userId: new Types.ObjectId(userId) });
+    return wallet?.nibiaWithdrawEnabled || false;
   }
 }

@@ -1548,6 +1548,237 @@ This shows all items in your cart with prices and totals.
    - ❌ **Users CANNOT add money to their own wallets**
    - ✅ **Only admins can add money using:** `PATCH /wallets/admin/{userId}/balance`
    - ✅ **This is by design for security and compliance**
+
+---
+
+## 🏧 Nibia Withdrawal System (GA/GE Users Only)
+
+### 🎯 Overview
+Growth Associates (GA) and Growth Elites (GE) can withdraw their Nibia (Food Points) and convert them to Nigerian Naira at a 1:1 rate. This feature is automatically enabled when users are promoted to GA/GE status.
+
+### 💰 User Withdrawal Operations (GA/GE Only)
+
+#### Create Withdrawal Request
+**Endpoint:** `POST /wallets/withdrawals/request`  
+**Authentication:** GA/GE users only
+**Description:** Convert Nibia to NGN with admin approval process
+
+**Request Body:**
+```json
+{
+  "nibiaAmount": 1000.0,
+  "userReason": "Emergency cash needed"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "withdrawal_request_id",
+  "nibiaAmount": 1000.0,
+  "ngnAmount": 1000.0,
+  "status": "pending",
+  "priority": 1,
+  "userRole": "growth_associate",
+  "createdAt": "2025-08-17T18:00:00.000Z"
+}
+```
+
+**Limits & Rules:**
+- **Conversion Rate:** 1 Nibia = 1 NGN
+- **Min Amount:** 1 Nibia per request
+- **Max Amount:** 100,000 Nibia per request
+- **Daily Limit:** 500,000 Nibia per user
+- **Monthly Limit:** 2,000,000 Nibia per user
+- **Priority:** GE users processed first, then GA users
+
+#### Get My Withdrawal Requests
+**Endpoint:** `GET /wallets/withdrawals/my-requests`
+**Description:** View your withdrawal history and status
+
+**Query Parameters:**
+```
+?status=pending&page=1&limit=20
+```
+
+**Response:**
+```json
+{
+  "requests": [
+    {
+      "id": "req_123",
+      "nibiaAmount": 1000,
+      "ngnAmount": 1000,
+      "status": "pending",
+      "userReason": "Emergency cash",
+      "createdAt": "2025-08-17T18:00:00.000Z"
+    }
+  ],
+  "total": 5,
+  "page": 1,
+  "limit": 20
+}
+```
+
+#### Get Withdrawal Request Details
+**Endpoint:** `GET /wallets/withdrawals/{requestId}`
+**Description:** Get detailed information about a specific withdrawal request
+
+**Response includes:**
+- Request details and current status
+- Processing timeline and admin notes
+- Transaction reference (if completed)
+- User and admin information
+
+### 🛠️ Admin Withdrawal Management
+
+#### Get All Withdrawal Requests (Admin)
+**Endpoint:** `GET /wallets/withdrawals/admin/all`
+**Authentication:** Admin only
+**Description:** View all withdrawal requests system-wide with priority ordering
+
+**Query Parameters:**
+```
+?status=pending&userId=user123&page=1&limit=20
+```
+
+**Features:**
+- **Priority Ordering:** GE requests → GA requests → Creation date
+- **Status Filtering:** pending, approved, rejected, completed
+- **User Filtering:** View requests from specific users
+- **Full User Details:** Names, emails, roles populated
+
+#### Process Withdrawal Request (Admin)
+**Endpoint:** `PATCH /wallets/withdrawals/admin/{requestId}/process`
+**Authentication:** Admin with password verification
+**Description:** Approve or reject withdrawal requests
+
+**Request Body:**
+```json
+{
+  "action": "approved",
+  "adminNotes": "User verified, withdrawal approved", 
+  "adminPassword": "your_admin_password"
+}
+```
+
+**Approval Process:**
+1. **Admin Password Verification:** Ensures request authenticity
+2. **Balance Check:** Confirms user has sufficient Nibia
+3. **Transaction Execution:** 
+   - Deducts Nibia from user wallet
+   - Credits equivalent NGN to FoodMoney balance
+   - Creates transaction reference
+4. **Status Update:** Marks as 'completed' with timestamp
+
+#### Get Withdrawal Statistics (Admin)
+**Endpoint:** `GET /wallets/withdrawals/admin/stats`
+**Description:** Comprehensive withdrawal system metrics
+
+**Response:**
+```json
+{
+  "totalPending": 45,
+  "totalCompleted": 156,
+  "totalRejected": 12,
+  "totalNibiaPending": 125000,
+  "totalNibiaWithdrawn": 2500000,
+  "totalNgnDisbursed": 2500000,
+  "avgProcessingTimeHours": 8.5
+}
+```
+
+#### Manual Withdrawal Control (Admin)
+**Enable:** `POST /wallets/withdrawals/admin/enable-withdrawal/{userId}`
+**Disable:** `POST /wallets/withdrawals/admin/disable-withdrawal/{userId}`
+
+**Use Cases:**
+- Enable withdrawal for manually promoted GA/GE users
+- Emergency suspension of withdrawal privileges  
+- Troubleshooting and account management
+
+### 🧪 Testing Withdrawal System
+
+#### Scenario 1: GA User Withdrawal Journey
+```bash
+# 1. Check if withdrawal is enabled
+GET /wallets/my-wallet
+# Look for: "nibiaWithdrawEnabled": true
+
+# 2. Check Nibia balance
+# Response should show available foodPoints (Nibia)
+
+# 3. Create withdrawal request
+POST /wallets/withdrawals/request
+{
+  "nibiaAmount": 500,
+  "userReason": "Test withdrawal"
+}
+
+# 4. Track request status
+GET /wallets/withdrawals/my-requests
+
+# 5. Get specific request details
+GET /wallets/withdrawals/{requestId}
+```
+
+#### Scenario 2: Admin Processing Workflow
+```bash
+# 1. View pending requests (priority ordered)
+GET /wallets/withdrawals/admin/all?status=pending
+
+# 2. Review system statistics
+GET /wallets/withdrawals/admin/stats
+
+# 3. Process high-priority GE request first
+PATCH /wallets/withdrawals/admin/{requestId}/process
+{
+  "action": "approved",
+  "adminNotes": "Priority GE user - approved",
+  "adminPassword": "admin_password"
+}
+
+# 4. Verify user wallet updated
+GET /wallets/admin/user/{userId}
+# Should show reduced Nibia, increased NGN
+```
+
+#### Scenario 3: Error Testing
+```bash
+# Test insufficient balance
+POST /wallets/withdrawals/request
+{ "nibiaAmount": 999999 }
+# Expected: 400 Bad Request
+
+# Test exceeded limits  
+POST /wallets/withdrawals/request
+{ "nibiaAmount": 150000 }
+# Expected: 400 - Exceeds max per request
+
+# Test regular user access
+# Use regular user token with withdrawal endpoint
+# Expected: 403 Forbidden
+```
+
+### 💡 Key Integration Points
+
+#### Automatic Promotion Integration
+When users are promoted to GA/GE via the referrals system:
+```typescript
+// Automatically called during promotion
+await walletsService.enableNibiaWithdrawal(userId);
+```
+
+#### Commission System Integration
+- GA/GE users earn higher commission rates (7%, 10%)
+- Accumulated commissions paid as Nibia can be withdrawn
+- Withdrawal system provides liquidity for high-performing users
+
+#### Security & Compliance
+- All withdrawals require admin approval (no auto-approval)
+- Admin password verification for all processing actions
+- Complete audit trail with timestamps and admin notes
+- Rate limiting and daily/monthly caps per user
 4. **For Payments: Use Alternative Methods**
    - `"cash"` - Cash on delivery (no wallet needed)
    - `"card"` - Credit/debit card (no wallet needed)
@@ -2526,6 +2757,119 @@ Here are some complete workflows you can test:
 - Test both automatic and manual promotion workflows
 - Verify commission calculations at each tier (5%, 7%, 10%)
 - Test city revenue sharing for GE users
+
+### 💰 **Scenario 6: Nibia Withdrawal System (GA/GE Users)**
+**Complete workflow for testing withdrawal functionality:**
+
+#### Phase 1: Prerequisites Setup
+1. **Ensure GA/GE status:** User must be Growth Associate or Growth Elite
+2. **Check withdrawal enabled:** `GET /wallets/my-wallet` (nibiaWithdrawEnabled: true)
+3. **Verify Nibia balance:** Ensure sufficient foodPoints for withdrawal
+4. **Admin setup:** Have admin credentials ready for processing
+
+#### Phase 2: User Withdrawal Request
+1. **Create withdrawal request:**
+   ```bash
+   POST /wallets/withdrawals/request
+   {
+     "nibiaAmount": 1000,
+     "userReason": "Emergency cash needed"
+   }
+   ```
+
+2. **Check request status:**
+   ```bash
+   GET /wallets/withdrawals/my-requests
+   # Should show pending request with priority based on user tier
+   ```
+
+3. **Get request details:**
+   ```bash
+   GET /wallets/withdrawals/{requestId}
+   # Should show full request information
+   ```
+
+#### Phase 3: Admin Processing Workflow
+1. **Review pending requests:**
+   ```bash
+   GET /wallets/withdrawals/admin/all?status=pending
+   # GE requests appear first (priority 2), then GA (priority 1)
+   ```
+
+2. **Check system statistics:**
+   ```bash
+   GET /wallets/withdrawals/admin/stats
+   # Shows pending amounts, processing times, etc.
+   ```
+
+3. **Process withdrawal request:**
+   ```bash
+   PATCH /wallets/withdrawals/admin/{requestId}/process
+   {
+     "action": "approved",
+     "adminNotes": "User verified, withdrawal approved",
+     "adminPassword": "your_admin_password"
+   }
+   ```
+
+#### Phase 4: Verification & Testing
+1. **Verify wallet updates:**
+   ```bash
+   GET /wallets/my-wallet
+   # Should show reduced Nibia, increased NGN (1:1 rate)
+   ```
+
+2. **Check transaction reference:**
+   ```bash
+   GET /wallets/withdrawals/{requestId}
+   # Should show transactionRef and completed status
+   ```
+
+3. **Admin monitoring:**
+   ```bash
+   GET /wallets/withdrawals/admin/stats
+   # Should show updated statistics
+   ```
+
+#### Phase 5: Error Testing
+1. **Test insufficient balance:**
+   ```bash
+   POST /wallets/withdrawals/request
+   { "nibiaAmount": 999999 }
+   # Expected: 400 - Insufficient balance
+   ```
+
+2. **Test exceeded limits:**
+   ```bash
+   POST /wallets/withdrawals/request
+   { "nibiaAmount": 150000 }
+   # Expected: 400 - Exceeds 100k per request limit
+   ```
+
+3. **Test regular user access:**
+   ```bash
+   # Use regular user token
+   POST /wallets/withdrawals/request
+   # Expected: 403 - Only GA/GE can withdraw
+   ```
+
+4. **Test admin password:**
+   ```bash
+   # Use wrong admin password
+   PATCH /wallets/withdrawals/admin/{requestId}/process
+   # Expected: 401 - Invalid admin password
+   ```
+
+#### Integration Testing:
+1. **Promotion → Withdrawal enabled:** Verify new GA/GE users can withdraw
+2. **Commission → Withdrawal:** Test withdrawing earned commission Nibia
+3. **Daily/Monthly limits:** Test multiple withdrawals within limits
+4. **Priority processing:** Verify GE requests processed before GA requests
+
+**Testing Scripts:**
+- Use: `node test-nibia-withdrawal.js` (comprehensive test suite)
+- Configure real JWT tokens for GA, GE, and admin users
+- Test with actual Nibia balances and admin credentials
 
 #### Get My Rider Profile
 **Endpoint:** `GET /riders/my-profile`
