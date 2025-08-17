@@ -212,6 +212,139 @@ Now that you're authenticated, you can test any endpoint marked with a 🔒 lock
 3. **Add products to your store:** `POST /products`
 4. **Create orders:** `POST /orders/checkout`
 
+## 💰 Profit Pool System Testing (NEW - August 2025)
+
+The Profit Pool system distributes 1% of monthly city revenue to Growth Elite users as Nibia rewards! Here's how to test it:
+
+### 🔧 Prerequisites for Testing
+- **Admin access required** for most operations
+- **Growth Elite users** needed for distributions
+- **Revenue data** in orders, subscriptions, and deliveries
+
+### 📊 View Profit Pool Statistics
+**Endpoint:** `GET /profit-pool/stats`  
+**Description:** Get overall profit pool statistics
+
+**Request Example:**
+```bash
+curl -X GET "http://localhost:3000/profit-pool/stats?city=Lagos&year=2025" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Response:**
+```json
+{
+  "totalPools": 12,
+  "totalRevenue": 50000000,
+  "totalPoolAmount": 500000,
+  "totalDistributed": 450000,
+  "calculatedPools": 2,
+  "distributedPools": 10,
+  "failedPools": 0,
+  "distributionRate": 90.0
+}
+```
+
+### 📋 List All Profit Pools  
+**Endpoint:** `GET /profit-pool`
+**Description:** Get paginated list of profit pools with filtering
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10)
+- `city`: Filter by city (e.g., "Lagos")
+- `month`: Filter by month (e.g., "2025-08")
+- `status`: Filter by status ("calculated", "distributed", "failed")
+
+**Request Example:**
+```bash
+curl -X GET "http://localhost:3000/profit-pool?city=Lagos&status=distributed&limit=5" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### 💼 Admin: Create Profit Pool (Manual)
+**Endpoint:** `POST /profit-pool`
+**Description:** Manually create a profit pool for a city/month
+
+**Request Body:**
+```json
+{
+  "city": "Lagos",
+  "month": "2025-08",
+  "force": false
+}
+```
+
+**What happens:**
+1. System calculates total revenue for Lagos in August 2025
+2. Computes 1% as pool amount (e.g., 50M revenue → 500K Nibia pool)
+3. Counts Growth Elite users in Lagos
+4. Calculates amount per GE (e.g., 500K ÷ 10 GEs = 50K each)
+
+### 🎯 Admin: Distribute Profit Pool
+**Endpoint:** `POST /profit-pool/distribute`
+**Description:** Distribute a profit pool to Growth Elite users
+
+**Request Body:**
+```json
+{
+  "poolId": "64a7b12c8f9e4d5a6b7c8901",
+  "notes": "Monthly distribution for Lagos - August 2025"
+}
+```
+
+**What happens:**
+1. Finds all active Growth Elite users in the city
+2. Credits each user's wallet with their share (as Nibia/FoodPoints)
+3. Records complete audit trail of distributions
+4. Marks pool as "distributed" or "failed"
+
+### 👤 User: View My Profit Pool History
+**Endpoint:** `GET /profit-pool/my-history`
+**Description:** Growth Elite users can see their distribution history
+
+**Response Example:**
+```json
+[
+  {
+    "poolId": "64a7b12c8f9e4d5a6b7c8901",
+    "city": "Lagos",
+    "month": "2025-08",
+    "nibiaAmount": 50000,
+    "creditedAt": "2025-09-02T00:00:00.000Z",
+    "totalPoolAmount": 500000,
+    "numberOfRecipients": 10,
+    "credited": true
+  }
+]
+```
+
+### 🔍 View Specific Profit Pool Details
+**Endpoint:** `GET /profit-pool/:poolId`
+**Description:** Get detailed information about a specific profit pool
+
+**Response includes:**
+- Pool creation and distribution dates
+- Revenue breakdown and calculations  
+- List of all recipients and amounts
+- Success/failure status for each distribution
+
+### 🤖 Automated Monthly Process
+
+The system runs two automated jobs:
+1. **1st of each month (2 AM):** Creates profit pools for all supported cities
+2. **2nd of each month (3 AM):** Distributes all calculated pools
+
+**Supported Cities:**
+- Lagos, Abuja, Port Harcourt, Kano, Ibadan
+- Benin City, Enugu, Kaduna, Jos, Ilorin
+
+**Testing Tips:**
+- Use admin authentication for create/distribute operations
+- Check Growth Elite users exist in test cities
+- Verify wallet balances before/after distributions
+- Monitor automated job logs for monthly processing
+
 ## ❗ Common Issues and Solutions
 
 ### Issue: "Unauthorized" or "Access token is required"
@@ -3656,6 +3789,36 @@ Test these error scenarios:
 - [ ] Get commission analytics
 - [ ] Manage categories (CRUD)
 - [ ] Product price history
+
+### ✅ Profit Pool System (NEW - August 2025)
+- [ ] View profit pool statistics (overall)
+- [ ] View profit pool statistics (by city)
+- [ ] View profit pool statistics (by year)
+- [ ] List all profit pools (admin)
+- [ ] Filter profit pools by city
+- [ ] Filter profit pools by month
+- [ ] Filter profit pools by status
+- [ ] Create profit pool manually (admin)
+- [ ] Create profit pool with force override (admin)
+- [ ] Create profit pool with invalid data (should fail)
+- [ ] Distribute profit pool (admin)
+- [ ] Distribute profit pool with invalid ID (should fail)
+- [ ] Get specific profit pool details
+- [ ] View user's profit pool history (GE users only)
+- [ ] Verify automated pool creation (1st of month)
+- [ ] Verify automated distribution (2nd of month)
+- [ ] Test revenue calculation from orders
+- [ ] Test revenue calculation from subscriptions
+- [ ] Test revenue calculation from deliveries
+- [ ] Verify 1% pool calculation accuracy
+- [ ] Test Growth Elite user identification
+- [ ] Test equal distribution among GEs
+- [ ] Verify Nibia credit to user wallets
+- [ ] Test distribution audit trail
+- [ ] Test failed distribution handling
+- [ ] Verify no distribution when no GEs exist
+- [ ] Test city-specific distribution logic
+- [ ] Verify monthly processing schedule
 
 ### ✅ Notifications
 - [ ] Send email notifications
