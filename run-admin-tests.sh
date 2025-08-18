@@ -353,10 +353,12 @@ run_tests() {
   export LOG_FILE=$LOG_FILE
   export DEBUG=$DEBUG_MODE
   
-  # Set environment variables for admin test setup/teardown
+  # Set admin test specific environment variables
   export ADMIN_TEST_SEED=true
   if [ "$do_clean" = true ]; then
     export ADMIN_TEST_CLEAN=true
+  else
+    export ADMIN_TEST_CLEAN=false
   fi
   
   # Run Jest with the specified options, using our admin-specific config
@@ -408,7 +410,7 @@ generate_report() {
   local report_file="reports/admin-test-report-$timestamp.html"
   
   # Use Jest's HTML reporter to generate a report
-  npx jest --config test/jest-e2e.json --testPathPattern="admin" --json \
+  npx jest --config test/jest-admin.config.json --testPathPattern="admin" --json \
     | npx jest-html-reporter --outfile $report_file
 
   # If Jest HTML reporter failed, create a basic HTML report from logs

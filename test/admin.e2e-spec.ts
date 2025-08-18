@@ -19,32 +19,48 @@ describe('Admin Module (e2e)', () => {
   let testReferralId: string;
   let testWithdrawalId: string;
   let testProfitPoolId: string;
+  
+  // Generate unique test run ID for this test execution
+  const testRunId = process.env.ADMIN_TEST_RUN_ID || `test-run-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  console.log(`Running admin tests with test run ID: ${testRunId}`);
 
+  // Generate unique emails with timestamp to prevent conflicts
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substring(2, 8);
+  
   const adminUser = {
-    name: 'Test Admin',
-    email: 'admin@test.com',
+    name: `Test Admin ${timestamp}`,
+    email: `admin-${timestamp}-${randomString}@test.com`,
     password: 'AdminPass123!',
-    role: UserRole.ADMIN
+    role: UserRole.ADMIN,
+    isTestData: true,
+    testRunId
   };
 
   const regularUser = {
-    name: 'Test User',
-    email: 'user@test.com',
+    name: `Test User ${timestamp}`,
+    email: `user-${timestamp}-${randomString}@test.com`,
     password: 'UserPass123!',
-    role: UserRole.USER
+    role: UserRole.USER,
+    isTestData: true,
+    testRunId
   };
 
   const growthAssociate = {
-    name: 'Growth Associate',
-    email: 'ga@test.com',
+    name: `Growth Associate ${timestamp}`,
+    email: `ga-${timestamp}-${randomString}@test.com`,
     password: 'GAPass123!',
-    role: UserRole.GROWTH_ASSOCIATE
+    role: UserRole.GROWTH_ASSOCIATE,
+    isTestData: true,
+    testRunId
   };
 
   const testCategory = {
-    name: 'Test Category',
+    name: `Test Category ${timestamp}`,
     description: 'Test category for admin tests',
-    image: 'https://example.com/category.jpg'
+    image: 'https://example.com/category.jpg',
+    isTestData: true,
+    testRunId
   };
 
   beforeAll(async () => {
@@ -53,10 +69,21 @@ describe('Admin Module (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(new ValidationPipe({ 
+      whitelist: true, 
+      transform: true,
+      forbidNonWhitelisted: true 
+    }));
     
     connection = app.get<Connection>(getConnectionToken());
     await app.init();
+    
+    // Verify database connection
+    if (connection.readyState !== 1) {
+      console.error('Database connection not ready. State:', connection.readyState);
+      throw new Error('Database connection not ready');
+    }
+    console.log('Database connected successfully');
 
     // Clean up existing test data
     await cleanupTestData();

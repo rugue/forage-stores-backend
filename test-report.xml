@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testExecutions version="1">
+  <file path="/home/osarugue-enehizena/Documents/code-projects/work/creativeferry/forage/forage-stores-backend/test/admin-focused.e2e-spec.ts">
+    <testCase name="Admin Module - Focused Tests (e2e) 🔐 Admin Authentication &amp; Authorization should allow admin to access admin endpoints" duration="2">
+      <failure message="Error: Failed to login user: {&quot;statusCode&quot;:429,&quot;message&quot;:&quot;ThrottlerException: Too Many Requests&quot;}"><![CDATA[Error: Failed to login user: {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+    at TestHelpers.createUserAndGetToken (/home/osarugue-enehizena/Documents/code-projects/work/creativeferry/forage/forage-stores-backend/test/helpers/test.helpers.ts:116:13)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at TestHelpers.createTestData (/home/osarugue-enehizena/Documents/code-projects/work/creativeferry/forage/forage-stores-backend/test/helpers/test.helpers.ts:187:30)
+    at Object.<anonymous> (/home/osarugue-enehizena/Documents/code-projects/work/creativeferry/forage/forage-stores-backend/test/admin-focused.e2e-spec.ts:44:16)]]></failure>
+    </testCase>
+    <testCase name="Admin Module - Focused Tests (e2e) 🔐 Admin Authentication &amp; Authorization should deny non-admin access to admin endpoints" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🔐 Admin Authentication &amp; Authorization should require authentication for admin endpoints" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👥 User Management should get all users with proper structure" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👥 User Management should get specific user by ID" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👥 User Management should return 404 for non-existent user" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👥 User Management should handle malformed user ID" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💰 Wallet Management should get all wallets" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💰 Wallet Management should get user wallet" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💰 Wallet Management should fund user wallet with valid admin password" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💰 Wallet Management should reject wallet funding with invalid admin password" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💰 Wallet Management should wipe user wallet with valid admin password" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💰 Wallet Management should validate wallet funding input" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 📊 Analytics Management should get orders analytics with proper structure" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 📊 Analytics Management should get subscription analytics" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 📊 Analytics Management should get commission analytics" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 📊 Analytics Management should validate date range in analytics" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏷️ Category Management should create a new category" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏷️ Category Management should get all categories" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏷️ Category Management should get category by ID" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏷️ Category Management should update a category" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏷️ Category Management should validate category creation" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏷️ Category Management should delete a category" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👑 Growth Users Management should get growth users by city" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👑 Growth Users Management should get detailed stats for growth user" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 👑 Growth Users Management should filter growth users by role" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💸 Withdrawal Management should get pending withdrawals" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💸 Withdrawal Management should approve withdrawal with valid admin password" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💸 Withdrawal Management should reject withdrawal request" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💸 Withdrawal Management should bulk process withdrawals" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 💸 Withdrawal Management should validate admin password for withdrawal decisions" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🎯 Referral Commission Override should override referral commission" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🎯 Referral Commission Override should get commission override history" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🎯 Referral Commission Override should get referral commission history" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🎯 Referral Commission Override should validate admin password for commission override" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏆 Profit Pool Management should get all profit pools" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏆 Profit Pool Management should get profit pool details" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏆 Profit Pool Management should adjust profit pool distribution" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏆 Profit Pool Management should generate monthly profit pool report" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏆 Profit Pool Management should force redistribute profit pool" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🏆 Profit Pool Management should validate admin password for profit pool operations" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) ⚡ Performance &amp; Reliability should handle multiple concurrent requests" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) ⚡ Performance &amp; Reliability should handle large dataset requests" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) ⚡ Performance &amp; Reliability should handle concurrent wallet operations safely" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🛡️ Security &amp; Validation should require authentication for all admin endpoints" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🛡️ Security &amp; Validation should require admin role for all endpoints" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🛡️ Security &amp; Validation should validate input data types" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🛡️ Security &amp; Validation should handle malformed JSON gracefully" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🛡️ Security &amp; Validation should prevent SQL injection in queries" duration="0"/>
+    <testCase name="Admin Module - Focused Tests (e2e) 🛡️ Security &amp; Validation should enforce rate limiting on sensitive operations" duration="0"/>
+  </file>
+</testExecutions>

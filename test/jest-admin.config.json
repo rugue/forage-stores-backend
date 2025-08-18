@@ -1,6 +1,6 @@
 {
   "testEnvironment": "node",
-  "rootDir": ".",
+  "rootDir": "..",
   "moduleFileExtensions": ["js", "json", "ts"],
   "testMatch": ["**/admin*.e2e-spec.ts"],
   "transform": {
