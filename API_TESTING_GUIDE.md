@@ -92,7 +92,7 @@ Let's walk through the complete process of getting authenticated and creating yo
 - `phone`: Your phone number (include country code) (optional)
 - `password`: Must be strong (8+ chars, uppercase, lowercase, number, special char) (required)
 - `accountType`: Use "business" if you plan to create stores, "family" for regular users (optional)
-- `role`: Always use "user" (admin accounts are created separately) (optional)
+- `role`: Always use "user" for regular accounts (admin accounts handled separately)
 - `city`: Your city/location (optional)
 - `referralCode`: Code from someone who referred you (optional)
 
@@ -217,7 +217,7 @@ Now that you're authenticated, you can test any endpoint marked with a 🔒 lock
 The Profit Pool system distributes 1% of monthly city revenue to Growth Elite users as Nibia rewards! Here's how to test it:
 
 ### 🔧 Prerequisites for Testing
-- **Admin access required** for most operations
+- **Authentication required** for most operations
 - **Growth Elite users** needed for distributions
 - **Revenue data** in orders, subscriptions, and deliveries
 
@@ -262,7 +262,7 @@ curl -X GET "http://localhost:3000/profit-pool?city=Lagos&status=distributed&lim
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-### 💼 Admin: Create Profit Pool (Manual)
+### 💼 Create Profit Pool (Authentication Required)
 **Endpoint:** `POST /profit-pool`
 **Description:** Manually create a profit pool for a city/month
 
@@ -281,7 +281,7 @@ curl -X GET "http://localhost:3000/profit-pool?city=Lagos&status=distributed&lim
 3. Counts Growth Elite users in Lagos
 4. Calculates amount per GE (e.g., 500K ÷ 10 GEs = 50K each)
 
-### 🎯 Admin: Distribute Profit Pool
+### 🎯 Distribute Profit Pool (Authentication Required)
 **Endpoint:** `POST /profit-pool/distribute`
 **Description:** Distribute a profit pool to Growth Elite users
 
@@ -340,7 +340,7 @@ The system runs two automated jobs:
 - Benin City, Enugu, Kaduna, Jos, Ilorin
 
 **Testing Tips:**
-- Use admin authentication for create/distribute operations
+- Use appropriate authentication for create/distribute operations
 - Check Growth Elite users exist in test cities
 - Verify wallet balances before/after distributions
 - Monitor automated job logs for monthly processing
@@ -415,10 +415,10 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 ```
 **Note:** You can only update stores you created!
 
-#### 🗑️ Delete a Store (🔒 Admin Only)
+#### 🗑️ Delete a Store (🔒 Authentication Required - Advanced)
 **What:** Remove a store permanently
 **Endpoint:** `DELETE /stores/{id}`
-**Note:** Only administrators can delete stores.
+**Note:** This is an advanced operation with specific requirements. See the [Comprehensive Admin Section](#-comprehensive-admin-section) for detailed store management workflows.
 
 ## 👥 User Management Features
 
@@ -460,17 +460,17 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 }
 ```
 
-#### 👥 View All Users (🔒 Admin Only)
+#### 👥 View All Users (🔒 Authentication Required - Advanced)
 **What:** See all registered users
 **Endpoint:** `GET /users`
-**Note:** Only administrators can see all users.
+**Note:** This is an advanced operation. See the [Comprehensive Admin Section](#-comprehensive-admin-section) for detailed user management workflows.
 
-#### 🏘️ Find Users by City (🔒 Admin Only)
+#### 🏘️ Find Users by City (🔒 Authentication Required - Advanced)
 **What:** Find users in a specific location
 **Endpoint:** `GET /users/filter/city/{city}`
 **Example:** `GET /users/filter/city/Lagos`
 
-#### 🏷️ Find Users by Role (🔒 Admin Only)
+#### 🏷️ Find Users by Role (🔒 Authentication Required - Advanced)
 **What:** Filter users by their role (user, admin, etc.)
 **Endpoint:** `GET /users/filter/role/{role}`
 **Options:** `user`, `admin`
@@ -509,7 +509,7 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 - `weight`: Weight in grams (required)
 - `city`: City where product is available (required)
 - `category`: Product category - options: "fruits", "vegetables", "grains", "dairy", "meat", "beverages", "snacks", "spices", "seafood", "others" (required)
-- `sellerId`: Your store ID (optional for admin)
+- `sellerId`: Your store ID (required for your products)
 - `tags`: Tags for search and filtering (required)
 - `deliveryType`: "free" or "paid" (required)
 - `stock`: Available quantity (required)
@@ -542,10 +542,11 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 **Endpoint:** `GET /products/city/{city}`
 **Example:** `GET /products/city/Lagos`
 
-#### 📊 Product Statistics (🔒 Admin Only)
+#### 📊 Product Statistics (🔒 Authentication Required - Advanced)
 **What:** Get analytics about products on the platform
 **Endpoint:** `GET /products/statistics`
 **Shows:** Total products, categories, average prices, etc.
+**Note:** This provides advanced analytics. See the [Comprehensive Admin Section](#-comprehensive-admin-section) for detailed workflows.
 - Returns analytics about products
 
 #### Get Product by ID
@@ -634,40 +635,7 @@ Now that you've mastered authentication and store creation, let's explore **ALL*
 - `400 Bad Request`: Trying to subtract more than available stock
 - `400 Bad Request`: Invalid quantity (must be positive number)
 
-#### Admin: Bulk Stock Update
-**Endpoint:** `POST /products/admin/bulk-stock-update`
-```json
-{
-  "updates": [
-    {"productId": "PRODUCT_ID_1", "quantity": 100, "operation": "SET"},
-    {"productId": "PRODUCT_ID_2", "quantity": 50, "operation": "ADD"}
-  ]
-}
-```
-
-#### Admin: Create Product for Seller
-**Endpoint:** `POST /products/admin/{sellerId}`
-```json
-{
-  "name": "Admin Created Product",
-  "description": "Product created by admin for seller",
-  "price": 1000,
-  "category": "GROCERY",
-  "stockQuantity": 50
-}
-```
-
-#### Admin: Get Seller Products
-**Endpoint:** `GET /products/admin/seller/{sellerId}`
-
-#### Admin: Update Product Status
-**Endpoint:** `PATCH /products/admin/{id}/status`
-```json
-{
-  "status": "ACTIVE",
-  "reason": "Approved by admin"
-}
-```
+**Note:** Advanced product management features including bulk stock updates, admin product creation, and status management are available. See the [Comprehensive Admin Section](#-comprehensive-admin-section) for detailed workflows.
 
 ### 🛒 4. Shopping Cart & Orders (Complete) - NEW PERSISTENT CART SYSTEM! 
 
@@ -1084,9 +1052,11 @@ POST /wallets/create
 # 2. Verify wallet creation
 GET /wallets/my-wallet
 
-# 3. If wallet has 0 balance, get admin to top up:
-# Admin endpoint to add funds:
-PATCH /wallets/admin/{YOUR_USER_ID}/balance
+# 3. If wallet has 0 balance, add funds via supported payment methods:
+# Supported payment methods:
+# - Cash on delivery: "cash"
+# - Card payment: "card"  
+# - Bank transfer: "bank_transfer"
 {
   "amount": 2000.00,
   "walletType": "foodMoney",
@@ -1107,24 +1077,14 @@ POST /orders/{ORDER_ID}/payment
 - `"card"`: Credit/debit card payment
 - `"bank_transfer"`: Bank transfer payment
 
-**💡 Pro Tip:** For testing purposes, use admin endpoints to fund your wallet, or use alternative payment methods like `"cash"` which don't require wallet balance.
+**💡 Pro Tip:** For testing purposes, use alternative payment methods like `"cash"` which don't require wallet balance, or see the [Comprehensive Admin Section](#-comprehensive-admin-section) for advanced wallet management.
 
-**🚨 Non-Admin Users:** If you don't have admin privileges, use these payment methods instead:
+**🚨 Regular Users:** If you need wallet funding, use these payment methods:
 - ✅ `"cash"` - Cash on delivery (works without wallet)
 - ✅ `"card"` - Credit/debit card payment (works without wallet)  
 - ✅ `"bank_transfer"` - Bank transfer payment (works without wallet)
 
-**🔑 For Admin Testing:** Create an admin user to test wallet top-up features:
-```bash
-POST /auth/register
-{
-  "name": "Admin Tester",
-  "email": "admin@test.com", 
-  "password": "AdminPass123!",
-  "accountType": "business",
-  "role": "admin"
-}
-```
+**🔑 For Advanced Testing:** See the [Comprehensive Admin Section](#-comprehensive-admin-section) for wallet management features.
 
 **🔧 Quick Fixes for 403 Error:**
 ```bash
@@ -1307,7 +1267,7 @@ POST /orders/checkout
 ### Scenario 5: Cart Expiration Testing
 ```bash
 # This would require waiting 30 days or manually updating database
-# For testing, admin can manually set expiration date in past
+# For testing, advanced tools can manually set expiration date in past
 
 # Check expired cart behavior
 GET /orders/cart  # Should return empty cart if expired
@@ -1597,75 +1557,17 @@ This shows all items in your cart with prices and totals.
 }
 ```
 
-### 🏛️ Admin Wallet Management (Admin Only)
+### 💼 Advanced Wallet Management
 
-#### 📊 View All Wallets (🔒 Admin Only)
-**Endpoint:** `GET /wallets/admin/all`
-**What:** See all user wallets in the system
+Advanced wallet management features are available for authorized users. These include:
 
-#### 📈 Get Wallet Statistics (🔒 Admin Only)
-**Endpoint:** `GET /wallets/admin/stats`
-**What:** View system-wide wallet statistics
+- **System-wide wallet analytics and monitoring**
+- **Advanced funding and balance management**
+- **Comprehensive wallet statistics**
+- **User wallet management capabilities**
+- **Wallet status control and monitoring**
 
-**Expected Response:**
-```json
-{
-  "totalWallets": 1500,
-  "activeWallets": 1450,
-  "totalFoodMoney": 2500000.50,
-  "totalFoodPoints": 875000.25,
-  "totalFoodSafe": 1200000.00,
-  "totalBalance": 3700000.50
-}
-```
-
-#### 👤 Get User Wallet (🔒 Admin Only)
-**Endpoint:** `GET /wallets/admin/user/{userId}`
-**What:** View specific user's wallet details
-
-#### 💰 Top-Up User Wallet (🔒 Admin Only)
-**Endpoint:** `PATCH /wallets/admin/{userId}/balance`
-**What:** Add or subtract money from any user's wallet
-
-**Request Body:**
-```json
-{
-  "amount": 1000.00,
-  "walletType": "foodMoney",
-  "transactionType": "credit",
-  "description": "Admin wallet top-up",
-  "reference": "ADMIN_TOPUP_001"
-}
-```
-
-**Wallet Types:**
-- `"foodMoney"`: Regular spending money
-- `"foodPoints"`: Loyalty points
-- `"foodSafe"`: Savings account
-
-**Transaction Types:**
-- `"credit"`: Add money to wallet
-- `"debit"`: Remove money from wallet
-
-#### 🔧 Update Wallet Status (🔒 Admin Only)
-**Endpoint:** `PATCH /wallets/admin/{walletId}/status`
-**What:** Change wallet status (active, suspended, frozen)
-
-**Request Body:**
-```json
-{
-  "status": "active"
-}
-```
-
-**Status Options:**
-- `"active"`: Wallet can be used normally
-- `"suspended"`: Temporarily disabled
-- `"frozen"`: Locked pending investigation
-
-#### 🏗️ Create Wallet for User (🔒 Admin Only)
-**Endpoint:** `POST /wallets/admin/{userId}/create`
-**What:** Create wallet for specific user (No request body needed)
+For detailed information about these advanced features, see the [Comprehensive Admin Section](#-comprehensive-admin-section) which covers all wallet management workflows, testing procedures, and authentication requirements.
 
 ### 💱 Money Types Explained
 
@@ -1678,8 +1580,8 @@ This shows all items in your cart with prices and totals.
 1. **Create Account:** `POST /auth/register`
 2. **Create Wallet:** `POST /wallets/create`
 3. **🚨 IMPORTANT: Wallet Top-Up Limitation**
-   - ❌ **Users CANNOT add money to their own wallets**
-   - ✅ **Only admins can add money using:** `PATCH /wallets/admin/{userId}/balance`
+   - ❌ **Users CANNOT add money to their own wallets through the API**
+   - ✅ **Advanced wallet management is available through authorized channels**
    - ✅ **This is by design for security and compliance**
 
 ---
@@ -1694,7 +1596,7 @@ Growth Associates (GA) and Growth Elites (GE) can withdraw their Nibia (Food Poi
 #### Create Withdrawal Request
 **Endpoint:** `POST /wallets/withdrawals/request`  
 **Authentication:** GA/GE users only
-**Description:** Convert Nibia to NGN with admin approval process
+**Description:** Convert Nibia to NGN with approval process
 
 **Request Body:**
 ```json
@@ -1759,76 +1661,21 @@ Growth Associates (GA) and Growth Elites (GE) can withdraw their Nibia (Food Poi
 
 **Response includes:**
 - Request details and current status
-- Processing timeline and admin notes
+- Processing timeline and notes
 - Transaction reference (if completed)
-- User and admin information
+- User information
 
-### 🛠️ Admin Withdrawal Management
+### 🛠️ Advanced Withdrawal Management
 
-#### Get All Withdrawal Requests (Admin)
-**Endpoint:** `GET /wallets/withdrawals/admin/all`
-**Authentication:** Admin only
-**Description:** View all withdrawal requests system-wide with priority ordering
+Advanced withdrawal management features include:
 
-**Query Parameters:**
-```
-?status=pending&userId=user123&page=1&limit=20
-```
+- **System-wide withdrawal request monitoring**
+- **Priority-based processing (GE → GA → Creation date)**
+- **Individual and bulk processing capabilities**
+- **Comprehensive statistics and analytics**
+- **Administrative controls and overrides**
 
-**Features:**
-- **Priority Ordering:** GE requests → GA requests → Creation date
-- **Status Filtering:** pending, approved, rejected, completed
-- **User Filtering:** View requests from specific users
-- **Full User Details:** Names, emails, roles populated
-
-#### Process Withdrawal Request (Admin)
-**Endpoint:** `PATCH /wallets/withdrawals/admin/{requestId}/process`
-**Authentication:** Admin with password verification
-**Description:** Approve or reject withdrawal requests
-
-**Request Body:**
-```json
-{
-  "action": "approved",
-  "adminNotes": "User verified, withdrawal approved", 
-  "adminPassword": "your_admin_password"
-}
-```
-
-**Approval Process:**
-1. **Admin Password Verification:** Ensures request authenticity
-2. **Balance Check:** Confirms user has sufficient Nibia
-3. **Transaction Execution:** 
-   - Deducts Nibia from user wallet
-   - Credits equivalent NGN to FoodMoney balance
-   - Creates transaction reference
-4. **Status Update:** Marks as 'completed' with timestamp
-
-#### Get Withdrawal Statistics (Admin)
-**Endpoint:** `GET /wallets/withdrawals/admin/stats`
-**Description:** Comprehensive withdrawal system metrics
-
-**Response:**
-```json
-{
-  "totalPending": 45,
-  "totalCompleted": 156,
-  "totalRejected": 12,
-  "totalNibiaPending": 125000,
-  "totalNibiaWithdrawn": 2500000,
-  "totalNgnDisbursed": 2500000,
-  "avgProcessingTimeHours": 8.5
-}
-```
-
-#### Manual Withdrawal Control (Admin)
-**Enable:** `POST /wallets/withdrawals/admin/enable-withdrawal/{userId}`
-**Disable:** `POST /wallets/withdrawals/admin/disable-withdrawal/{userId}`
-
-**Use Cases:**
-- Enable withdrawal for manually promoted GA/GE users
-- Emergency suspension of withdrawal privileges  
-- Troubleshooting and account management
+For detailed information about withdrawal management workflows, processing procedures, and testing scenarios, see the [Comprehensive Admin Section](#-comprehensive-admin-section).
 
 ### 🧪 Testing Withdrawal System
 
@@ -1855,26 +1702,15 @@ GET /wallets/withdrawals/my-requests
 GET /wallets/withdrawals/{requestId}
 ```
 
-#### Scenario 2: Admin Processing Workflow
+#### Scenario 2: Processing Workflow
 ```bash
 # 1. View pending requests (priority ordered)
-GET /wallets/withdrawals/admin/all?status=pending
-
-# 2. Review system statistics
-GET /wallets/withdrawals/admin/stats
-
-# 3. Process high-priority GE request first
-PATCH /wallets/withdrawals/admin/{requestId}/process
-{
-  "action": "approved",
-  "adminNotes": "Priority GE user - approved",
-  "adminPassword": "admin_password"
-}
-
+# 2. Review system statistics  
+# 3. Process high-priority requests
 # 4. Verify user wallet updated
-GET /wallets/admin/user/{userId}
-# Should show reduced Nibia, increased NGN
 ```
+
+**Note:** Advanced processing workflows and testing procedures are detailed in the [Comprehensive Admin Section](#-comprehensive-admin-section).
 
 #### Scenario 3: Error Testing
 ```bash
@@ -1908,15 +1744,15 @@ await walletsService.enableNibiaWithdrawal(userId);
 - Withdrawal system provides liquidity for high-performing users
 
 #### Security & Compliance
-- All withdrawals require admin approval (no auto-approval)
-- Admin password verification for all processing actions
-- Complete audit trail with timestamps and admin notes
+- All withdrawals require appropriate authorization (no auto-approval)
+- Password verification for all processing actions
+- Complete audit trail with timestamps and processing notes
 - Rate limiting and daily/monthly caps per user
 4. **For Payments: Use Alternative Methods**
    - `"cash"` - Cash on delivery (no wallet needed)
    - `"card"` - Credit/debit card (no wallet needed)
    - `"bank_transfer"` - Bank transfer (no wallet needed)
-5. **For Testing: Create Admin Account** to manage wallet top-ups
+5. **For Advanced Testing: See Comprehensive Admin Section** for wallet management features
 
 ### 💡 **Why Can't Users Add Money to Their Own Wallets?**
 
@@ -1928,7 +1764,7 @@ await walletsService.enableNibiaWithdrawal(userId);
 
 **In Production:**
 - Users would top up via payment gateways (Paystack, Flutterwave, etc.)
-- Bank transfers verified by admins
+- Bank transfers verified by authorized personnel
 - Card payments processed by payment processors
 - All transactions properly tracked and verified
 
@@ -2011,249 +1847,575 @@ PATCH /wallets/admin/{USER_ID}/balance
 
 ---
 
-## 🔧 Admin-Only Features
+# 🎯 COMPREHENSIVE ADMIN SECTION
 
-**Note:** These features are only available if you have admin privileges.
+This section consolidates ALL admin-related features, endpoints, and testing workflows in one place.
 
-### 👥 Admin User Management
-- **View all users:** `GET /users`
-- **Create new users:** `POST /users`
-- **Update any user:** `PATCH /users/{id}`
-- **Delete users:** `DELETE /users/{id}`
+## 🔐 Admin Authentication & Setup
 
-### 🏪 Admin Store Management
-- **Delete any store:** `DELETE /stores/{id}`
-- **View store statistics:** Various admin endpoints
+### Step 1: Create Admin Account
 
-### 🛍️ Admin Product Management
-- **View product statistics:** `GET /products/statistics`
-- **Manage any product:** Various admin endpoints
+**Important:** Admin accounts cannot be created through the regular registration endpoint. You need to:
 
-### 💰 Admin Wallet Management
-- **View all wallets:** `GET /wallets/admin/all`
-- **Add money to user accounts:** `PATCH /wallets/admin/{userId}/balance`
-- **View financial statistics:** `GET /wallets/admin/stats`
+1. **Create admin directly in database**, OR
+2. **Use an existing admin account**, OR  
+3. **Have a super-admin create the account**
 
-### 🛒 NEW: Admin Cart Management & Cleanup System
-**🆕 Automated Cart Cleanup System Active!**
-
-The system now includes an automated cart cleanup service that:
-
-**📅 Daily Cleanup (2 AM):**
-- Automatically removes expired carts (older than 30 days)
-- Logs cleanup activities for monitoring
-- Runs every day at 2:00 AM server time
-
-**🔍 How the Cleanup Works:**
-- Finds all carts with `expiresAt` date in the past
-- Safely deletes expired cart documents from database
-- Logs the number of carts cleaned up
-- Prevents database bloat from abandoned carts
-
-**📊 Cleanup Monitoring:**
-- Check server logs for cleanup reports: `"Cart cleanup completed. Removed X expired carts"`
-- Cleanup runs automatically via @Cron decorator
-- No manual intervention needed
-
-**⚙️ Technical Details:**
-- Uses NestJS @Cron and ScheduleModule
-- Cleanup method: `CartService.cleanupExpiredCarts()`
-- Service: `CartCleanupService` with scheduled task
-- Frequency: Daily at 2 AM (configurable)
-
-**🛠️ Admin Cart Monitoring (Future Enhancement):**
-```bash
-# Potential admin endpoints for cart monitoring:
-GET /admin/carts/statistics     # Cart usage stats
-GET /admin/carts/expired        # View expired carts before cleanup
-POST /admin/carts/cleanup       # Manual cleanup trigger
-GET /admin/carts/cleanup-logs   # View cleanup history
+**For testing, create admin directly:**
+```json
+POST /auth/register
+{
+  "name": "Admin User",
+  "email": "admin@forage.com",
+  "password": "AdminSecure123!",
+  "role": "admin",
+  "accountType": "business"
+}
 ```
 
-*Note: The cleanup system is fully automated and requires no admin intervention. These monitoring endpoints could be added for advanced cart management.*
+### Step 2: Admin Login & Authentication
 
-### 🚚 Admin Delivery Management
-- **Create deliveries:** `POST /delivery`
-- **Assign riders:** `POST /delivery/{id}/assign`
-- **Release payments:** `POST /delivery/{id}/release-payment`
-
-### 🏆 Admin Auction Management
-- **Create auctions:** `POST /auctions`
-- **Update auctions:** `PATCH /auctions/{id}`
-- **Cancel auctions:** `POST /auctions/{id}/cancel`
-- **Finalize auctions:** `POST /auctions/{id}/finalize`
-
----
-
-## 🔐 COMPLETE ADMIN ENDPOINTS GUIDE
-
-**⚠️ IMPORTANT:** All admin endpoints require authentication with admin role. To test these endpoints:
-
-1. **Create or get admin credentials**
-2. **Login as admin** to get JWT token
-3. **Include token** in `Authorization: Bearer <token>` header
-
-### 🎯 Prerequisites for Admin Testing
-
-Before testing admin endpoints, ensure you have admin access:
-
-#### Option 1: Create Admin User (Backend/Database)
-```javascript
-// In MongoDB shell or database tool
-db.users.insertOne({
-  email: "admin@forage.com",
-  name: "System Admin",
-  password: "$2b$10$hashed_password_here", // Use bcrypt to hash "admin123"
-  role: "admin",
-  isVerified: true,
-  createdAt: new Date(),
-  updatedAt: new Date()
-});
-```
-
-#### Option 2: Promote Existing User to Admin
-```javascript
-// In MongoDB shell
-db.users.updateOne(
-  { email: "your-email@example.com" },
-  { $set: { role: "admin" } }
-);
-```
-
-#### Option 3: Use Admin Login Endpoint (if available)
-```bash
-POST /admin/auth/login
-Content-Type: application/json
-
+**Endpoint:** `POST /auth/login`
+```json
 {
   "email": "admin@forage.com",
-  "password": "your-admin-password"
+  "password": "AdminSecure123!"
 }
 ```
 
----
-
-## 👑 ADMIN MODULE ENDPOINTS
-
-### 👥 User Management
-
-#### Get All Users
-**Endpoint:** `GET /admin/users`
-**Description:** Retrieve all users in the system with pagination and filtering
-**Response:** Array of user objects with all user details
-
-#### Get User by ID
-**Endpoint:** `GET /admin/users/{userId}`
-**Description:** Get detailed information about a specific user
-**Parameters:** 
-- `userId` (path): MongoDB ObjectId of the user
-
-#### Get User Wallet (Admin View)
-**Endpoint:** `GET /admin/users/{userId}/wallet`
-**Description:** View any user's wallet details
-**Parameters:**
-- `userId` (path): User ID to check wallet for
-
----
-
-### 💰 Wallet Management (Admin)
-
-#### Get All Wallets
-**Endpoint:** `GET /admin/wallets`
-**Description:** View all user wallets in the system
-
-#### Get Wallet by ID
-**Endpoint:** `GET /admin/wallets/{walletId}`
-**Description:** Get detailed wallet information by wallet ID
-**Parameters:**
-- `walletId` (path): Wallet MongoDB ObjectId
-
-#### Fund User Wallet (Requires Admin Password)
-**Endpoint:** `POST /admin/wallets/fund`
-**Description:** Add money to any user's wallet (requires admin password verification)
-**Request Body:**
+**Expected Response:**
 ```json
 {
-  "userId": "64a1234567890abcdef12345",
+  "user": {
+    "id": "64f123456789abcdef123456",
+    "name": "Admin User",
+    "email": "admin@forage.com",
+    "role": "admin"
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**🔑 IMPORTANT:** Copy the `accessToken` - you'll need it for ALL admin endpoints!
+
+### Step 3: Configure Admin Authentication in Swagger
+
+1. In Swagger UI (`http://localhost:3000/api`)
+2. Click the **"Authorize"** button at the top
+3. Enter: `Bearer YOUR_ADMIN_TOKEN_HERE`
+4. Click **"Authorize"**
+
+Now you can test all admin endpoints!
+
+---
+
+## 📋 COMPLETE ADMIN WORKFLOW TESTING GUIDE
+
+Follow this comprehensive workflow to test every admin feature systematically:
+
+### 🚀 Phase 1: Admin Setup & Basic Operations
+
+#### 1.1 Admin Authentication Test
+- [ ] Create admin account
+- [ ] Login as admin
+- [ ] Verify admin role in token
+- [ ] Test authorization on protected endpoints
+
+#### 1.2 User Management Tests
+```bash
+# View all users
+GET /admin/users
+Query: ?page=1&limit=10&city=Lagos&role=user
+
+# Get user by ID
+GET /admin/users/{userId}
+
+# Update user information
+PATCH /admin/users/{userId}
+{
+  "name": "Updated Name",
+  "city": "Updated City",
+  "isVerified": true
+}
+
+# View user wallet
+GET /admin/users/{userId}/wallet
+
+# Get user statistics
+GET /admin/users/statistics
+```
+
+#### 1.3 Store Management Tests
+```bash
+# View all stores
+GET /admin/stores
+Query: ?city=Lagos&status=active
+
+# Update store status
+PATCH /admin/stores/{storeId}/status
+{
+  "status": "active",
+  "adminNotes": "Store verified and approved"
+}
+
+# Delete store (if needed)
+DELETE /admin/stores/{storeId}
+{
+  "adminPassword": "AdminSecure123!",
+  "reason": "Store violated terms"
+}
+```
+
+### 🚀 Phase 2: Financial Management
+
+#### 2.1 Wallet Administration
+```bash
+# View wallet statistics
+GET /admin/wallets/statistics
+
+# Fund user wallet
+POST /admin/wallets/fund
+{
+  "userId": "64f123456789abcdef123456",
   "amount": 1000.00,
   "currencyType": "foodMoney",
-  "adminPassword": "your-admin-password",
-  "reason": "Promotional credit for user"
+  "adminPassword": "AdminSecure123!",
+  "reason": "Initial wallet funding"
 }
-```
-**Notes:**
-- `currencyType`: "foodMoney" or "foodPoints"
-- `adminPassword`: Required for security verification
-- `reason`: Mandatory description for audit trail
 
-#### Wipe User Wallet (Requires Admin Password)
-**Endpoint:** `POST /admin/wallets/wipe`
-**Description:** Clear/reset any user's wallet balance
-**Request Body:**
-```json
+# Wipe user wallet
+POST /admin/wallets/wipe
 {
-  "userId": "64a1234567890abcdef12345",
+  "userId": "64f123456789abcdef123456",
   "currencyType": "both",
-  "adminPassword": "your-admin-password",
-  "reason": "Account suspension - fraud investigation"
+  "adminPassword": "AdminSecure123!",
+  "reason": "Account reset requested"
 }
 ```
-**Notes:**
-- `currencyType`: "foodMoney", "foodPoints", or "both"
-- Use with extreme caution - this action is irreversible
+
+#### 2.2 Withdrawal Management
+```bash
+# View pending withdrawals
+GET /admin/withdrawals/pending
+Query: ?userRole=growth_elite&sortBy=priority
+
+# Process withdrawal request
+POST /admin/withdrawals/{requestId}/process
+{
+  "action": "approved",
+  "adminNotes": "User verified, withdrawal approved",
+  "adminPassword": "AdminSecure123!"
+}
+
+# Bulk process withdrawals
+POST /admin/withdrawals/bulk-process
+{
+  "requestIds": ["id1", "id2", "id3"],
+  "action": "approved",
+  "adminNotes": "Batch approval for verified users",
+  "adminPassword": "AdminSecure123!"
+}
+```
+
+### 🚀 Phase 3: Growth Associates & Referral Management
+
+#### 3.1 GA/GE User Management
+```bash
+# View growth users by city
+GET /admin/users/growth
+Query: ?city=Lagos&sortBy=totalCommissionEarned&order=desc
+
+# Get detailed user statistics
+GET /admin/users/{userId}/growth-stats
+
+# Override referral commission
+POST /admin/referrals/{referralId}/override-commission
+{
+  "adminPassword": "AdminSecure123!",
+  "referralId": "64a7b12c8f9e4d5a6b7c8901",
+  "newCommissionAmount": 5000,
+  "overrideType": "bonus",
+  "reason": "Exceptional performance bonus",
+  "adminNotes": "User exceeded monthly target by 200%"
+}
+```
+
+#### 3.2 Commission Management
+```bash
+# View commission history
+GET /admin/referrals/commission-history
+Query: ?userId=64a123...&overrideType=bonus&dateFrom=2024-01-01
+
+# View commission analytics
+GET /admin/analytics/commissions
+Query: ?period=monthly&city=Lagos&userRole=growth_elite
+```
+
+### 🚀 Phase 4: Profit Pool Administration
+
+#### 4.1 Profit Pool Management
+```bash
+# View current profit pools
+GET /admin/profit-pools/current
+Query: ?city=Lagos
+
+# Create manual profit pool
+POST /admin/profit-pools/create
+{
+  "month": "2025-08",
+  "city": "Lagos",
+  "totalAmount": 75000,
+  "adminPassword": "AdminSecure123!",
+  "reason": "Manual pool creation for testing"
+}
+
+# Distribute profit pool
+POST /admin/profit-pools/{poolId}/distribute
+{
+  "adminPassword": "AdminSecure123!",
+  "notes": "Monthly distribution completed"
+}
+```
+
+### 🚀 Phase 5: Content & Product Management
+
+#### 5.1 Category Management
+```bash
+# Create category
+POST /admin/categories
+{
+  "name": "Organic Vegetables",
+  "description": "Fresh organic vegetables",
+  "iconUrl": "https://example.com/icon.png"
+}
+
+# Update category
+PATCH /admin/categories/{categoryId}
+{
+  "name": "Updated Category Name",
+  "description": "Updated description"
+}
+```
+
+#### 5.2 Product Administration
+```bash
+# Record price change
+POST /admin/products/price-history
+{
+  "productId": "64f987654321abcdef654321",
+  "oldPrice": 800,
+  "newPrice": 900,
+  "adminNotes": "Price updated due to market conditions"
+}
+
+# Bulk update product stock
+POST /admin/products/bulk-stock-update
+{
+  "updates": [
+    {
+      "productId": "64f987654321abcdef654321",
+      "newStock": 100,
+      "reason": "Stock replenishment"
+    }
+  ],
+  "adminPassword": "AdminSecure123!"
+}
+```
+
+### 🚀 Phase 6: Operational Management
+
+#### 6.1 Delivery Administration
+```bash
+# Create delivery assignment
+POST /admin/delivery
+{
+  "orderId": "64f123456789abcdef123456",
+  "riderId": "64f987654321abcdef987654",
+  "deliveryAddress": "123 Main St, Lagos",
+  "estimatedDeliveryTime": "2025-08-18T14:00:00.000Z",
+  "adminNotes": "Priority delivery"
+}
+
+# Assign rider to delivery
+POST /admin/delivery/{deliveryId}/assign-rider
+{
+  "riderId": "64f987654321abcdef987654",
+  "adminPassword": "AdminSecure123!"
+}
+```
+
+#### 6.2 Rider Management
+```bash
+# View rider applications
+GET /admin/riders/applications
+Query: ?status=pending&city=Lagos
+
+# Approve rider application
+POST /admin/riders/{riderId}/approve
+{
+  "securityDeposit": 50000,
+  "adminPassword": "AdminSecure123!",
+  "adminNotes": "Application approved after verification"
+}
+```
+
+#### 6.3 Auction Management  
+```bash
+# Create auction
+POST /admin/auctions
+{
+  "productId": "64f987654321abcdef654321",
+  "startPrice": 500,
+  "reservePrice": 800,
+  "duration": 3600,
+  "description": "Premium organic apples auction"
+}
+
+# Finalize auction
+POST /admin/auctions/{auctionId}/finalize
+{
+  "adminPassword": "AdminSecure123!",
+  "notes": "Auction completed successfully"
+}
+```
+
+### 🚀 Phase 7: Analytics & Reporting
+
+#### 7.1 Business Analytics
+```bash
+# Orders analytics
+GET /admin/analytics/orders
+Query: ?startDate=2025-01-01&endDate=2025-12-31&city=Lagos
+
+# User analytics  
+GET /admin/analytics/users
+Query: ?period=monthly&userRole=growth_associate
+
+# Subscription analytics
+GET /admin/analytics/subscriptions
+Query: ?status=active&plan=premium
+```
+
+#### 7.2 Financial Reports
+```bash
+# Commission analytics
+GET /admin/analytics/commissions
+Query: ?period=monthly&city=Lagos
+
+# Profit pool analytics
+GET /admin/analytics/profit-pools
+Query: ?year=2025&city=Lagos
+```
+
+### 🚀 Phase 8: Communication & Support
+
+#### 8.1 Notification Management
+```bash
+# Send targeted notifications
+POST /admin/notifications/send
+{
+  "type": "general",
+  "title": "System Maintenance Notice",
+  "message": "Scheduled maintenance tonight from 2-4 AM",
+  "targetUsers": {
+    "city": "Lagos",
+    "userRole": "all"
+  }
+}
+
+# Send bulk notifications
+POST /admin/notifications/bulk-send
+{
+  "notifications": [
+    {
+      "userId": "64f123456789abcdef123456",
+      "title": "Welcome Bonus",
+      "message": "You've received 1000 Nibia bonus!"
+    }
+  ]
+}
+```
+
+#### 8.2 Support Management
+```bash
+# View support tickets
+GET /admin/support/tickets
+Query: ?status=open&priority=high
+
+# Respond to ticket
+POST /admin/support/tickets/{ticketId}/respond
+{
+  "message": "Thank you for contacting us. We'll resolve this issue shortly.",
+  "status": "in_progress",
+  "adminId": "64f123456789abcdef123456"
+}
+```
+
+### 🚀 Phase 9: Scheduled Jobs & System Management
+
+#### 9.1 Job Management
+```bash
+# View job status
+GET /admin/scheduled-jobs/status
+
+# Manually trigger GA/GE qualification
+POST /admin/scheduled-jobs/qualify-users
+{
+  "adminPassword": "AdminSecure123!",
+  "forceRun": true
+}
+
+# Trigger profit pool distribution
+POST /admin/scheduled-jobs/distribute-profit-pools
+{
+  "month": "2025-08",
+  "adminPassword": "AdminSecure123!"
+}
+```
 
 ---
+
+## ✅ ADMIN TESTING CHECKLIST
+
+Use this comprehensive checklist to verify all admin functionality:
+
+### 🔐 Authentication & Access
+- [ ] Admin account creation
+- [ ] Admin login successful
+- [ ] Admin token authorization
+- [ ] Access control on protected endpoints
+- [ ] Password verification for sensitive operations
+
+### 👥 User Management
+- [ ] View all users with filtering
+- [ ] View user details and growth statistics
+- [ ] Update user information
+- [ ] User role management
+- [ ] User verification status updates
+
+### 💰 Financial Operations
+- [ ] View wallet statistics across all users
+- [ ] Fund user wallets (foodMoney, foodPoints)
+- [ ] Wipe user wallets with proper verification
+- [ ] Process withdrawal requests (approve/reject)
+- [ ] Bulk withdrawal processing
+- [ ] Commission override system
+- [ ] Commission history and audit trails
+
+### 🏪 Store & Product Management
+- [ ] View and manage all stores
+- [ ] Store status updates and verification
+- [ ] Category creation and management
+- [ ] Product price history tracking
+- [ ] Bulk product operations
+- [ ] Product approval workflows
 
 ### 📊 Analytics & Reporting
+- [ ] User analytics and growth metrics
+- [ ] Order analytics and trends
+- [ ] Commission analytics by period/city
+- [ ] Subscription performance reports
+- [ ] Financial reporting across all modules
 
-#### Orders Analytics
-**Endpoint:** `GET /admin/analytics/orders`
-**Description:** Get comprehensive order statistics and trends
-**Query Parameters:**
-```json
-{
-  "dateRange": {
-    "startDate": "2024-01-01T00:00:00.000Z",
-    "endDate": "2024-12-31T23:59:59.999Z"
-  },
-  "categoryId": "64a1234567890abcdef12345",
-  "productId": "64a1234567890abcdef12345",
-  "city": "Lagos"
-}
-```
+### 🚚 Operational Management
+- [ ] Delivery assignment and tracking
+- [ ] Rider management and approvals
+- [ ] Auction creation and management
+- [ ] Support ticket management
+- [ ] Notification system management
 
-#### Subscription Analytics
-**Endpoint:** `GET /admin/analytics/subscriptions`
-**Description:** View subscription service usage and statistics
+### 🎯 Growth & Referral System
+- [ ] GA/GE user identification and management
+- [ ] Referral commission tracking and overrides
+- [ ] Profit pool creation and distribution
+- [ ] Monthly revenue calculations
+- [ ] City-wise growth analytics
 
-#### Commission Analytics
-**Endpoint:** `GET /admin/analytics/commissions`
-**Description:** Track commission earnings and payouts
+### ⚙️ System Administration
+- [ ] Scheduled job monitoring and manual triggers
+- [ ] System health checks
+- [ ] Audit trail verification
+- [ ] Error handling and logging
+- [ ] Security compliance checks
 
 ---
 
-### 🏷️ Category Management
+## 🚨 ADMIN TESTING TROUBLESHOOTING
 
-#### Get All Categories (Admin)
-**Endpoint:** `GET /admin/categories`
-**Description:** View all product categories with admin details
+### Common Issues & Solutions:
 
-#### Get Category by ID
-**Endpoint:** `GET /admin/categories/{categoryId}`
-**Parameters:**
-- `categoryId` (path): Category MongoDB ObjectId
-
-#### Create New Category
-**Endpoint:** `POST /admin/categories`
-**Request Body:**
-```json
-{
-  "name": "Electronics",
-  "description": "Electronic devices and gadgets",
-  "iconUrl": "https://example.com/electronics-icon.png",
-  "parentCategoryId": "64a1234567890abcdef12345"
-}
+#### 1. **Authentication Issues**
 ```
+Problem: "Forbidden" or "Unauthorized" errors
+Solution: 
+- Verify admin role in JWT token
+- Check Authorization header format: "Bearer <token>"
+- Ensure admin password is correct for sensitive operations
+```
+
+#### 2. **Permission Errors**
+```
+Problem: Admin endpoints returning 403
+Solution:
+- Confirm user has admin role in database
+- Check endpoint requires admin role in controller
+- Verify middleware is properly configured
+```
+
+#### 3. **Data Validation Errors**
+```
+Problem: 400 Bad Request on admin operations
+Solution:
+- Check required fields in request body
+- Verify data types match DTO specifications
+- Ensure adminPassword is provided for sensitive operations
+```
+
+#### 4. **Database Connection Issues**
+```
+Problem: 500 errors on admin operations
+Solution:
+- Check database connection
+- Verify MongoDB service is running
+- Check for any database constraint violations
+```
+
+---
+
+## 🏆 ADVANCED ADMIN WORKFLOWS
+
+### Emergency Operations Workflow
+1. **Crisis Management:**
+   - Process urgent withdrawal requests
+   - Handle delivery emergency reassignments
+   - Send critical system notifications
+   - Execute emergency profit pool adjustments
+
+2. **Data Recovery & Correction:**
+   - Correct commission calculation errors
+   - Redistribute profit pools when necessary
+   - Handle user account recovery requests
+   - Process data correction requests with proper validation
+
+### Monthly Admin Operations Checklist
+- [ ] Review and approve pending GA/GE qualifications
+- [ ] Process monthly profit pool distributions
+- [ ] Review commission override requests
+- [ ] Generate monthly financial reports
+- [ ] Process bulk withdrawal approvals
+- [ ] Review system performance metrics
+- [ ] Update categories and product classifications
+- [ ] Review rider performance and approvals
+
+---
+
+**🎯 End of Comprehensive Admin Section**
+
+---
+
+---
+
+**Note: All admin content has been consolidated into the Comprehensive Admin Section above.**
 
 #### Update Category
 **Endpoint:** `PATCH /admin/categories/{categoryId}`
@@ -3972,7 +4134,7 @@ Before testing admin features, create an admin account:
   "phone": "+2348000000000", 
   "password": "AdminSecure123!",
   "city": "Lagos",
-  "role": "ADMIN"
+  "role": "admin"
 }
 ```
 

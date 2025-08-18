@@ -79,6 +79,25 @@ src/
 | `NODE_ENV`    | Environment mode       | `development`                             |
 | `MONGODB_URI` | MongoDB connection URI | `mongodb://localhost:27017/forage-stores` |
 
+## Testing
+
+### Admin Module Testing
+
+The admin module has comprehensive test coverage with an advanced test runner script.
+
+```bash
+# Run admin tests with the test runner
+./run-admin-tests.sh --all
+
+# Run specific admin module tests
+./run-admin-tests.sh --module wallets
+
+# Run with coverage and report
+./run-admin-tests.sh --all --coverage --report
+```
+
+For more details, see the [Admin Testing Guide](test/docs/ADMIN-TESTING.md).
+
 ## License
 
 This project is licensed under the UNLICENSED License.

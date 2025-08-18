@@ -1,0 +1,35 @@
+{
+  "testEnvironment": "node",
+  "rootDir": ".",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "testMatch": ["**/admin*.e2e-spec.ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "coverageDirectory": "../coverage/admin",
+  "collectCoverageFrom": [
+    "src/modules/admin/**/*.(t|j)s",
+    "!src/modules/admin/**/*.mock.(t|j)s",
+    "!src/modules/admin/**/*.d.ts"
+  ],
+  "reporters": [
+    "default",
+    ["jest-html-reporter", {
+      "pageTitle": "Forage Admin Tests",
+      "outputPath": "./reports/admin-test-report.html",
+      "includeFailureMsg": true,
+      "includeConsoleLog": true
+    }],
+    ["jest-junit", {
+      "outputDirectory": "./reports",
+      "outputName": "admin-test-results.xml",
+      "classNameTemplate": "{classname}",
+      "titleTemplate": "{title}"
+    }]
+  ],
+  "testResultsProcessor": "jest-sonar-reporter",
+  "setupFilesAfterEnv": ["./test/jest.setup.ts"],
+  "globalSetup": "./test/admin-jest.setup.ts",
+  "globalTeardown": "./test/admin-jest.teardown.ts",
+  "verbose": true
+}
