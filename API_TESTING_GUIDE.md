@@ -2631,31 +2631,37 @@ Content-Type: application/json
 ```json
 {
   "adminPassword": "your-admin-password",
+  "referralId": "64a7b12c8f9e4d5a6b7c8901",
+  "newCommissionAmount": 5000,
   "overrideType": "bonus",
-  "adjustmentType": "percentage",
-  "adjustmentValue": 25,
   "reason": "Exceptional performance bonus for top referrer",
-  "notes": "User exceeded monthly target by 200%"
+  "adminNotes": "User exceeded monthly target by 200%"
 }
 ```
 
 **Parameters:**
-- `overrideType`: "bonus" or "penalty"
-- `adjustmentType`: "percentage" or "fixed"
-- `adjustmentValue`: Number value for adjustment
-- `reason`: Required explanation for override
-- `notes`: Additional admin notes
+- `adminPassword`: Admin password for verification (required)
+- `referralId`: ID of the referral to override (required)
+- `newCommissionAmount`: New commission amount in Nibia (required)
+- `overrideType`: "bonus", "penalty", or "adjustment" (required)
+- `reason`: Required explanation for override (required)
+- `adminNotes`: Additional admin notes (optional)
 
 **Response:**
 ```json
 {
-  "referralId": "64a1234567890abcdef12345",
-  "originalCommission": 5000,
-  "adjustmentApplied": 1250,
-  "newCommission": 6250,
-  "overrideType": "bonus",
-  "processedAt": "2024-02-01T16:45:00.000Z",
-  "adminId": "64a9876543210fedcba54321"
+  "success": true,
+  "message": "Commission override applied successfully",
+  "referral": {
+    "id": "64a7b12c8f9e4d5a6b7c8901",
+    "originalCommission": 3000,
+    "newCommission": 5000,
+    "overrideType": "bonus",
+    "reason": "Exceptional performance bonus for top referrer",
+    "adminNotes": "User exceeded monthly target by 200%",
+    "processedAt": "2025-08-18T16:45:00.000Z",
+    "processedBy": "64a9876543210fedcba54321"
+  }
 }
 ```
 
@@ -3950,6 +3956,728 @@ The scheduled jobs system provides automated backend processes for GA/GE managem
 #### Admin: Get Support Analytics
 **Endpoint:** `GET /support/admin/analytics`
 
+## 🏛️ **Complete Admin-Only Features Testing Guide**
+
+As an admin, you have access to powerful management tools across all aspects of the platform. This comprehensive section covers **ALL** admin-only endpoints for thorough testing.
+
+### 🔑 **Admin Authentication Setup**
+
+Before testing admin features, create an admin account:
+
+**Endpoint:** `POST /auth/register`
+```json
+{
+  "name": "Admin Tester",
+  "email": "admin@forage.com",
+  "phone": "+2348000000000", 
+  "password": "AdminSecure123!",
+  "city": "Lagos",
+  "role": "ADMIN"
+}
+```
+
+Then login to get your admin JWT token.
+
+---
+
+### 👥 **User Management (Admin)**
+
+#### Get All Users with Advanced Filtering
+**Endpoint:** `GET /admin/users`
+**Query Parameters:**
+- `page`: Page number for pagination
+- `limit`: Items per page
+- `role`: Filter by user role (USER, GROWTH_ASSOCIATE, GROWTH_ELITE, ADMIN, RIDER)
+- `city`: Filter by city
+- `isVerified`: Filter by verification status
+- `createdFrom`: Start date filter
+- `createdTo`: End date filter
+
+**Test Examples:**
+```
+GET /admin/users?role=GROWTH_ELITE&city=Lagos&page=1&limit=10
+GET /admin/users?isVerified=true&createdFrom=2025-01-01
+```
+
+#### Get Specific User Details
+**Endpoint:** `GET /admin/users/{userId}`
+**What:** View complete user profile, verification status, activity history
+**Test:** Use various user IDs to check different user types
+
+#### Get Growth Users by City (Enhanced GA/GE Management)
+**Endpoint:** `GET /admin/growth-users/{city}`
+**Query Parameters:**
+- `role`: GROWTH_ASSOCIATE or GROWTH_ELITE
+- `sortBy`: referralCount, totalSpending, lastActive
+- `order`: asc or desc
+- `dateFrom`: Start date for activity filter
+- `dateTo`: End date for activity filter
+
+**Test Examples:**
+```
+GET /admin/growth-users/Lagos?role=GROWTH_ELITE&sortBy=totalSpending&order=desc
+GET /admin/growth-users/Abuja?sortBy=referralCount&dateFrom=2025-01-01
+```
+
+#### Get Detailed Growth User Statistics
+**Endpoint:** `GET /admin/growth-users/{userId}/detailed-stats`
+**What:** Comprehensive analytics for specific GA/GE users
+- Referral performance metrics
+- Commission earnings breakdown
+- Monthly activity trends
+- Withdrawal history
+- Rank progression history
+
+---
+
+### 💰 **Wallet Management (Admin)**
+
+#### View All Wallets with Filtering
+**Endpoint:** `GET /admin/wallets`
+**Query Parameters:**
+- `hasBalance`: Filter wallets with/without balance
+- `currency`: Filter by currency (NGN, USD, NIBIA)
+- `canWithdrawNibia`: Filter by Nibia withdrawal capability
+- `minBalance`: Minimum balance filter
+- `maxBalance`: Maximum balance filter
+
+**Test Examples:**
+```
+GET /admin/wallets?canWithdrawNibia=true&minBalance=1000
+GET /admin/wallets?currency=NIBIA&hasBalance=true
+```
+
+#### Get Wallet by ID
+**Endpoint:** `GET /admin/wallets/{walletId}`
+**What:** View complete wallet details, transaction history, locks
+
+#### Get User's Wallet
+**Endpoint:** `GET /admin/users/{userId}/wallet`
+**What:** Direct access to any user's wallet information
+
+#### Fund User Wallet (Admin Password Required)
+**Endpoint:** `POST /admin/wallets/fund`
+```json
+{
+  "userId": "USER_ID_HERE",
+  "amount": 10000,
+  "currency": "NGN",
+  "description": "Admin funding for testing",
+  "reference": "ADMIN_FUND_001",
+  "adminPassword": "your_admin_password"
+}
+```
+**Test Scenarios:**
+- Fund with different currencies (NGN, USD, NIBIA)
+- Test with insufficient admin password
+- Fund wallets for GA/GE users vs regular users
+
+#### Wipe User Wallet (Admin Password Required)
+**Endpoint:** `POST /admin/wallets/wipe`
+```json
+{
+  "userId": "USER_ID_HERE",
+  "reason": "Testing wallet reset functionality",
+  "adminPassword": "your_admin_password"
+}
+```
+**⚠️ Warning:** This removes ALL funds from the user's wallet
+
+---
+
+### 📊 **Analytics & Reporting (Admin)**
+
+#### Orders Analytics
+**Endpoint:** `GET /admin/analytics/orders`
+**Query Parameters:**
+- `startDate`: Start date for analytics period
+- `endDate`: End date for analytics period
+- `city`: Filter by city
+- `status`: Filter by order status
+- `groupBy`: Group results (daily, weekly, monthly)
+
+**Test Examples:**
+```
+GET /admin/analytics/orders?startDate=2025-01-01&endDate=2025-01-31&city=Lagos
+GET /admin/analytics/orders?groupBy=weekly&status=completed
+```
+
+#### Subscriptions Analytics
+**Endpoint:** `GET /admin/analytics/subscriptions`
+**Query Parameters:**
+- `startDate`: Analytics period start
+- `endDate`: Analytics period end
+- `planType`: Filter by subscription plan
+- `status`: Active, cancelled, expired
+- `city`: City-wise breakdown
+
+#### Commission Analytics
+**Endpoint:** `GET /admin/analytics/commissions`
+**Query Parameters:**
+- `startDate`: Period start
+- `endDate`: Period end
+- `userRole`: GROWTH_ASSOCIATE, GROWTH_ELITE
+- `city`: City filter
+- `commissionType`: REFERRAL, BONUS, OVERRIDE
+
+**Test Examples:**
+```
+GET /admin/analytics/commissions?userRole=GROWTH_ELITE&city=Lagos
+GET /admin/analytics/commissions?commissionType=OVERRIDE&startDate=2025-01-01
+```
+
+---
+
+### 🏷️ **Category Management (Admin)**
+
+#### Get All Categories
+**Endpoint:** `GET /admin/categories`
+**What:** View all product categories with stats
+
+#### Get Category by ID
+**Endpoint:** `GET /admin/categories/{categoryId}`
+**What:** View specific category details and associated products
+
+#### Create New Category
+**Endpoint:** `POST /admin/categories`
+```json
+{
+  "name": "Admin Test Category",
+  "description": "Category created for testing admin functions",
+  "icon": "test-icon",
+  "isActive": true,
+  "sortOrder": 10
+}
+```
+
+#### Update Category
+**Endpoint:** `PATCH /admin/categories/{categoryId}`
+```json
+{
+  "name": "Updated Category Name",
+  "description": "Updated description",
+  "isActive": false
+}
+```
+
+#### Delete Category
+**Endpoint:** `DELETE /admin/categories/{categoryId}`
+**Test:** Try deleting categories with/without associated products
+
+---
+
+### 🛍️ **Product Management (Admin)**
+
+#### Get Product Price History
+**Endpoint:** `GET /admin/products/{productId}/price-history`
+**What:** View all price changes for a product with timestamps
+
+#### Record Price History
+**Endpoint:** `POST /admin/products/price-history`
+```json
+{
+  "productId": "PRODUCT_ID_HERE",
+  "oldPrice": 1500,
+  "newPrice": 1800,
+  "priceInNibia": 60,
+  "reason": "Market price adjustment",
+  "effectiveDate": "2025-01-15T00:00:00Z"
+}
+```
+
+---
+
+### 💳 **Withdrawal Management (Admin)**
+
+#### View Pending Withdrawals
+**Endpoint:** `GET /admin/withdrawals/pending`
+**Query Parameters:**
+- `priority`: HIGH, MEDIUM, LOW (based on user role)
+- `city`: Filter by user city
+- `minAmount`: Minimum withdrawal amount
+- `maxAmount`: Maximum withdrawal amount
+- `dateFrom`: Submitted from date
+- `dateTo`: Submitted to date
+
+**Test Examples:**
+```
+GET /admin/withdrawals/pending?priority=HIGH&city=Lagos
+GET /admin/withdrawals/pending?minAmount=50000&dateFrom=2025-01-01
+```
+
+#### Approve/Reject Withdrawal
+**Endpoint:** `PATCH /admin/withdrawals/{withdrawalId}/decision`
+```json
+{
+  "decision": "APPROVE",
+  "adminPassword": "your_admin_password",
+  "adminNotes": "Withdrawal approved after verification",
+  "processedAmount": 50000
+}
+```
+**Test Both:**
+- `decision`: "APPROVE" or "REJECT"
+- Test with correct/incorrect admin password
+
+#### Bulk Process Withdrawals
+**Endpoint:** `POST /admin/withdrawals/bulk-process`
+```json
+{
+  "withdrawalIds": ["id1", "id2", "id3"],
+  "decision": "APPROVE",
+  "adminPassword": "your_admin_password",
+  "adminNotes": "Bulk approval after batch verification"
+}
+```
+
+---
+
+### 💰 **Commission Override System (Admin)**
+
+#### Override Referral Commission
+**Endpoint:** `POST /admin/commissions/override`
+```json
+{
+  "referralId": "REFERRAL_ID_HERE",
+  "overrideType": "BONUS",
+  "adjustmentType": "PERCENTAGE",
+  "adjustmentValue": 25,
+  "reason": "Exceptional performance bonus",
+  "adminPassword": "your_admin_password"
+}
+```
+**Test Scenarios:**
+- `overrideType`: BONUS, PENALTY, CORRECTION
+- `adjustmentType`: PERCENTAGE, FIXED_AMOUNT
+- Different adjustment values
+- Various reasons and admin notes
+
+#### Get Commission Override History
+**Endpoint:** `GET /admin/commissions/override-history`
+**Query Parameters:**
+- `overrideType`: BONUS, PENALTY, CORRECTION
+- `adjustmentType`: PERCENTAGE, FIXED_AMOUNT
+- `adminId`: Filter by admin who made override
+- `startDate`: Override date range start
+- `endDate`: Override date range end
+- `minAdjustment`: Minimum adjustment value
+- `maxAdjustment`: Maximum adjustment value
+
+#### Get Specific Referral Commission History
+**Endpoint:** `GET /admin/commissions/{referralId}/history`
+**What:** Complete commission history for a specific referral including all overrides
+
+---
+
+### 🏦 **Profit Pool Management (Admin)**
+
+#### Get All Profit Pools
+**Endpoint:** `GET /admin/profit-pools`
+**Query Parameters:**
+- `city`: Filter by city
+- `status`: PENDING, DISTRIBUTED, FAILED
+- `month`: Filter by specific month (YYYY-MM format)
+- `year`: Filter by year
+- `hasDistributions`: Pools with/without distributions
+
+**Test Examples:**
+```
+GET /admin/profit-pools?city=Lagos&status=DISTRIBUTED&year=2025
+GET /admin/profit-pools?month=2025-01&hasDistributions=true
+```
+
+#### Get Profit Pool Details
+**Endpoint:** `GET /admin/profit-pools/{poolId}`
+**What:** Complete pool information including:
+- Revenue calculation breakdown
+- Growth Elite beneficiaries list
+- Distribution amounts per user
+- Transaction references
+- Admin action history
+
+#### Adjust Profit Pool
+**Endpoint:** `POST /admin/profit-pools/{poolId}/adjust`
+```json
+{
+  "adjustmentType": "INCREASE",
+  "adjustmentAmount": 50000,
+  "reason": "Additional revenue discovered for the month",
+  "adminPassword": "your_admin_password"
+}
+```
+**Test Options:**
+- `adjustmentType`: INCREASE, DECREASE
+- Various adjustment amounts
+- Different reasons
+
+#### Generate Monthly Profit Pool Report
+**Endpoint:** `GET /admin/profit-pools/reports/monthly`
+**Query Parameters:**
+- `month`: Specific month (YYYY-MM)
+- `year`: Specific year
+- `city`: City-specific report
+- `includeProjections`: Include next month projections
+
+**Test Examples:**
+```
+GET /admin/profit-pools/reports/monthly?month=2025-01&city=Lagos
+GET /admin/profit-pools/reports/monthly?year=2025&includeProjections=true
+```
+
+#### Force Profit Pool Redistribution
+**Endpoint:** `POST /admin/profit-pools/{poolId}/redistribute`
+```json
+{
+  "adminPassword": "your_admin_password"
+}
+```
+**⚠️ Warning:** This recalculates and redistributes the entire pool
+
+---
+
+### 🚚 **Delivery Management (Admin)**
+
+#### Create Delivery Assignment
+**Endpoint:** `POST /delivery`
+**Admin Only:** Assign any order to any rider
+```json
+{
+  "orderId": "ORDER_ID_HERE",
+  "riderId": "RIDER_ID_HERE",
+  "pickupAddress": "Store pickup location",
+  "deliveryAddress": "Customer delivery address",
+  "estimatedDeliveryTime": "2025-01-15T18:00:00Z",
+  "deliveryFee": 1500
+}
+```
+
+#### Get All Deliveries (Admin View)
+**Endpoint:** `GET /delivery`
+**Admin Benefits:**
+- See all deliveries across all cities
+- Access to all rider assignments
+- View delivery statistics and performance
+
+#### Assign Rider to Delivery
+**Endpoint:** `PATCH /delivery/{deliveryId}/assign-rider`
+```json
+{
+  "riderId": "RIDER_ID_HERE",
+  "estimatedDeliveryTime": "2025-01-15T18:00:00Z"
+}
+```
+
+#### Release Delivery Payment
+**Endpoint:** `POST /delivery/{deliveryId}/release-payment`
+**Admin Only:** Release payment to rider after delivery completion
+```json
+{
+  "adminPassword": "your_admin_password",
+  "releaseAmount": 1500,
+  "adminNotes": "Payment released after successful delivery"
+}
+```
+
+---
+
+### 🏍️ **Rider Management (Admin)**
+
+#### Get All Riders
+**Endpoint:** `GET /riders`
+**Admin View:** Access to all riders regardless of city
+**Query Parameters:**
+- `city`: Filter by rider city
+- `isVerified`: Filter by verification status
+- `hasDeposit`: Filter by security deposit status
+- `status`: ACTIVE, INACTIVE, SUSPENDED
+
+#### Verify Rider Documents
+**Endpoint:** `PATCH /riders/{riderId}/verify`
+```json
+{
+  "documentType": "LICENSE",
+  "verificationStatus": "APPROVED",
+  "adminNotes": "Documents verified successfully",
+  "adminPassword": "your_admin_password"
+}
+```
+**Document Types:** LICENSE, INSURANCE, IDENTITY, VEHICLE_REGISTRATION
+
+#### Update Rider Security Deposit
+**Endpoint:** `PATCH /riders/{riderId}/deposit`
+```json
+{
+  "depositAmount": 50000,
+  "depositStatus": "PAID",
+  "adminNotes": "Security deposit confirmed",
+  "adminPassword": "your_admin_password"
+}
+```
+
+#### Suspend/Activate Rider
+**Endpoint:** `PATCH /riders/{riderId}/status`
+```json
+{
+  "status": "SUSPENDED",
+  "reason": "Multiple delivery delays",
+  "adminPassword": "your_admin_password"
+}
+```
+
+---
+
+### 🏺 **Auction Management (Admin)**
+
+#### Create Auction
+**Endpoint:** `POST /auctions`
+```json
+{
+  "productId": "PRODUCT_ID_HERE",
+  "startingBid": 5000,
+  "reservePrice": 8000,
+  "auctionDuration": 24,
+  "description": "Admin created auction for testing",
+  "images": ["auction-image-url.jpg"]
+}
+```
+
+#### Update Auction
+**Endpoint:** `PATCH /auctions/{auctionId}`
+```json
+{
+  "reservePrice": 9000,
+  "description": "Updated auction description",
+  "endTime": "2025-01-20T18:00:00Z"
+}
+```
+
+#### Cancel Auction
+**Endpoint:** `DELETE /auctions/{auctionId}/cancel`
+```json
+{
+  "reason": "Auction cancelled due to product unavailability",
+  "adminPassword": "your_admin_password"
+}
+```
+
+#### Finalize Auction
+**Endpoint:** `POST /auctions/{auctionId}/finalize`
+```json
+{
+  "winningBidId": "BID_ID_HERE",
+  "adminNotes": "Auction finalized, payment processed",
+  "adminPassword": "your_admin_password"
+}
+```
+
+---
+
+### 📧 **Notifications Management (Admin)**
+
+#### Send Email Notification
+**Endpoint:** `POST /notifications/email`
+```json
+{
+  "recipientEmail": "user@example.com",
+  "type": "MARKETING",
+  "title": "Special Offer",
+  "message": "Limited time offer on your favorite products!",
+  "metadata": {
+    "campaign": "admin_test",
+    "priority": "HIGH"
+  }
+}
+```
+
+#### Send Push Notification  
+**Endpoint:** `POST /notifications/push`
+```json
+{
+  "deviceToken": "user_device_token_here",
+  "type": "ORDER_UPDATE", 
+  "title": "Order Update",
+  "message": "Your order is ready for pickup",
+  "data": {
+    "orderId": "ORDER_ID",
+    "action": "pickup_ready"
+  }
+}
+```
+
+#### Send WhatsApp Message
+**Endpoint:** `POST /notifications/whatsapp`
+```json
+{
+  "phoneNumber": "+2348123456789",
+  "message": "Your order #12345 is ready for delivery",
+  "type": "ORDER_UPDATE",
+  "metadata": {
+    "orderId": "ORDER_ID",
+    "priority": "NORMAL"
+  }
+}
+```
+
+#### Notify Order Status Update
+**Endpoint:** `POST /notifications/order/{orderId}/status-update`
+```json
+{
+  "userId": "USER_ID",
+  "status": "SHIPPED",
+  "additionalInfo": {
+    "trackingNumber": "TRK123456",
+    "estimatedDelivery": "2025-01-20T16:00:00Z"
+  }
+}
+```
+
+#### Notify Late Payment
+**Endpoint:** `POST /notifications/payment/{subscriptionId}/late`
+```json
+{
+  "userId": "USER_ID",
+  "daysLate": 5,
+  "amountDue": 2000,
+  "currency": "NGN"
+}
+```
+
+#### Notify Rider Assignment
+**Endpoint:** `POST /notifications/rider/{riderId}/assignment`
+```json
+{
+  "orderId": "ORDER_ID",
+  "expiryTime": "2025-01-20T16:00:00Z",
+  "deliveryDetails": {
+    "pickupAddress": "Store Address",
+    "deliveryAddress": "Customer Address",
+    "customerPhone": "+2348123456789"
+  }
+}
+```
+
+---
+
+## 🧪 **Admin Testing Workflows**
+
+### **Complete Admin Onboarding Test**
+1. **Authentication Setup:**
+   - Create admin account → Login → Verify admin JWT token
+   - Test admin role validation on protected endpoints
+   - Verify admin password requirement for sensitive operations
+
+2. **User & Growth Management:**
+   - Test all user management endpoints with filtering
+   - Review GA/GE users by city with detailed statistics
+   - Test user role updates and verification status changes
+
+3. **Financial Operations:**
+   - Test wallet funding and management across currencies
+   - Process withdrawal requests (individual and bulk)
+   - Test commission override system (bonus/penalty)
+   - Review analytics across different date ranges
+
+4. **Content & Product Management:**
+   - Test category and product management (CRUD operations)
+   - Record product price changes with admin notes
+   - Review price history and audit trails
+
+5. **Operational Management:**
+   - Test delivery creation and rider assignment
+   - Process auction creation and finalization
+   - Send various types of notifications to users
+   - Manage support tickets and analytics
+
+### **GA/GE Advanced Management Workflow**
+1. **User Analysis & Promotion:**
+   - View growth users by city with performance sorting
+   - Check detailed user statistics and qualification metrics
+   - Review referral performance and commission earnings
+
+2. **Financial Control:**
+   - Process GA/GE withdrawal requests with priority handling
+   - Override commissions with bonus/penalty adjustments
+   - Review commission history and override audit trails
+
+3. **Profit Pool Administration:**
+   - Review monthly profit pool distributions by city
+   - Adjust pool amounts and force redistributions
+   - Generate comprehensive monthly reports
+
+4. **Scheduled Jobs Monitoring:**
+   - Review scheduled job execution status
+   - Manually trigger GA/GE qualification checks
+   - Monitor daily notification delivery and engagement
+
+### **Financial Operations Complete Workflow**
+1. **Wallet Management:**
+   - Review all wallet statistics across currencies
+   - Fund test user wallets for different scenarios
+   - Test wallet wipe functionality with proper authentication
+
+2. **Withdrawal Processing:**
+   - Review pending withdrawals with priority filtering
+   - Process individual approvals/rejections with admin notes
+   - Execute bulk processing for multiple requests
+   - Verify withdrawal limit enforcement and validation
+
+3. **Analytics & Reporting:**
+   - Generate orders analytics with various filters
+   - Review subscription performance by city and plan
+   - Analyze commission trends by user role and type
+   - Export comprehensive financial reports
+
+### **Operational Management Workflow**
+1. **Delivery Operations:**
+   - Create delivery assignments across all cities
+   - Assign optimal riders based on location and availability
+   - Monitor delivery performance and release payments
+   - Track delivery analytics and rider performance
+
+2. **Rider Management:**
+   - Review rider applications and verify documents
+   - Process security deposits and update rider status
+   - Monitor rider performance metrics and delivery ratings
+   - Handle rider suspensions and reactivations
+
+3. **Auction Administration:**
+   - Create auctions with appropriate reserve prices
+   - Monitor bidding activity and participant behavior
+   - Finalize auctions and process winner payments
+   - Handle auction cancellations when necessary
+
+4. **Communication & Support:**
+   - Send targeted notifications across all channels
+   - Process support tickets with priority handling
+   - Monitor notification delivery rates and engagement
+   - Generate support analytics and performance reports
+
+### **Content Management Complete Workflow**
+1. **Category & Product Control:**
+   - Create and organize product categories
+   - Monitor product approval workflows
+   - Track price changes and market trends
+   - Maintain product quality standards
+
+2. **Audit & Compliance:**
+   - Review all admin action audit trails
+   - Verify proper admin password authentication
+   - Monitor system security and access logs
+   - Generate compliance reports for stakeholders
+
+### **Emergency Operations Workflow**
+1. **Crisis Management:**
+   - Process urgent withdrawal requests
+   - Handle delivery emergency reassignments
+   - Send critical system notifications
+   - Execute emergency profit pool adjustments
+
+2. **Data Recovery & Correction:**
+   - Correct commission calculation errors
+   - Redistribute profit pools when necessary
+   - Handle user account recovery requests
+   - Process data correction requests with proper validation
+
 ### 🏠 15. Application Health & Status
 
 #### Get Application Status
@@ -4157,19 +4885,121 @@ Test these error scenarios:
 - [ ] Process subscription drop
 - [ ] Admin process subscription drop
 
-### ✅ Admin Features
-- [ ] Get all users
-- [ ] Get user by ID
-- [ ] Get all wallets
-- [ ] Get wallet by ID
-- [ ] Get user wallet
-- [ ] Fund user wallet (with password)
-- [ ] Wipe user wallet (with password)
-- [ ] Get orders analytics
-- [ ] Get subscription analytics
-- [ ] Get commission analytics
-- [ ] Manage categories (CRUD)
-- [ ] Product price history
+### ✅ Admin Features (COMPREHENSIVE)
+**User Management:**
+- [ ] Get all users with advanced filtering (role, city, verification, date range)
+- [ ] Get user by ID with complete profile details
+- [ ] Get Growth Users by city with sorting and filtering
+- [ ] Get detailed GA/GE user statistics and analytics
+- [ ] Create admin users for testing purposes
+- [ ] Update user profiles and roles
+- [ ] Delete users (test with various user types)
+
+**Wallet Management:**
+- [ ] View all wallets with filtering (balance, currency, withdrawal capability)
+- [ ] Get wallet by ID with transaction history
+- [ ] Get user's wallet by user ID
+- [ ] Fund user wallet (with admin password verification)
+- [ ] Wipe user wallet (with admin password verification)
+- [ ] Test funding with different currencies (NGN, USD, NIBIA)
+- [ ] Test admin password validation for sensitive operations
+
+**Analytics & Reporting:**
+- [ ] Get orders analytics with date range and city filtering
+- [ ] Get subscriptions analytics with plan and status filtering
+- [ ] Get commission analytics by role and commission type
+- [ ] Test various date ranges and grouping options
+- [ ] Generate city-wise performance reports
+- [ ] Test analytics with different filter combinations
+
+**Category Management:**
+- [ ] Get all categories with statistics
+- [ ] Get category by ID with associated products
+- [ ] Create new categories with various parameters
+- [ ] Update existing categories (name, description, status)
+- [ ] Delete categories (test with/without products)
+- [ ] Test category sorting and activation status
+
+**Product Management:**
+- [ ] Get product price history for any product
+- [ ] Record price history changes with admin notes
+- [ ] Test price history with different currencies
+- [ ] Verify price change audit trails
+
+**Withdrawal Management (Enhanced GA/GE System):**
+- [ ] View pending withdrawals with priority filtering
+- [ ] Filter withdrawals by city, amount, date range
+- [ ] Approve individual withdrawal requests (with admin password)
+- [ ] Reject individual withdrawal requests (with admin notes)
+- [ ] Bulk process multiple withdrawals simultaneously
+- [ ] Test admin password validation for all withdrawal operations
+- [ ] Test withdrawal priority queue (GE > GA > Creation date)
+- [ ] Verify withdrawal limits and validation
+
+**Commission Override System (NEW):**
+- [ ] Override referral commissions with bonus adjustments
+- [ ] Override referral commissions with penalty adjustments
+- [ ] Test percentage-based commission overrides
+- [ ] Test fixed-amount commission overrides
+- [ ] Get commission override history with filtering
+- [ ] Get specific referral commission history
+- [ ] Test admin password validation for overrides
+- [ ] Verify override audit trails and admin notes
+
+**Profit Pool Management (Enhanced):**
+- [ ] Get all profit pools with city and status filtering
+- [ ] Get specific profit pool details with distribution breakdown
+- [ ] Adjust profit pool amounts (increase/decrease)
+- [ ] Generate monthly profit pool reports by city
+- [ ] Force redistribute profit pools (with admin password)
+- [ ] Test month/year filtering for profit pool reports
+- [ ] Verify admin action audit trails for all pool operations
+- [ ] Test profit pool calculations and beneficiary identification
+
+**Delivery Management (Admin):**
+- [ ] Create delivery assignments for any order/rider combination
+- [ ] Get all deliveries with admin-level visibility (all cities)
+- [ ] Assign/reassign riders to deliveries
+- [ ] Release delivery payments to riders (with admin password)
+- [ ] Update delivery status and tracking information
+- [ ] View delivery performance analytics across all riders
+- [ ] Test delivery fee calculations and adjustments
+
+**Rider Management (Admin):**
+- [ ] Get all riders with filtering (city, verification, deposit status)
+- [ ] Verify rider documents (license, insurance, identity, vehicle)
+- [ ] Update rider security deposit status and amounts
+- [ ] Suspend/activate rider accounts with admin notes
+- [ ] View rider performance metrics and delivery history
+- [ ] Test rider verification workflows
+- [ ] Manage rider status changes with proper admin authentication
+
+**Auction Management (Admin):**
+- [ ] Create auctions with various parameters (starting bid, reserve, duration)
+- [ ] Update auction details (price, description, end time)
+- [ ] Cancel auctions with admin password and reason
+- [ ] Finalize auctions and declare winners
+- [ ] View all auctions regardless of creator
+- [ ] Test auction bidding workflows and winner selection
+- [ ] Verify auction payment processing
+
+**Notifications Management (Admin):**
+- [ ] Send email notifications to users with various types
+- [ ] Send push notifications with different priority levels
+- [ ] Send WhatsApp messages for order updates
+- [ ] Notify users of order status changes
+- [ ] Send late payment reminders for subscriptions
+- [ ] Notify riders of delivery assignments
+- [ ] Test notification delivery and tracking
+- [ ] Verify notification templates and personalization
+
+**Support System (Admin):**
+- [ ] Get all support tickets with filtering and priority
+- [ ] Update ticket status and priority levels
+- [ ] Close tickets with resolution messages
+- [ ] Add internal admin notes to tickets
+- [ ] View support analytics and performance metrics
+- [ ] Test ticket assignment and escalation workflows
 
 ### ✅ Profit Pool System (NEW - August 2025)
 - [ ] View profit pool statistics (overall)
