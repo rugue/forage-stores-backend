@@ -1855,23 +1855,30 @@ This section consolidates ALL admin-related features, endpoints, and testing wor
 
 ### Step 1: Create Admin Account
 
-**Important:** Admin accounts cannot be created through the regular registration endpoint. You need to:
+**Important:** Admin accounts can be created through the regular registration endpoint with admin role specified.
 
-1. **Create admin directly in database**, OR
-2. **Use an existing admin account**, OR  
-3. **Have a super-admin create the account**
-
-**For testing, create admin directly:**
+**For testing, register admin account:**
 ```json
 POST /auth/register
 {
   "name": "Admin User",
   "email": "admin@forage.com",
   "password": "AdminSecure123!",
+  "accountType": "business",
   "role": "admin",
-  "accountType": "business"
+  "city": "Lagos"
 }
 ```
+
+**Schema Details:**
+- `name`: String (required, max 255 chars)
+- `email`: String (required, must be valid email, max 255 chars, unique)
+- `password`: String (required, min 8 chars, must contain uppercase, lowercase, number, special char)
+- `accountType`: Enum ["family", "business"] (optional, defaults to "family")
+- `role`: Enum ["user", "admin", "rider", "pro-affiliate", "growth_associate", "growth_elite", "system"] (optional, defaults to "user")
+- `city`: String (optional, max 100 chars)
+- `phone`: String (optional, max 20 chars)
+- `referralCode`: String (optional, max 20 chars)
 
 ### Step 2: Admin Login & Authentication
 
@@ -1883,14 +1890,23 @@ POST /auth/register
 }
 ```
 
+**Schema Details:**
+- `email`: String (required if phone not provided, must be valid email)
+- `phone`: String (required if email not provided, max 20 chars)  
+- `password`: String (required)
+
 **Expected Response:**
 ```json
 {
   "user": {
     "id": "64f123456789abcdef123456",
-    "name": "Admin User",
+    "name": "Admin User", 
     "email": "admin@forage.com",
-    "role": "admin"
+    "role": "admin",
+    "accountType": "business",
+    "city": "Lagos",
+    "createdAt": "2025-08-18T10:00:00.000Z",
+    "updatedAt": "2025-08-18T10:00:00.000Z"
   },
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
@@ -1970,20 +1986,17 @@ DELETE /admin/stores/{storeId}
 
 #### 2.1 Wallet Administration
 ```bash
-# View wallet statistics
-GET /admin/wallets/statistics
-
 # Fund user wallet
 POST /admin/wallets/fund
 {
   "userId": "64f123456789abcdef123456",
-  "amount": 1000.00,
+  "amount": 1000,
   "currencyType": "foodMoney",
   "adminPassword": "AdminSecure123!",
   "reason": "Initial wallet funding"
 }
 
-# Wipe user wallet
+# Wipe user wallet  
 POST /admin/wallets/wipe
 {
   "userId": "64f123456789abcdef123456",
@@ -1993,29 +2006,51 @@ POST /admin/wallets/wipe
 }
 ```
 
+**Wallet Fund Schema:**
+- `userId`: String (required, must be valid MongoDB ObjectId)
+- `amount`: Number (required, minimum 0)
+- `currencyType`: Enum ["foodMoney", "foodPoints"] (required)
+- `adminPassword`: String (required, non-empty)
+- `reason`: String (required, non-empty)
+
+**Wallet Wipe Schema:**
+- `userId`: String (required, must be valid MongoDB ObjectId)
+- `currencyType`: Enum ["foodMoney", "foodPoints", "both"] (required)
+- `adminPassword`: String (required, non-empty)
+- `reason`: String (required, non-empty)
+
 #### 2.2 Withdrawal Management
 ```bash
-# View pending withdrawals
-GET /admin/withdrawals/pending
-Query: ?userRole=growth_elite&sortBy=priority
-
-# Process withdrawal request
+# Process withdrawal request  
 POST /admin/withdrawals/{requestId}/process
 {
-  "action": "approved",
+  "action": "approve",
   "adminNotes": "User verified, withdrawal approved",
-  "adminPassword": "AdminSecure123!"
+  "adminPassword": "AdminSecure123!",
+  "priority": 1
 }
 
 # Bulk process withdrawals
 POST /admin/withdrawals/bulk-process
 {
-  "requestIds": ["id1", "id2", "id3"],
-  "action": "approved",
-  "adminNotes": "Batch approval for verified users",
-  "adminPassword": "AdminSecure123!"
+  "adminPassword": "AdminSecure123!",
+  "withdrawalIds": ["64a7b12c8f9e4d5a6b7c8901", "64a7b12c8f9e4d5a6b7c8902"],
+  "action": "approve",
+  "bulkNotes": "Batch approval for verified users"
 }
 ```
+
+**Process Withdrawal Schema:**
+- `action`: Enum ["approve", "reject"] (required)
+- `adminNotes`: String (optional)
+- `adminPassword`: String (required, non-empty)
+- `priority`: Number (optional, 1-5, where 1 is highest priority)
+
+**Bulk Process Withdrawal Schema:**
+- `adminPassword`: String (required, non-empty)
+- `withdrawalIds`: Array of Strings (required, each must be valid MongoDB ObjectId, unique values only)
+- `action`: Enum ["approve", "reject"] (required)  
+- `bulkNotes`: String (optional)
 
 ### 🚀 Phase 3: Growth Associates & Referral Management
 
@@ -2023,13 +2058,10 @@ POST /admin/withdrawals/bulk-process
 ```bash
 # View growth users by city
 GET /admin/users/growth
-Query: ?city=Lagos&sortBy=totalCommissionEarned&order=desc
-
-# Get detailed user statistics
-GET /admin/users/{userId}/growth-stats
+Query: ?city=Lagos&role=growth_elite&page=1&limit=20
 
 # Override referral commission
-POST /admin/referrals/{referralId}/override-commission
+POST /admin/referrals/override-commission  
 {
   "adminPassword": "AdminSecure123!",
   "referralId": "64a7b12c8f9e4d5a6b7c8901",
@@ -2040,16 +2072,46 @@ POST /admin/referrals/{referralId}/override-commission
 }
 ```
 
+**Get Growth Users Schema (Query Parameters):**
+- `city`: String (required, non-empty)
+- `role`: Enum ["growth_associate", "growth_elite"] (optional)
+- `page`: Number (optional, minimum 1, defaults to 1)
+- `limit`: Number (optional, minimum 1, maximum 100, defaults to 20)
+
+**Override Commission Schema:**
+- `adminPassword`: String (required, non-empty)
+- `referralId`: String (required, must be valid MongoDB ObjectId)
+- `newCommissionAmount`: Number (required, minimum 0)
+- `overrideType`: Enum ["bonus", "penalty", "adjustment"] (required)
+- `reason`: String (required, non-empty)
+- `adminNotes`: String (optional)
+
 #### 3.2 Commission Management
 ```bash
-# View commission history
+# View commission override history
 GET /admin/referrals/commission-history
-Query: ?userId=64a123...&overrideType=bonus&dateFrom=2024-01-01
+Query: ?userId=64a123...&overrideType=bonus&startDate=2025-01-01T00:00:00.000Z&endDate=2025-12-31T23:59:59.999Z
+```
 
+**Commission History Schema (Query Parameters):**
+- `userId`: String (optional, must be valid MongoDB ObjectId)
+- `overrideType`: Enum ["bonus", "penalty", "adjustment"] (optional)
+- `startDate`: Date (optional, ISO date string)
+- `endDate`: Date (optional, ISO date string)
+
+```bash
 # View commission analytics
 GET /admin/analytics/commissions
-Query: ?period=monthly&city=Lagos&userRole=growth_elite
+Query: ?dateRange[startDate]=2025-01-01T00:00:00.000Z&dateRange[endDate]=2025-12-31T23:59:59.999Z&categoryId=64a123...&city=Lagos
 ```
+
+**Commission Analytics Schema (Query Parameters):**
+- `dateRange`: Object (optional)
+  - `startDate`: Date (ISO date string, required if dateRange provided)
+  - `endDate`: Date (ISO date string, required if dateRange provided)
+- `categoryId`: String (optional, must be valid MongoDB ObjectId)
+- `productId`: String (optional, must be valid MongoDB ObjectId)
+- `city`: String (optional)
 
 ### 🚀 Phase 4: Profit Pool Administration
 
@@ -2081,20 +2143,48 @@ POST /admin/profit-pools/{poolId}/distribute
 
 #### 5.1 Category Management
 ```bash
+# Get all categories
+GET /admin/categories
+
 # Create category
 POST /admin/categories
 {
   "name": "Organic Vegetables",
-  "description": "Fresh organic vegetables",
-  "iconUrl": "https://example.com/icon.png"
+  "description": "Fresh organic vegetables from local farms",
+  "iconUrl": "https://example.com/vegetables-icon.png",
+  "parentCategoryId": "64a1234567890abcdef123456"
 }
+```
 
+**Create Category Schema:**
+- `name`: String (required)
+- `description`: String (required)
+- `iconUrl`: String (optional)
+- `parentCategoryId`: String (optional, must be valid MongoDB ObjectId)
+
+```bash
 # Update category
 PATCH /admin/categories/{categoryId}
 {
-  "name": "Updated Category Name",
-  "description": "Updated description"
+  "name": "Updated Organic Vegetables",
+  "description": "Premium organic vegetables from local farms",
+  "iconUrl": "https://example.com/updated-vegetables-icon.png",
+  "parentCategoryId": "64a1234567890abcdef123456",
+  "isActive": true
 }
+```
+
+**Update Category Schema:**
+- `name`: String (optional)
+- `description`: String (optional)
+- `iconUrl`: String (optional)
+- `parentCategoryId`: String (optional, must be valid MongoDB ObjectId)
+- `isActive`: Boolean (optional)
+
+```bash
+# Delete category
+DELETE /admin/categories/{categoryId}
+```
 ```
 
 #### 5.2 Product Administration
@@ -2185,16 +2275,30 @@ POST /admin/auctions/{auctionId}/finalize
 ```bash
 # Orders analytics
 GET /admin/analytics/orders
-Query: ?startDate=2025-01-01&endDate=2025-12-31&city=Lagos
+Query: ?dateRange[startDate]=2025-01-01T00:00:00.000Z&dateRange[endDate]=2025-12-31T23:59:59.999Z&categoryId=64a123...&city=Lagos
+```
 
-# User analytics  
-GET /admin/analytics/users
-Query: ?period=monthly&userRole=growth_associate
+**Orders Analytics Schema (Query Parameters):**
+- `dateRange`: Object (optional)
+  - `startDate`: Date (ISO date string, required if dateRange provided)
+  - `endDate`: Date (ISO date string, required if dateRange provided)
+- `categoryId`: String (optional, must be valid MongoDB ObjectId)
+- `productId`: String (optional, must be valid MongoDB ObjectId)
+- `city`: String (optional)
 
+```bash
 # Subscription analytics
 GET /admin/analytics/subscriptions
-Query: ?status=active&plan=premium
+Query: ?dateRange[startDate]=2025-01-01T00:00:00.000Z&dateRange[endDate]=2025-12-31T23:59:59.999Z&categoryId=64a123...&city=Lagos
 ```
+
+**Subscription Analytics Schema (Query Parameters):**
+- `dateRange`: Object (optional)
+  - `startDate`: Date (ISO date string, required if dateRange provided)
+  - `endDate`: Date (ISO date string, required if dateRange provided)
+- `categoryId`: String (optional, must be valid MongoDB ObjectId)
+- `productId`: String (optional, must be valid MongoDB ObjectId)
+- `city`: String (optional)
 
 #### 7.2 Financial Reports
 ```bash
