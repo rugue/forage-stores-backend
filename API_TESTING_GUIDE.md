@@ -1965,31 +1965,48 @@ PATCH /users/{userId}/credit-score
 
 # View user wallet
 GET /admin/users/{userId}/wallet
-
-# Get user statistics
-GET /admin/users/statistics
 ```
 
 #### 1.3 Store Management Tests
 ```bash
-# View all stores
-GET /admin/stores
-Query: ?city=Lagos&status=active
+# View all stores (Public endpoint)
+GET /stores
 
-# Update store status
-PATCH /admin/stores/{storeId}/status
+# Get specific store (Public endpoint)
+GET /stores/{storeId}
+
+# Create new store (Auth required)
+POST /stores
 {
-  "status": "active",
-  "adminNotes": "Store verified and approved"
+  "name": "My Awesome Store",
+  "description": "The best store in town",
+  "address": "123 Main St, City, Country",
+  "phone": "+1234567890",
+  "email": "store@example.com"
 }
 
-# Delete store (if needed)
-DELETE /admin/stores/{storeId}
+# Update store (Auth required)
+PATCH /stores/{storeId}
 {
-  "adminPassword": "AdminSecure123!",
-  "reason": "Store violated terms"
+  "name": "Updated Store Name",
+  "description": "Updated description",
+  "address": "456 New Address",
+  "phone": "+0987654321",
+  "email": "updated@example.com"
 }
+
+# Delete store (Auth required)
+DELETE /stores/{storeId}
 ```
+
+**Store Schema:**
+- `name`: String (required, max 255 chars)
+- `description`: String (optional)
+- `address`: String (required, max 500 chars)
+- `phone`: String (optional, max 20 chars)
+- `email`: String (optional, valid email format)
+
+**Note:** These are NOT admin-specific endpoints. They use regular JWT authentication, not admin permissions.
 
 ### 🚀 Phase 2: Financial Management
 
@@ -3116,9 +3133,20 @@ Solution:
 **Description:** Permanently delete user account
 **Note:** Use with extreme caution - this action is irreversible
 
-### Get User Statistics
-**Endpoint:** `GET /users/admin/statistics`
-**Description:** User registration and activity statistics
+### Get User Credit Score
+**Endpoint:** `PATCH /users/{userId}/credit-score`
+**Description:** Adjust user credit score for Pay Later eligibility
+**Request Body:**
+```json
+{
+  "creditScore": 750
+}
+```
+
+### Delete User
+**Endpoint:** `DELETE /users/admin/{userId}`
+**Description:** Permanently delete user account
+**Note:** Use with extreme caution - this action is irreversible
 
 ---
 
@@ -3328,9 +3356,6 @@ POST /auth/login
 
 ### 2. System Overview Dashboard
 ```bash
-# Get user statistics
-GET /users/admin/statistics
-
 # Get wallet statistics  
 GET /wallets/admin/stats
 
