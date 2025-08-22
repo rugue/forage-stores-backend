@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsEmail, MaxLength } from 'class-validator';
 
 export class CreateStoreDto {
@@ -32,9 +32,7 @@ export class CreateStoreDto {
   email?: string;
 }
 
-export class UpdateStoreDto extends CreateStoreDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  id: string;
+export class UpdateStoreDto extends PartialType(CreateStoreDto) {
+  // All fields from CreateStoreDto are now optional
+  // No id field needed - it comes from the URL parameter
 }

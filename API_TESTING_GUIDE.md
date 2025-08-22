@@ -1999,12 +1999,17 @@ PATCH /stores/{storeId}
 DELETE /stores/{storeId}
 ```
 
-**Store Schema:**
+**Create Store Schema:**
 - `name`: String (required, max 255 chars)
 - `description`: String (optional)
 - `address`: String (required, max 500 chars)
 - `phone`: String (optional, max 20 chars)
 - `email`: String (optional, valid email format)
+
+**Update Store Schema:**
+- All fields from Create Store are optional (partial update)
+- ID comes from URL parameter, NOT request body
+- You can update any combination of fields
 
 **Note:** These are NOT admin-specific endpoints. They use regular JWT authentication, not admin permissions.
 
