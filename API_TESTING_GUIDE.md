@@ -1932,10 +1932,10 @@ Follow this comprehensive workflow to test every admin feature systematically:
 ### 🚀 Phase 1: Admin Setup & Basic Operations
 
 #### 1.1 Admin Authentication Test
-- [ ] Create admin account
-- [ ] Login as admin
-- [ ] Verify admin role in token
-- [ ] Test authorization on protected endpoints
+- [✔] Create admin account
+- [✔] Login as admin
+- [✔] Verify admin role in token
+- [✔] Test authorization on protected endpoints
 
 #### 1.2 User Management Tests
 ```bash
@@ -1946,13 +1946,22 @@ Query: ?page=1&limit=10&city=Lagos&role=user
 # Get user by ID
 GET /admin/users/{userId}
 
-# Update user information
-PATCH /admin/users/{userId}
+# Update user information (Admin endpoint - NOT in admin module, but in users module)
+PATCH /users/{userId}
 {
   "name": "Updated Name",
   "city": "Updated City",
   "isVerified": true
 }
+
+# Update user credit score (Admin endpoint - NOT in admin module)  
+PATCH /users/{userId}/credit-score
+{
+  "creditScore": 750
+}
+
+**Update Credit Score Schema:**
+- `creditScore`: Number (required, min: 300, max: 850)
 
 # View user wallet
 GET /admin/users/{userId}/wallet
@@ -3093,13 +3102,12 @@ Solution:
 **Description:** Modify any user account details
 
 ### Update User Credit Score
-**Endpoint:** `PATCH /users/admin/{userId}/credit-score`
+**Endpoint:** `PATCH /users/{userId}/credit-score`
 **Description:** Adjust user credit score for Pay Later eligibility
 **Request Body:**
 ```json
 {
-  "creditScore": 750,
-  "reason": "Manual adjustment after verification"
+  "creditScore": 750
 }
 ```
 

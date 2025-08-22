@@ -23,6 +23,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { UpdateCreditScoreDto } from './dto/update-credit-score.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
@@ -196,15 +197,16 @@ export class UsersController {
     description: 'Credit score updated successfully',
     type: User,
   })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid credit score' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
   @ApiParam({ name: 'id', description: 'User ID' })
   updateCreditScore(
     @Param('id') id: string,
-    @Body('creditScore') creditScore: number,
+    @Body() updateCreditScoreDto: UpdateCreditScoreDto,
   ) {
-    return this.usersService.updateCreditScore(id, creditScore);
+    return this.usersService.updateCreditScore(id, updateCreditScoreDto.creditScore);
   }
 
   @Delete(':id')
