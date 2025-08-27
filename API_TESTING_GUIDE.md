@@ -92,9 +92,39 @@ Let's walk through the complete process of getting authenticated and creating yo
 - `phone`: Your phone number (include country code) (optional)
 - `password`: Must be strong (8+ chars, uppercase, lowercase, number, special char) (required)
 - `accountType`: Use "business" if you plan to create stores, "family" for regular users (optional)
-- `role`: Always use "user" for regular accounts (admin accounts handled separately)
+- `role`: User role - see available roles below (optional, defaults to "user")
 - `city`: Your city/location (optional)
 - `referralCode`: Code from someone who referred you (optional)
+
+**Available Roles for Self-Registration:**
+- `user` - Default regular user
+- `admin` - Administrator account
+- `growth_associate` - Growth associate with special permissions
+- `growth_elite` - Growth elite with special permissions  
+- `rider` - Delivery rider
+- `pro-affiliate` - Professional affiliate
+- `system` - System account
+
+**Examples for Growth Users:**
+```json
+// Self-register as Growth Associate
+{
+  "name": "Growth Associate User",
+  "email": "ga.self@example.com",
+  "password": "SecurePass123!",
+  "role": "growth_associate",
+  "city": "Lagos"
+}
+
+// Self-register as Growth Elite
+{
+  "name": "Growth Elite User", 
+  "email": "ge.self@example.com",
+  "password": "SecurePass123!",
+  "role": "growth_elite",
+  "city": "Lagos"
+}
+```
 
 5. Click "Execute"
 
@@ -205,6 +235,10 @@ Let's walk through the complete process of getting authenticated and creating yo
 
 ## � Admin: Creating Growth Users Workflow
 
+**📝 Note:** Growth users can be created in **two ways**:
+1. **Self-Registration**: Users can register themselves with growth roles using `POST /auth/register` (see examples above)
+2. **Admin Creation**: Admins can create growth users using `POST /users` (documented below)
+
 ### Prerequisites
 1. **Admin Authentication:** You need an admin JWT token
 2. **Admin Account:** Must have `ADMIN` role
@@ -276,7 +310,25 @@ POST /auth/login
 - Created users can immediately login and access appropriate endpoints
 - Use `GET /admin/users` with role filters to manage growth users
 
-## �🔍 Testing Other Endpoints
+## 📝 Growth User Creation Summary
+
+**Two Methods Available:**
+
+### 🔓 **Method 1: Self-Registration** (`POST /auth/register`)
+- ✅ No authentication required
+- ✅ Users can register with any role including `growth_associate` and `growth_elite`
+- ✅ Immediate account creation
+- ⚠️ Users self-select their roles
+
+### 🔐 **Method 2: Admin Creation** (`POST /users`)
+- 🔐 Admin authentication required
+- 🔐 Only admins can create users
+- ✅ Admin controls role assignment
+- ✅ Centralized user management
+
+**Choose the method that fits your business needs!**
+
+## 🔍 Testing Other Endpoints
 
 Now that you're authenticated, you can test any endpoint marked with a 🔒 lock icon. Here are some next steps:
 
