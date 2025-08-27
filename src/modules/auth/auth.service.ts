@@ -8,12 +8,14 @@ import { UsersService } from '../users/users.service';
 import { RegisterDto, LoginDto } from './dto';
 import { User } from '../users/entities/user.entity';
 import { JwtPayload } from './jwt.strategy';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async register(
@@ -138,18 +140,21 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  // Token blacklist storage (in production use Redis)
-  private blacklistedTokens = new Set<string>();
-
   async logout(token: string): Promise<{ message: string }> {
-    // Extract token from "Bearer token" format
-    const cleanToken = token.replace('Bearer ', '');
-    this.blacklistedTokens.add(cleanToken);
-    return { message: 'Logout successful' };
+    // Decode the token to get expiration time
+    try {
+      const decoded = this.jwtService.decode(token.replace('Bearer ', '')) as any;
+      const expiresAt = new Date(decoded.exp * 1000); // Convert from seconds to milliseconds
+      
+      await this.tokenBlacklistService.addToBlacklist(token, expiresAt);
+      return { message: 'Logout successful' };
+    } catch (error) {
+      // If token can't be decoded, still consider logout successful
+      return { message: 'Logout successful' };
+    }
   }
 
   async isTokenBlacklisted(token: string): Promise<boolean> {
-    const cleanToken = token.replace('Bearer ', '');
-    return this.blacklistedTokens.has(cleanToken);
+    return this.tokenBlacklistService.isBlacklisted(token);
   }
 }

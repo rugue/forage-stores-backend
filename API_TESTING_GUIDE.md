@@ -408,6 +408,32 @@ For withdrawal endpoints, ensure:
 2. For withdrawals: need `growth_associate` or `growth_elite`
 3. For admin endpoints: need `admin` role
 
+### Problem: Can Still Access Profile After Logout
+
+**Expected Behavior:**
+- After calling `POST /auth/logout`, you should get 401 Unauthorized for `GET /auth/profile`
+- Tokens should be invalidated immediately after logout
+
+**If this isn't working:**
+1. **Server restart required** - Logout functionality was recently fixed
+2. **Clear browser/Swagger cache** - Old tokens might be cached
+3. **Test the flow:**
+   ```bash
+   # 1. Login
+   POST /auth/login
+   
+   # 2. Test profile (should work)
+   GET /auth/profile
+   
+   # 3. Logout
+   POST /auth/logout
+   
+   # 4. Test profile again (should return 401)
+   GET /auth/profile
+   ```
+
+**Technical Note:** The system now maintains a token blacklist that invalidates tokens immediately upon logout.
+
 ## �💰 Profit Pool System Testing (NEW - August 2025)
 
 The Profit Pool system distributes 1% of monthly city revenue to Growth Elite users as Nibia rewards! Here's how to test it:
