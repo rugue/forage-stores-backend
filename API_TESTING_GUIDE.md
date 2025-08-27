@@ -337,7 +337,78 @@ Now that you're authenticated, you can test any endpoint marked with a 🔒 lock
 3. **Add products to your store:** `POST /products`
 4. **Create orders:** `POST /orders/checkout`
 
-## 💰 Profit Pool System Testing (NEW - August 2025)
+## � Authentication Troubleshooting
+
+### Problem: Padlocks Are Unlocked Even After Authentication
+
+**Symptoms:**
+- You've logged in successfully and got a JWT token
+- But padlock icons remain unlocked (🔓) for protected endpoints
+- Getting 401/403 errors when trying to access protected routes
+
+**Solution Steps:**
+
+#### 1. **Restart the Development Server**
+If you just updated the code, restart the server:
+```bash
+npm run start:dev
+```
+
+#### 2. **Proper Swagger Authentication:**
+1. **Get your JWT token** first:
+   ```json
+   POST /auth/login
+   {
+     "email": "your.email@example.com",
+     "password": "YourPassword123!"
+   }
+   ```
+   Copy the `accessToken` from the response.
+
+2. **Authenticate in Swagger:**
+   - Look for the **"Authorize" button** (🔒) at the top of Swagger UI
+   - Click it and paste your token in the "Value" field
+   - Make sure to paste **just the token**, not `"Bearer token"`
+   - Click "Authorize"
+
+3. **Verify Authentication:**
+   - All protected endpoints should now show locked padlocks (🔒)
+   - If they're still unlocked, refresh the Swagger page and try again
+
+#### 3. **Test Authentication:**
+```bash
+GET /auth/profile
+Authorization: Bearer <your_jwt_token>
+```
+Should return your user profile if authentication is working.
+
+#### 4. **Growth User Withdrawal Access:**
+For withdrawal endpoints, ensure:
+- Your account has `growth_associate` or `growth_elite` role
+- You're authenticated with the correct JWT token
+- The padlock is locked (🔒) before making requests
+
+#### 5. **Common Mistakes:**
+- ❌ Including "Bearer " in the token field
+- ❌ Using expired tokens (tokens expire after 24 hours)
+- ❌ Wrong user role (withdrawals need GA/GE roles)
+- ❌ Not clicking "Authorize" after pasting token
+
+### Problem: 401 Unauthorized Error
+
+**Solution:**
+1. Check if your token has expired (login again)
+2. Verify you clicked "Authorize" in Swagger
+3. Test with `GET /auth/profile` first
+
+### Problem: 403 Forbidden Error
+
+**Solution:**
+1. Check if your user has the required role
+2. For withdrawals: need `growth_associate` or `growth_elite`
+3. For admin endpoints: need `admin` role
+
+## �💰 Profit Pool System Testing (NEW - August 2025)
 
 The Profit Pool system distributes 1% of monthly city revenue to Growth Elite users as Nibia rewards! Here's how to test it:
 

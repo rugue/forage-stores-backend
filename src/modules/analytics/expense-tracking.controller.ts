@@ -33,7 +33,7 @@ import { ANALYTICS_CONSTANTS } from './constants';
 
 @ApiTags('analytics')
 @Controller('analytics')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 export class ExpenseTrackingController {
   private readonly logger = new Logger(ExpenseTrackingController.name);

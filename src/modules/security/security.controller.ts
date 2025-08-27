@@ -38,7 +38,7 @@ import {
 @ApiTags('Security')
 @Controller('security')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class SecurityController {
   constructor(
     private readonly auditService: SecurityAuditService,

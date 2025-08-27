@@ -36,7 +36,7 @@ import { WithdrawalRequest } from '../entities/withdrawal-request.entity';
 @ApiTags('Wallet Withdrawals')
 @Controller('wallets/withdrawals')
 @UseGuards(AuthGuard('jwt'))
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class WithdrawalController {
   constructor(private readonly withdrawalService: WithdrawalService) {}
 

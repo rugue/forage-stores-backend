@@ -9,7 +9,7 @@ import { ScheduledJobsService } from './scheduled-jobs.service';
 @ApiTags('Scheduled Jobs (Admin)')
 @Controller('scheduled-jobs')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class ScheduledJobsController {
   constructor(private readonly scheduledJobsService: ScheduledJobsService) {}
 

@@ -35,7 +35,7 @@ import { ApiEndpoint } from '../../common/decorators/api-endpoint.decorator';
 @ApiTags('profit-pool')
 @Controller('profit-pool')
 @UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 export class ProfitPoolController {
   constructor(private readonly profitPoolService: ProfitPoolService) {}
 
