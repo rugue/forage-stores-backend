@@ -2052,8 +2052,12 @@ POST /admin/wallets/wipe
 
 #### 2.2 Withdrawal Management
 ```bash
-# Process withdrawal request  
-POST /admin/withdrawals/{requestId}/process
+# Get pending withdrawal requests (Admin endpoint)
+GET /admin/withdrawals/pending
+Query: ?city=Lagos&priority=1
+
+# Process withdrawal request (Admin endpoint)  
+PATCH /admin/withdrawals/{withdrawalId}/decision
 {
   "action": "approve",
   "adminNotes": "User verified, withdrawal approved",
@@ -2061,7 +2065,19 @@ POST /admin/withdrawals/{requestId}/process
   "priority": 1
 }
 
-# Bulk process withdrawals
+# Alternative: Process withdrawal via Wallets module
+PATCH /wallets/withdrawals/admin/{requestId}/process
+{
+  "action": "approved",
+  "adminNotes": "User verified, withdrawal approved",
+  "adminPassword": "AdminSecure123!"
+}
+
+# Get all withdrawal requests (Wallets module)
+GET /wallets/withdrawals/admin/all
+Query: ?status=pending&page=1&limit=10
+
+# Bulk process withdrawals (Admin endpoint)
 POST /admin/withdrawals/bulk-process
 {
   "adminPassword": "AdminSecure123!",
@@ -2071,11 +2087,36 @@ POST /admin/withdrawals/bulk-process
 }
 ```
 
-**Process Withdrawal Schema:**
-- `action`: Enum ["approve", "reject"] (required)
-- `adminNotes`: String (optional)
-- `adminPassword`: String (required, non-empty)
-- `priority`: Number (optional, 1-5, where 1 is highest priority)
+**Get Pending Withdrawals:**
+- Endpoint: `GET /admin/withdrawals/pending`
+- Query Parameters:
+  - `city`: String (optional)
+  - `priority`: Number (optional)
+
+**Process Withdrawal (Admin Module):**
+- Endpoint: `PATCH /admin/withdrawals/{withdrawalId}/decision`
+- Parameter: `withdrawalId` (from pending withdrawals response)
+- Schema:
+  - `action`: Enum ["approve", "reject"] (required)
+  - `adminNotes`: String (optional)
+  - `adminPassword`: String (required, non-empty)
+  - `priority`: Number (optional, 1-5, where 1 is highest priority)
+
+**Process Withdrawal (Wallets Module):**
+- Endpoint: `PATCH /wallets/withdrawals/admin/{requestId}/process`
+- Parameter: `requestId` (from all withdrawals response)
+- Schema:
+  - `action`: Enum ["approved", "rejected"] (required)
+  - `adminNotes`: String (optional)
+  - `adminPassword`: String (required, non-empty)
+
+**Get All Withdrawals:**
+- Endpoint: `GET /wallets/withdrawals/admin/all`
+- Query Parameters:
+  - `status`: Enum ["pending", "approved", "rejected", "completed"] (optional)
+  - `userId`: String (optional)
+  - `page`: Number (optional, default 1)
+  - `limit`: Number (optional, default 10)
 
 **Bulk Process Withdrawal Schema:**
 - `adminPassword`: String (required, non-empty)
@@ -3553,6 +3594,8 @@ Here are some complete workflows you can test:
 #### Phase 3: Admin Processing Workflow
 1. **Review pending requests:**
    ```bash
+   GET /admin/withdrawals/pending
+   # OR use wallets module:
    GET /wallets/withdrawals/admin/all?status=pending
    # GE requests appear first (priority 2), then GA (priority 1)
    ```
@@ -3565,6 +3608,15 @@ Here are some complete workflows you can test:
 
 3. **Process withdrawal request:**
    ```bash
+   # Admin module (uses "decision" endpoint):
+   PATCH /admin/withdrawals/{withdrawalId}/decision
+   {
+     "action": "approve",
+     "adminNotes": "Verified GA status and bank details",
+     "adminPassword": "AdminSecure123!"
+   }
+
+   # OR Wallets module (uses "process" endpoint):
    PATCH /wallets/withdrawals/admin/{requestId}/process
    {
      "action": "approved",
