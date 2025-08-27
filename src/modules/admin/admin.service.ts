@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, UnauthorizedException, NotFoundExcepti
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from '../users/entities/user.entity';
+import { User, UserDocument, UserRole } from '../users/entities/user.entity';
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { Order, OrderDocument } from '../orders/entities/order.entity';
 import { Subscription, SubscriptionDocument } from '../subscriptions/entities/subscription.entity';
@@ -10,6 +10,7 @@ import { Referral, ReferralDocument } from '../referrals/entities/referral.entit
 import { Product, ProductDocument } from '../products/entities/product.entity';
 import { ProfitPool, ProfitPoolDocument, ProfitPoolStatus } from '../profit-pool/entities/profit-pool.entity';
 import { WithdrawalRequest, WithdrawalRequestDocument } from '../wallets/entities/withdrawal-request.entity';
+import { WalletsService } from '../wallets/wallets.service';
 import { 
   AdminWalletFundDto, 
   AdminWalletWipeDto, 
@@ -40,6 +41,7 @@ export class AdminService {
     @InjectModel('Category') private categoryModel: Model<any>,
     @InjectModel('PriceHistory') private priceHistoryModel: Model<any>,
     @InjectModel('CommissionOverride') private commissionOverrideModel: Model<any>,
+    private walletsService: WalletsService,
   ) {}
 
   /**
@@ -1265,6 +1267,52 @@ export class AdminService {
       originalDistributedAmount,
       originalRecipientsCount: originalDistributedTo.length,
       resetAt: new Date(),
+    };
+  }
+
+  /**
+   * User Withdrawal Management
+   */
+  async enableUserWithdrawal(userId: string) {
+    // Validate user exists and has appropriate role
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user has Growth Associate or Growth Elite role
+    if (user.role !== UserRole.GROWTH_ASSOCIATE && user.role !== UserRole.GROWTH_ELITE) {
+      throw new BadRequestException(
+        'Only Growth Associates and Growth Elites can have withdrawal enabled'
+      );
+    }
+
+    // Enable withdrawal using wallets service
+    await this.walletsService.enableNibiaWithdrawal(userId);
+
+    return {
+      message: 'Nibia withdrawal enabled successfully',
+      userId,
+      userRole: user.role,
+      userEmail: user.email,
+    };
+  }
+
+  async disableUserWithdrawal(userId: string) {
+    // Validate user exists
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Disable withdrawal using wallets service
+    await this.walletsService.disableNibiaWithdrawal(userId);
+
+    return {
+      message: 'Nibia withdrawal disabled successfully',
+      userId,
+      userRole: user.role,
+      userEmail: user.email,
     };
   }
 }

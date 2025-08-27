@@ -408,6 +408,60 @@ For withdrawal endpoints, ensure:
 2. For withdrawals: need `growth_associate` or `growth_elite`
 3. For admin endpoints: need `admin` role
 
+### Problem: "Nibia withdrawal is not enabled for your account"
+
+**Symptoms:**
+- You have `growth_associate` or `growth_elite` role
+- Getting 403 error: "Nibia withdrawal is not enabled for your account. Please contact support."
+
+**Root Cause:**
+The `nibiaWithdrawEnabled` flag in your wallet is set to `false`. This happens when:
+- User was created directly with growth role (not promoted)
+- Wallet was created before role assignment
+
+**Solutions:**
+
+#### Option 1: Admin Enable (Recommended)
+Use the admin endpoint to enable withdrawal:
+```bash
+PATCH /admin/users/{userId}/enable-withdrawal
+Authorization: Bearer <admin_jwt_token>
+```
+
+#### Option 2: Self-Enable via Postman/Curl
+If you have admin access:
+1. Get your user ID from `GET /auth/profile`
+2. Call the enable endpoint with your user ID
+
+#### Option 3: Check Wallet Status
+```bash
+GET /wallets/profile
+Authorization: Bearer <your_jwt_token>
+```
+Look for `"nibiaWithdrawEnabled": false`
+
+**Example Fix:**
+```bash
+# 1. Login as admin
+POST /auth/login
+{
+  "email": "admin@example.com",
+  "password": "AdminPass123!"
+}
+
+# 2. Enable withdrawal for growth user
+PATCH /admin/users/{growth_user_id}/enable-withdrawal
+Authorization: Bearer <admin_token>
+
+# 3. Test withdrawal again
+POST /wallets/withdrawals/request
+Authorization: Bearer <growth_user_token>
+{
+  "nibiaAmount": 100,
+  "userReason": "Test withdrawal"
+}
+```
+
 ### Problem: Can Still Access Profile After Logout
 
 **Expected Behavior:**

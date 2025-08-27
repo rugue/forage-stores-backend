@@ -257,6 +257,23 @@ export class AdminController {
     return this.adminService.bulkProcessWithdrawals(bulkDto, user.id);
   }
 
+  @Patch('users/:userId/enable-withdrawal')
+  @ApiOperation({ summary: 'Enable Nibia withdrawal for Growth Associate/Elite users (admin only)' })
+  @ApiResponse({ status: 200, description: 'Withdrawal enabled successfully' })
+  @ApiResponse({ status: 404, description: 'User or wallet not found' })
+  @ApiResponse({ status: 400, description: 'User is not eligible for withdrawals' })
+  async enableUserWithdrawal(@Param('userId') userId: string) {
+    return this.adminService.enableUserWithdrawal(userId);
+  }
+
+  @Patch('users/:userId/disable-withdrawal')
+  @ApiOperation({ summary: 'Disable Nibia withdrawal for users (admin only)' })
+  @ApiResponse({ status: 200, description: 'Withdrawal disabled successfully' })
+  @ApiResponse({ status: 404, description: 'User or wallet not found' })
+  async disableUserWithdrawal(@Param('userId') userId: string) {
+    return this.adminService.disableUserWithdrawal(userId);
+  }
+
   /**
    * Referral Commission Override Endpoints
    */
