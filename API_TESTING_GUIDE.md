@@ -203,7 +203,80 @@ Let's walk through the complete process of getting authenticated and creating yo
 - **Token expires:** Your access token expires after 24 hours, then you'll need to login again
 - **Store ownership:** Only you can update/delete stores you created
 
-## 🔍 Testing Other Endpoints
+## � Admin: Creating Growth Users Workflow
+
+### Prerequisites
+1. **Admin Authentication:** You need an admin JWT token
+2. **Admin Account:** Must have `ADMIN` role
+
+### Step 1: Admin Login
+```bash
+POST /auth/login
+```
+```json
+{
+  "email": "admin@example.com", 
+  "password": "AdminPass123!"
+}
+```
+
+### Step 2: Create Growth Associate User
+```bash
+POST /users
+Authorization: Bearer <admin_jwt_token>
+```
+```json
+{
+  "email": "ga.user@example.com",
+  "name": "Growth Associate User",
+  "password": "SecurePass123!",
+  "role": "growth_associate",
+  "city": "Lagos",
+  "phone": "+2347012345678"
+}
+```
+
+### Step 3: Create Growth Elite User  
+```bash
+POST /users
+Authorization: Bearer <admin_jwt_token>
+```
+```json
+{
+  "email": "ge.user@example.com", 
+  "name": "Growth Elite User",
+  "password": "SecurePass123!",
+  "role": "growth_elite",
+  "city": "Lagos",
+  "phone": "+2347012345679"
+}
+```
+
+### Step 4: Verify Creation
+```bash
+GET /admin/users?role=growth_associate
+GET /admin/users?role=growth_elite
+Authorization: Bearer <admin_jwt_token>
+```
+
+### Step 5: Test Growth User Login
+```bash
+POST /auth/login
+```
+```json
+{
+  "email": "ga.user@example.com",
+  "password": "SecurePass123!"
+}
+```
+
+**💡 Pro Tips:**
+- Growth users can create withdrawal requests that require admin approval
+- Both `growth_associate` and `growth_elite` can use withdrawal endpoints
+- Created users can immediately login and access appropriate endpoints
+- Use `GET /admin/users` with role filters to manage growth users
+
+## �🔍 Testing Other Endpoints
 
 Now that you're authenticated, you can test any endpoint marked with a 🔒 lock icon. Here are some next steps:
 
@@ -2468,6 +2541,9 @@ Use this comprehensive checklist to verify all admin functionality:
 - [ ] Update user information
 - [ ] User role management
 - [ ] User verification status updates
+- [ ] Create Growth Associate users
+- [ ] Create Growth Elite users
+- [ ] Test growth user login and permissions
 
 ### 💰 Financial Operations
 - [ ] View wallet statistics across all users
@@ -2822,19 +2898,69 @@ Solution:
 **Description:** Get complete user profile (admin view)
 
 ### Create User (Admin)
-**Endpoint:** `POST /users/admin/create`
-**Description:** Create new user account
+**Endpoint:** `POST /users`
+**Description:** Create new user account with any role (Admin only)
+**Authentication:** Admin JWT token required
+**Headers:**
+```
+Authorization: Bearer <admin_jwt_token>
+Content-Type: application/json
+```
+
 **Request Body:**
 ```json
 {
   "email": "newuser@example.com",
   "name": "New User",
-  "password": "securePassword123",
+  "password": "SecurePass123!",
   "role": "user",
-  "phoneNumber": "+2341234567890",
+  "phone": "+2341234567890",
+  "city": "Lagos",
+  "accountType": "FAMILY",
+  "referralCode": "REF123456",
+  "creditScore": 750
+}
+```
+
+#### Create Growth Associate User
+```json
+{
+  "email": "ga@example.com",
+  "name": "Growth Associate User",
+  "password": "SecurePass123!",
+  "role": "growth_associate",
   "city": "Lagos"
 }
 ```
+
+#### Create Growth Elite User
+```json
+{
+  "email": "ge@example.com",
+  "name": "Growth Elite User", 
+  "password": "SecurePass123!",
+  "role": "growth_elite",
+  "city": "Lagos"
+}
+```
+
+**Available Roles:**
+- `user` (default)
+- `admin`
+- `growth_associate`
+- `growth_elite` 
+- `rider`
+- `pro-affiliate`
+- `system`
+
+**Required Fields:** `name`, `email`, `password`
+**Password Requirements:** Min 8 chars, must contain uppercase, lowercase, number, and special character
+
+**Response:**
+- **201:** User created successfully
+- **401:** Unauthorized (Admin token required)
+- **403:** Forbidden (Admin role required)
+- **409:** Email or referral code already exists
 
 ---
 
@@ -3417,8 +3543,8 @@ GET /support/admin/analytics
 # View all users
 GET /users/admin/all?page=1&limit=20
 
-# Create new user
-POST /users/admin/create
+# Create new user (Admin only)
+POST /users
 
 # Update user role
 PATCH /users/admin/{userId}
