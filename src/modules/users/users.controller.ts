@@ -10,7 +10,11 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -18,15 +22,18 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateCreditScoreDto } from './dto/update-credit-score.dto';
+import { UploadProfileImageDto } from './dto/upload-profile-image.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
+import { ParseObjectIdPipe } from '../../common/pipes/parse-object-id.pipe';
 
 @ApiTags('users')
 @Controller('users')
@@ -93,10 +100,70 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @HttpCode(HttpStatus.OK)
   updatePassword(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
     return this.usersService.updatePassword(id, updatePasswordDto);
+  }
+
+  @Post('profile/:id/image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('profileImage', {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed'), false);
+      }
+    },
+  }))
+  @ApiBearerAuth('JWT-auth')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload profile image' })
+  @ApiResponse({
+    status: 201,
+    description: 'Profile image uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        profileImageUrl: { type: 'string', example: '/uploads/profiles/user123-1234567890.jpg' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file type or size' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  uploadProfileImage(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @UploadedFile() file: any,
+  ) {
+    return this.usersService.uploadProfileImage(id, file);
+  }
+
+  @Delete('profile/:id/image')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Delete profile image' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile image deleted successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Profile image deleted successfully' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  deleteProfileImage(@Param('id', ParseObjectIdPipe) id: string) {
+    return this.usersService.deleteProfileImage(id);
   }
 
   // Admin routes (require admin authentication)
@@ -277,5 +344,49 @@ export class UsersController {
   @ApiParam({ name: 'city', description: 'City name' })
   findByCity(@Param('city') city: string) {
     return this.usersService.findByCity(city);
+  }
+
+  @Patch(':id/deactivate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Deactivate user account' })
+  @ApiResponse({
+    status: 200,
+    description: 'Account deactivated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Account deactivated successfully' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @HttpCode(HttpStatus.OK)
+  deactivateAccount(@Param('id', ParseObjectIdPipe) id: string) {
+    return this.usersService.deactivateAccount(id);
+  }
+
+  @Patch(':id/reactivate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Reactivate user account' })
+  @ApiResponse({
+    status: 200,
+    description: 'Account reactivated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Account reactivated successfully' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @HttpCode(HttpStatus.OK)
+  reactivateAccount(@Param('id', ParseObjectIdPipe) id: string) {
+    return this.usersService.reactivateAccount(id);
   }
 }

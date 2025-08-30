@@ -157,6 +157,18 @@ export class User implements IUser {
   @IsOptional()
   passwordResetExpiry?: Date;
 
+  @ApiProperty({ description: 'Profile image URL', required: false })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
+
+  @ApiProperty({ description: 'User address', required: false })
+  @Prop({ required: false, type: String, maxlength: 255 })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 

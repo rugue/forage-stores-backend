@@ -3,18 +3,25 @@ import {
   NotFoundException,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from '../users/entities/user.entity';
+import * as fs from 'fs';
+import * as path from 'path';
+import { User, UserDocument, AccountStatus } from '../users/entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { FileUploadService } from './services/file-upload.service';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private fileUploadService: FileUploadService,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
@@ -280,5 +287,105 @@ export class UsersService {
 
   async findPendingUsers(): Promise<User[]> {
     return this.userModel.find({ accountStatus: 'pending' }).exec();
+  }
+
+  // Profile Image Management
+  async uploadProfileImage(userId: string, file: any): Promise<{ profileImageUrl: string }> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    // Validate file type
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed');
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size too large. Maximum size is 5MB');
+    }
+
+    try {
+      // Get upload paths from service
+      const profilesPath = this.fileUploadService.getProfilesPath();
+      
+      // Generate unique filename
+      const filename = this.fileUploadService.generateFileName(userId, file.originalname);
+      const filepath = path.join(profilesPath, filename);
+
+      // Save file
+      fs.writeFileSync(filepath, file.buffer);
+
+      // Update user profile with image URL
+      const profileImageUrl = `/uploads/profiles/${filename}`;
+      await this.userModel.findByIdAndUpdate(
+        userId,
+        { profileImage: profileImageUrl },
+        { new: true }
+      );
+
+      return { profileImageUrl };
+    } catch (error) {
+      throw new BadRequestException(`Failed to upload profile image: ${error.message}`);
+    }
+  }
+
+  async deleteProfileImage(userId: string): Promise<{ message: string }> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.profileImage) {
+      try {
+        // Delete file from filesystem
+        const filepath = path.join(process.cwd(), user.profileImage);
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath);
+        }
+
+        // Remove from user record
+        await this.userModel.findByIdAndUpdate(
+          userId,
+          { $unset: { profileImage: 1 } },
+          { new: true }
+        );
+      } catch (error) {
+        throw new BadRequestException(`Failed to delete profile image: ${error.message}`);
+      }
+    }
+
+    return { message: 'Profile image deleted successfully' };
+  }
+
+  // Account Management
+  async deactivateAccount(userId: string): Promise<{ message: string }> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { accountStatus: AccountStatus.DEACTIVATED },
+      { new: true }
+    );
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return { message: 'Account deactivated successfully' };
+  }
+
+  async reactivateAccount(userId: string): Promise<{ message: string }> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { accountStatus: AccountStatus.ACTIVE },
+      { new: true }
+    );
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return { message: 'Account reactivated successfully' };
   }
 }

@@ -1,0 +1,18 @@
+# Uploads Directory
+
+This directory contains user-uploaded files.
+
+## Structure
+- `profiles/` - User profile images
+- `.gitkeep` - Ensures directory is tracked in git
+
+## File Management
+- Files are automatically organized by type
+- Old files are cleaned up when users upload new profile images
+- Maximum file size: 5MB
+- Supported formats: JPEG, PNG, GIF, WebP
+
+## Security
+- All uploads are validated for file type and size
+- Files are stored outside the web root for security
+- Access is controlled through API endpoints
