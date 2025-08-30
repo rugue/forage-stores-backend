@@ -1,11 +1,61 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, ClientSession, Types } from 'mongoose';
 import { Commission, CommissionDocument, CommissionType, CommissionStatus } from '../entities/commission.entity';
 import { User, UserDocument, UserRole } from '../../users/entities/user.entity';
 import { Order, OrderDocument } from '../../orders/entities/order.entity';
-import { Wallet, WalletDocument } from '../../wallets/entities/wallet.entity';
-import { REFERRAL_CONSTANTS } from '../constants/referral.constants';
+import { CommissionStrategyFactory } from '../strategies/commission.strategies';
+import { TransactionService } from './transaction.service';
+
+// Define interfaces for DTOs
+export interface CreateCommissionDto {
+  userId: string;
+  orderId?: string;
+  referredUserId?: string;
+  amount: number;
+  type: CommissionType;
+  rate: number;
+  orderAmount?: number;
+  city: string;
+  metadata?: Record<string, any>;
+}
+
+export interface GetCommissionsDto {
+  userId?: string;
+  status?: CommissionStatus;
+  type?: CommissionType;
+  startDate?: Date;
+  endDate?: Date;
+  page?: number;
+  limit?: number;
+}
+
+export interface CommissionCalculationDto {
+  referrerRole: UserRole;
+  orderAmount: number;
+  previousCommissions: number;
+  referredUserId: string;
+}
+
+// Referral constants
+export const REFERRAL_CONSTANTS = {
+  NORMAL_USER: {
+    MAX_QUALIFYING_PURCHASES: 3,
+    COMMISSION_RATE_MIN: 2,
+    COMMISSION_RATE_MAX: 5,
+  },
+  GROWTH_ASSOCIATE: {
+    COMMISSION_RATE_MIN: 3,
+    COMMISSION_RATE_MAX: 8,
+    VOLUME_THRESHOLD: 100000,
+  },
+  GROWTH_ELITE: {
+    COMMISSION_RATE_MIN: 5,
+    COMMISSION_RATE_MAX: 12,
+    VOLUME_THRESHOLD: 250000,
+    LEADERSHIP_BONUS_RATE: 2,
+  },
+};
 
 export interface CreateCommissionDto {
   userId: string;
@@ -27,7 +77,8 @@ export class CommissionService {
     @InjectModel(Commission.name) private commissionModel: Model<CommissionDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
-    @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    private readonly commissionStrategyFactory: CommissionStrategyFactory,
+    private readonly transactionService: TransactionService,
   ) {}
 
   async createCommission(dto: CreateCommissionDto): Promise<CommissionDocument> {
@@ -104,59 +155,44 @@ export class CommissionService {
       return null;
     }
 
-    let commissionType: CommissionType;
-    let shouldEarnCommission = false;
-    let commissionRate = 0;
+    // Get commission strategy for referrer's role
+    const strategy = this.commissionStrategyFactory.getStrategy(referrer.role);
+    
+    // Count previous commissions for this referral relationship
+    const previousCommissions = await this.commissionModel.countDocuments({
+      userId: referrer._id,
+      referredUserId: referredUser._id,
+    });
 
-    // Determine commission eligibility based on referrer role
-    switch (referrer.role) {
-      case UserRole.GROWTH_ASSOCIATE:
-        shouldEarnCommission = true;
-        commissionType = CommissionType.GA_REFERRAL;
-        commissionRate = this.calculateDynamicRate(order.totalAmountInNibia);
-        break;
+    // Calculate commission using strategy pattern
+    const calculationResult = await strategy.calculateCommission(
+      referrer.role,
+      order.totalAmountInNibia,
+      previousCommissions,
+      referredUser._id.toString(),
+    );
 
-      case UserRole.GROWTH_ELITE:
-        shouldEarnCommission = true;
-        commissionType = CommissionType.GE_REFERRAL;
-        commissionRate = this.calculateDynamicRate(order.totalAmountInNibia);
-        break;
-
-      case UserRole.USER:
-      case UserRole.PRO_AFFILIATE:
-        // Check if this is within the first 3 purchases
-        const previousCommissions = await this.commissionModel.countDocuments({
-          userId: referrer._id,
-          referredUserId: referredUser._id,
-          type: CommissionType.NORMAL_REFERRAL,
-        });
-
-        if (previousCommissions < REFERRAL_CONSTANTS.NORMAL_USER.MAX_QUALIFYING_PURCHASES) {
-          shouldEarnCommission = true;
-          commissionType = CommissionType.NORMAL_REFERRAL;
-          commissionRate = this.calculateDynamicRate(order.totalAmountInNibia);
-        }
-        break;
-
-      default:
-        shouldEarnCommission = false;
-    }
-
-    if (!shouldEarnCommission) {
+    if (!calculationResult.shouldEarnCommission) {
+      this.logger.log(`No commission earned for referrer ${referrer._id} on order ${order._id}`);
       return null;
     }
 
-    const commissionAmount = (order.totalAmountInNibia * commissionRate) / 100;
+    const commissionAmount = (order.totalAmountInNibia * calculationResult.commissionRate!) / 100;
 
     return this.createCommission({
       userId: referrer._id.toString(),
       orderId: order._id.toString(),
       referredUserId: referredUser._id.toString(),
       amount: commissionAmount,
-      type: commissionType,
-      rate: commissionRate,
+      type: calculationResult.commissionType!,
+      rate: calculationResult.commissionRate!,
       orderAmount: order.totalAmountInNibia,
       city: referredUser.city || 'unknown',
+      metadata: {
+        strategy: referrer.role,
+        maxPurchases: calculationResult.maxPurchases,
+        previousCommissions,
+      },
     });
   }
 
@@ -173,32 +209,33 @@ export class CommissionService {
     return Math.min(Math.max(rate, minRate), maxRate);
   }
 
-  async processCommission(commissionId: string): Promise<CommissionDocument> {
-    const commission = await this.commissionModel.findById(commissionId);
+  async processCommission(commissionId: string, session?: ClientSession): Promise<CommissionDocument> {
+    const commission = await this.commissionModel.findById(commissionId).session(session);
+    
     if (!commission || commission.status !== CommissionStatus.PENDING) {
-      throw new Error(`Commission ${commissionId} not found or not pending`);
+      throw new NotFoundException('Commission not found or not pending');
     }
 
-    // Find user's wallet
-    const wallet = await this.walletModel.findOne({ userId: commission.userId });
-    if (!wallet) {
-      throw new Error(`Wallet not found for user ${commission.userId}`);
+    try {
+      // Use transaction service to process payment
+      await this.transactionService.executeTransaction(async (currentSession) => {
+        // Commission processing will be handled by payment interceptor
+        // Just update the commission status
+        commission.status = CommissionStatus.PROCESSED;
+        commission.processedAt = new Date();
+        await commission.save({ session: currentSession });
+      });
+
+      this.logger.log(`Commission ${commissionId} processed successfully`);
+      return commission;
+    } catch (error) {
+      this.logger.error(`Failed to process commission ${commissionId}:`, error);
+      commission.status = CommissionStatus.FAILED;
+      commission.failedAt = new Date();
+      commission.failureReason = error.message;
+      await commission.save({ session });
+      throw error;
     }
-
-    // Add commission to user's Nibia balance
-    wallet.foodMoney += commission.amount;
-
-    // Update commission status
-    commission.status = CommissionStatus.PROCESSED;
-    commission.processedAt = new Date();
-
-    await Promise.all([
-      wallet.save(),
-      commission.save(),
-    ]);
-
-    this.logger.log(`Processed commission ${commissionId}: ${commission.amount} Nibia for user ${commission.userId}`);
-    return commission;
   }
 
   async getCommissionsByUser(
@@ -300,5 +337,28 @@ export class CommissionService {
 
     this.logger.log(`Processed ${processedCount} pending commissions`);
     return processedCount;
+  }
+
+  async rollbackCommission(commissionId: string, reason: string): Promise<void> {
+    try {
+      await this.transactionService.executeTransaction(async (session) => {
+        const commission = await this.commissionModel.findById(commissionId).session(session);
+        
+        if (!commission) {
+          throw new NotFoundException('Commission not found');
+        }
+
+        if (commission.status === CommissionStatus.PROCESSED) {
+          // Use transaction service to handle wallet rollback
+          commission.status = CommissionStatus.FAILED;
+          commission.failedAt = new Date();
+          commission.failureReason = reason;
+          await commission.save({ session });
+        }
+      });
+    } catch (error) {
+      this.logger.error(`Failed to rollback commission ${commissionId}:`, error);
+      throw error;
+    }
   }
 }

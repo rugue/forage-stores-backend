@@ -16,6 +16,7 @@ export enum CommissionStatus {
   PROCESSED = 'processed',
   CANCELLED = 'cancelled',
   EXPIRED = 'expired',
+  FAILED = 'failed',
 }
 
 @Schema({ 
@@ -126,6 +127,20 @@ export class Commission extends Document {
     type: Date
   })
   processedAt?: Date;
+
+  @ApiProperty({ description: 'Date when commission failed' })
+  @Prop({ 
+    required: false, 
+    type: Date
+  })
+  failedAt?: Date;
+
+  @ApiProperty({ description: 'Reason for commission failure' })
+  @Prop({ 
+    required: false, 
+    type: String
+  })
+  failureReason?: string;
 
   @ApiProperty({ description: 'Additional metadata' })
   @Prop({ 
