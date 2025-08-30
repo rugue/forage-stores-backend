@@ -2489,26 +2489,40 @@ Query: ?dateRange[startDate]=2025-01-01T00:00:00.000Z&dateRange[endDate]=2025-12
 ### 🚀 Phase 4: Profit Pool Administration
 
 #### 4.1 Profit Pool Management
+
+**Note:** Profit pools have endpoints in two controllers:
+- `/admin/profit-pools/*` - Admin overview and adjustment endpoints  
+- `/profit-pool/*` - Main profit pool operations
+
 ```bash
-# View current profit pools
-GET /admin/profit-pools/current
-Query: ?city=Lagos
+# View current profit pools (main endpoint)
+GET /profit-pool
+Query: ?city=Lagos&month=2025-08&page=1&limit=10
+
+# Admin view with stats
+GET /admin/profit-pools
+Query: ?city=Lagos&status=CALCULATED
 
 # Create manual profit pool
-POST /admin/profit-pools/create
+POST /profit-pool/create
 {
-  "month": "2025-08",
   "city": "Lagos",
-  "totalAmount": 75000,
-  "adminPassword": "AdminSecure123!",
-  "reason": "Manual pool creation for testing"
+  "month": "2025-08",
+  "force": false
 }
 
-# Distribute profit pool
-POST /admin/profit-pools/{poolId}/distribute
+# Distribute profit pool (poolId in body)
+POST /profit-pool/distribute
+{
+  "poolId": "64f123456789abcdef012345",
+  "notes": "Monthly distribution completed"
+}
+
+# Alternative: Admin redistribute (poolId in URL)
+POST /admin/profit-pools/{poolId}/redistribute
 {
   "adminPassword": "AdminSecure123!",
-  "notes": "Monthly distribution completed"
+  "notes": "Force redistribution"
 }
 ```
 
@@ -3423,7 +3437,7 @@ GET /admin/commissions/64a7b12c8f9e4d5a6b7c8901/history
 ### 🎯 Advanced Profit Pool Management
 
 #### Get Profit Pool Details
-**Endpoint:** `GET /admin/profit-pools/{poolId}/details`
+**Endpoint:** `GET /admin/profit-pools/{poolId}`
 **Description:** View comprehensive profit pool information with distribution details
 **Authentication:** Admin only
 
@@ -3459,7 +3473,7 @@ GET /admin/commissions/64a7b12c8f9e4d5a6b7c8901/history
 ```
 
 #### Adjust Profit Pool
-**Endpoint:** `PUT /admin/profit-pools/{poolId}/adjust`
+**Endpoint:** `POST /admin/profit-pools/{poolId}/adjust`
 **Description:** Increase, decrease, or redistribute profit pool amounts
 **Request Body:**
 ```json
@@ -3498,7 +3512,7 @@ GET /admin/commissions/64a7b12c8f9e4d5a6b7c8901/history
 ```
 
 #### Monthly Profit Pool Report
-**Endpoint:** `GET /admin/profit-pools/monthly-report`
+**Endpoint:** `GET /admin/profit-pools/reports/monthly`
 **Description:** Comprehensive monthly analytics with city breakdowns
 **Query Parameters:**
 ```
