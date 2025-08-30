@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
+import { WalletCacheService } from './services/wallet-cache.service';
+import { WalletCreatedEvent, WalletBalanceUpdatedEvent, WalletStatusChangedEvent } from './events/wallet.events';
 import {
   UpdateBalanceDto,
   TransferFundsDto,
@@ -20,6 +23,8 @@ import {
 export class WalletsService {
   constructor(
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    private readonly walletCacheService: WalletCacheService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // Create a new wallet for a user
@@ -39,7 +44,28 @@ export class WalletsService {
         nibiaWithdrawEnabled: false, // Default to false, enabled when promoted to GA/GE
       });
 
-      return await wallet.save();
+      const savedWallet = await wallet.save();
+
+      // Emit wallet created event
+      this.eventEmitter.emit(
+        'wallet.created',
+        new WalletCreatedEvent(userId, savedWallet._id.toString(), {
+          foodMoney: 0.0,
+          foodPoints: 0.0,
+          foodSafe: 0.0,
+        }),
+      );
+
+      // Cache the initial balance
+      await this.walletCacheService.updateBalance(
+        userId,
+        'foodMoney',
+        0.0,
+        `CREATE_${Date.now()}`,
+        'Wallet creation',
+      );
+
+      return savedWallet;
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -62,7 +88,7 @@ export class WalletsService {
     return wallet;
   }
 
-  // Get wallet balance summary
+  // Get wallet balance summary with caching
   async getWalletBalance(userId: string): Promise<{
     foodMoney: number;
     foodPoints: number;
@@ -70,20 +96,53 @@ export class WalletsService {
     totalBalance: number;
     status: string;
     lastTransactionAt?: Date;
+    cached?: boolean;
   }> {
-    const wallet = await this.getWalletByUserId(userId);
-    
-    return {
-      foodMoney: wallet.foodMoney,
-      foodPoints: wallet.foodPoints,
-      foodSafe: wallet.foodSafe,
-      totalBalance: wallet.totalBalance || wallet.foodMoney + wallet.foodSafe,
-      status: wallet.status,
-      lastTransactionAt: wallet.lastTransactionAt,
-    };
+    try {
+      // Try to get from cache first
+      const cachedBalance = await this.walletCacheService.getBalance(userId);
+      
+      if (cachedBalance.cacheHit) {
+        // Get additional wallet info from database
+        const wallet = await this.walletModel.findOne({ userId: new Types.ObjectId(userId) }).lean();
+        
+        return {
+          ...cachedBalance,
+          status: wallet?.status || 'unknown',
+          lastTransactionAt: wallet?.lastTransactionAt,
+          cached: true,
+        };
+      }
+
+      // Cache miss - get fresh data from database
+      const wallet = await this.getWalletByUserId(userId);
+      
+      return {
+        foodMoney: wallet.foodMoney,
+        foodPoints: wallet.foodPoints,
+        foodSafe: wallet.foodSafe,
+        totalBalance: wallet.totalBalance || wallet.foodMoney + wallet.foodSafe,
+        status: wallet.status,
+        lastTransactionAt: wallet.lastTransactionAt,
+        cached: false,
+      };
+    } catch (error) {
+      // Fallback to direct database query if cache fails
+      const wallet = await this.getWalletByUserId(userId);
+      
+      return {
+        foodMoney: wallet.foodMoney,
+        foodPoints: wallet.foodPoints,
+        foodSafe: wallet.foodSafe,
+        totalBalance: wallet.totalBalance || wallet.foodMoney + wallet.foodSafe,
+        status: wallet.status,
+        lastTransactionAt: wallet.lastTransactionAt,
+        cached: false,
+      };
+    }
   }
 
-  // Update wallet balance (Admin only)
+  // Update wallet balance (Admin only) with caching and events
   async updateBalance(
     userId: string,
     updateBalanceDto: UpdateBalanceDto,
@@ -95,6 +154,9 @@ export class WalletsService {
     }
 
     const { amount, walletType, transactionType } = updateBalanceDto;
+    
+    // Store old balance for event emission
+    const oldBalance = wallet[walletType];
 
     // Calculate new balance based on transaction type
     let newBalance: number;
@@ -113,6 +175,9 @@ export class WalletsService {
       throw new BadRequestException('Invalid transaction type for balance update');
     }
 
+    // Generate transaction ID
+    const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     // Update the wallet
     const updateData = {
       [walletType]: newBalance,
@@ -130,6 +195,28 @@ export class WalletsService {
     if (!updatedWallet) {
       throw new NotFoundException('Failed to update wallet');
     }
+
+    // Update cache
+    await this.walletCacheService.updateBalance(
+      userId,
+      walletType,
+      newBalance,
+      transactionId,
+      `Admin balance update: ${transactionType} ${amount}`,
+    );
+
+    // Emit balance updated event (this will also emit transaction event via cache service)
+    this.eventEmitter.emit(
+      'wallet.balance.updated',
+      new WalletBalanceUpdatedEvent(
+        userId,
+        walletType,
+        oldBalance,
+        newBalance,
+        transactionId,
+        `Admin ${transactionType} operation`,
+      ),
+    );
 
     return updatedWallet;
   }
@@ -310,16 +397,41 @@ export class WalletsService {
   async updateWalletStatus(
     walletId: string,
     status: 'active' | 'suspended' | 'frozen',
+    adminId?: string,
+    reason?: string,
   ): Promise<Wallet> {
-    const wallet = await this.walletModel
-      .findByIdAndUpdate(walletId, { status }, { new: true })
-      .exec();
-
+    const wallet = await this.walletModel.findById(walletId).exec();
+    
     if (!wallet) {
       throw new NotFoundException('Wallet not found');
     }
 
-    return wallet;
+    const oldStatus = wallet.status;
+    
+    const updatedWallet = await this.walletModel
+      .findByIdAndUpdate(walletId, { status }, { new: true })
+      .exec();
+
+    if (!updatedWallet) {
+      throw new NotFoundException('Wallet not found');
+    }
+
+    // Invalidate cache when status changes
+    await this.walletCacheService.invalidateBalance(wallet.userId.toString());
+
+    // Emit status changed event
+    this.eventEmitter.emit(
+      'wallet.status.changed',
+      new WalletStatusChangedEvent(
+        wallet.userId.toString(),
+        oldStatus,
+        status,
+        adminId || 'system',
+        reason,
+      ),
+    );
+
+    return updatedWallet;
   }
 
   async getWalletStats(): Promise<{

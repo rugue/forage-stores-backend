@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   UseGuards,
+  UseInterceptors,
+  UsePipes,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -27,9 +29,13 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
 import { UserRole } from '../users/entities/user.entity';
 import { Wallet } from '../wallets/entities/wallet.entity';
+import { WalletAuditInterceptor } from './interceptors/wallet-audit.interceptor';
+import { AdminTwoFactorGuard, RequireAdminTwoFactor } from './guards/admin-2fa.guard';
+import { BalanceValidationPipe, TransferValidationPipe } from './pipes/wallet-validation.pipes';
 
 @ApiTags('wallets')
 @Controller('wallets')
+@UseInterceptors(WalletAuditInterceptor)
 export class WalletsController {
   constructor(private readonly walletsService: WalletsService) {}
 
@@ -79,6 +85,7 @@ export class WalletsController {
 
   @Post('transfer')
   @UseGuards(JwtAuthGuard)
+  @UsePipes(TransferValidationPipe)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Transfer funds to another user' })
   @ApiResponse({
@@ -258,10 +265,12 @@ export class WalletsController {
   }
 
   @Patch('admin/:userId/balance')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, AdminTwoFactorGuard)
+  @UsePipes(BalanceValidationPipe)
   @Roles(UserRole.ADMIN)
+  @RequireAdminTwoFactor()
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Update user wallet balance (Admin only)' })
+  @ApiOperation({ summary: 'Update user wallet balance (Admin only with 2FA)' })
   @ApiResponse({
     status: 200,
     description: 'Wallet balance updated successfully',
@@ -270,11 +279,12 @@ export class WalletsController {
   @ApiResponse({ status: 404, description: 'Wallet not found' })
   @ApiResponse({ status: 400, description: 'Invalid transaction or insufficient funds' })
   @ApiResponse({ status: 403, description: 'Wallet not active or forbidden' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 401, description: 'Unauthorized or invalid 2FA' })
   @ApiParam({ name: 'userId', description: 'User ID' })
   async updateUserBalance(
     @Param('userId') userId: string,
     @Body() updateBalanceDto: UpdateBalanceDto,
+    @CurrentUser() admin: any,
   ) {
     return this.walletsService.updateBalance(userId, updateBalanceDto);
   }
