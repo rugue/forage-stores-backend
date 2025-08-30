@@ -213,10 +213,16 @@ export class AdminService {
     const query: any = {};
     
     if (dateRange) {
-      query.createdAt = {
-        $gte: new Date(dateRange.startDate),
-        $lte: new Date(dateRange.endDate)
-      };
+      const dateFilter: any = {};
+      if (dateRange.startDate) {
+        dateFilter.$gte = new Date(dateRange.startDate);
+      }
+      if (dateRange.endDate) {
+        dateFilter.$lte = new Date(dateRange.endDate);
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        query.createdAt = dateFilter;
+      }
     }
     
     if (city) {
@@ -338,10 +344,16 @@ export class AdminService {
     const query: any = {};
     
     if (dateRange) {
-      query.createdAt = {
-        $gte: new Date(dateRange.startDate),
-        $lte: new Date(dateRange.endDate)
-      };
+      const dateFilter: any = {};
+      if (dateRange.startDate) {
+        dateFilter.$gte = new Date(dateRange.startDate);
+      }
+      if (dateRange.endDate) {
+        dateFilter.$lte = new Date(dateRange.endDate);
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        query.createdAt = dateFilter;
+      }
     }
     
     if (city) {
@@ -425,10 +437,16 @@ export class AdminService {
     const query: any = {};
     
     if (dateRange) {
-      query.createdAt = {
-        $gte: new Date(dateRange.startDate),
-        $lte: new Date(dateRange.endDate)
-      };
+      const dateFilter: any = {};
+      if (dateRange.startDate) {
+        dateFilter.$gte = new Date(dateRange.startDate);
+      }
+      if (dateRange.endDate) {
+        dateFilter.$lte = new Date(dateRange.endDate);
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        query.createdAt = dateFilter;
+      }
     }
     
     const referrals = await this.referralModel.find(query)

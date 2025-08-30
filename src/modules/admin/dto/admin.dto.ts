@@ -315,15 +315,17 @@ export class UpdateCategoryDto {
 }
 
 export class DateRangeDto {
-  @ApiProperty({ description: 'Start date for the filter' })
+  @ApiPropertyOptional({ description: 'Start date for the filter' })
+  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  startDate: Date;
+  startDate?: Date;
 
-  @ApiProperty({ description: 'End date for the filter' })
+  @ApiPropertyOptional({ description: 'End date for the filter' })
+  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  endDate: Date;
+  endDate?: Date;
 }
 
 export class PriceHistoryDto {

@@ -488,7 +488,32 @@ Authorization: Bearer <growth_user_token>
 
 **Technical Note:** The system now maintains a token blacklist that invalidates tokens immediately upon logout.
 
-## �💰 Profit Pool System Testing (NEW - August 2025)
+### Problem: Endpoint Not Found in Swagger
+
+**Symptoms:**
+- Documentation shows an endpoint but it doesn't appear in Swagger UI
+- Getting 404 errors when calling endpoints from the guide
+
+**Common Mismatches:**
+- ❌ Documentation: `POST /admin/commissions/override-commission`
+- ✅ Actual endpoint: `POST /admin/commissions/override`
+
+**Solution:**
+1. **Check Swagger UI** for the actual endpoint path
+2. **Search this guide** for updated endpoints (we fix these as we find them)
+3. **Look for similar endpoints** with slightly different paths
+4. **Use browser dev tools** to see the actual API calls made by Swagger
+
+**Example:**
+```bash
+# ❌ Wrong (from old documentation):
+POST /admin/commissions/override-commission
+
+# ✅ Correct (actual endpoint):
+POST /admin/commissions/override
+```
+
+## 💰 Profit Pool System Testing (NEW - August 2025)
 
 The Profit Pool system distributes 1% of monthly city revenue to Growth Elite users as Nibia rewards! Here's how to test it:
 
@@ -2409,7 +2434,7 @@ GET /admin/users/growth
 Query: ?city=Lagos&role=growth_elite&page=1&limit=20
 
 # Override referral commission
-POST /admin/referrals/override-commission  
+POST /admin/commissions/override  
 {
   "adminPassword": "AdminSecure123!",
   "referralId": "64a7b12c8f9e4d5a6b7c8901",
@@ -2437,7 +2462,7 @@ POST /admin/referrals/override-commission
 #### 3.2 Commission Management
 ```bash
 # View commission override history
-GET /admin/referrals/commission-history
+GET /admin/commissions/override-history
 Query: ?userId=64a123...&overrideType=bonus&startDate=2025-01-01T00:00:00.000Z&endDate=2025-12-31T23:59:59.999Z
 ```
 
@@ -3291,7 +3316,7 @@ Content-Type: application/json
 ### 🔄 Referral Commission Override System
 
 #### Override Referral Commission
-**Endpoint:** `POST /admin/referrals/{referralId}/override-commission`
+**Endpoint:** `POST /admin/commissions/override`
 **Description:** Apply bonus or penalty to referral commission
 **Authentication:** Admin with password verification
 **Request Body:**
@@ -3333,7 +3358,7 @@ Content-Type: application/json
 ```
 
 #### Get Commission Override History
-**Endpoint:** `GET /admin/referrals/commission-history`
+**Endpoint:** `GET /admin/commissions/override-history`
 **Description:** View all commission override actions with filtering
 **Query Parameters:**
 ```
@@ -3362,6 +3387,36 @@ Content-Type: application/json
     "totalPenalties": 7,
     "totalAdjustmentValue": 125000
   }
+}
+```
+
+#### Get Specific Referral Commission History
+**Endpoint:** `GET /admin/commissions/{referralId}/history`
+**Description:** View commission history for a specific referral
+**Path Parameters:**
+- `referralId`: MongoDB ObjectId of the referral
+
+**Example:**
+```bash
+GET /admin/commissions/64a7b12c8f9e4d5a6b7c8901/history
+```
+
+**Response:**
+```json
+{
+  "referralId": "64a7b12c8f9e4d5a6b7c8901",
+  "overrideHistory": [
+    {
+      "id": "64a8c23d9e1f2a3b4c5d6789",
+      "originalAmount": 1000,
+      "newAmount": 5000,
+      "overrideType": "bonus",
+      "reason": "Exceptional performance bonus",
+      "adminNotes": "User exceeded monthly target by 200%",
+      "appliedAt": "2024-02-01T14:30:00.000Z",
+      "appliedBy": "64a9876543210fedcba54321"
+    }
+  ]
 }
 ```
 
@@ -4383,10 +4438,13 @@ Here are some complete workflows you can test:
 
 #### Get Orders Analytics
 **Endpoint:** `GET /admin/analytics/orders`
-- Filter: `?startDate=2024-01-01&endDate=2024-12-31`
+- Filter: `?dateRange[startDate]=2024-01-01T00:00:00.000Z&dateRange[endDate]=2024-12-31T23:59:59.999Z`
+- Partial filters supported: `?dateRange[startDate]=2024-01-01T00:00:00.000Z` or `?dateRange[endDate]=2024-12-31T23:59:59.999Z`
 
 #### Get Subscription Analytics
 **Endpoint:** `GET /admin/analytics/subscriptions`
+- Filter: `?dateRange[startDate]=2024-01-01T00:00:00.000Z&dateRange[endDate]=2024-12-31T23:59:59.999Z&city=Lagos`
+- Partial filters supported: `?dateRange[startDate]=2024-01-01T00:00:00.000Z&city=Lagos`
 
 #### Get Commission Analytics
 **Endpoint:** `GET /admin/analytics/commissions`
@@ -4799,16 +4857,28 @@ GET /admin/analytics/orders?groupBy=weekly&status=completed
 #### Commission Analytics
 **Endpoint:** `GET /admin/analytics/commissions`
 **Query Parameters:**
-- `startDate`: Period start
-- `endDate`: Period end
-- `userRole`: GROWTH_ASSOCIATE, GROWTH_ELITE
-- `city`: City filter
-- `commissionType`: REFERRAL, BONUS, OVERRIDE
+- `dateRange[startDate]`: Period start date (ISO string, optional)
+- `dateRange[endDate]`: Period end date (ISO string, optional)
+- `categoryId`: Filter by product category (MongoDB ObjectId, optional)
+- `productId`: Filter by specific product (MongoDB ObjectId, optional)
+- `city`: City filter (optional)
 
 **Test Examples:**
 ```
-GET /admin/analytics/commissions?userRole=GROWTH_ELITE&city=Lagos
-GET /admin/analytics/commissions?commissionType=OVERRIDE&startDate=2025-01-01
+# All commission data
+GET /admin/analytics/commissions
+
+# Filter with only start date (from start date onwards)
+GET /admin/analytics/commissions?dateRange[startDate]=2025-01-01T00:00:00.000Z
+
+# Filter with only end date (up to end date)
+GET /admin/analytics/commissions?dateRange[endDate]=2025-12-31T23:59:59.999Z
+
+# Full date range with city filter
+GET /admin/analytics/commissions?dateRange[startDate]=2025-01-01T00:00:00.000Z&dateRange[endDate]=2025-12-31T23:59:59.999Z&city=Lagos
+
+# Filter by category only
+GET /admin/analytics/commissions?categoryId=64a123456789&city=Lagos
 ```
 
 ---
