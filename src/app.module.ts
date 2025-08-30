@@ -26,6 +26,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SecurityModule } from './modules/security/security.module';
 import { ProfitPoolModule } from './modules/profit-pool/profit-pool.module';
 import { ScheduledJobsModule } from './modules/scheduled-jobs/scheduled-jobs.module';
+import { BundlesModule } from './modules/bundles/bundles.module';
 import { validate } from './config/env.validation';
 import { LoggingMiddleware } from './common/middleware';
 import { SecurityMiddleware } from './modules/security/middleware';
@@ -78,6 +79,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     SecurityModule,
     ProfitPoolModule,
     ScheduledJobsModule,
+    BundlesModule,
   ],
   controllers: [AppController],
   providers: [
