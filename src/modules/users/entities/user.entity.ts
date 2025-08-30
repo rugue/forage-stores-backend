@@ -30,6 +30,14 @@ export enum UserRole {
   SYSTEM = 'system', // For system-triggered operations
 }
 
+export enum AccountStatus {
+  PENDING = 'pending', // Email verification pending
+  ACTIVE = 'active',   // Account verified and active
+  SUSPENDED = 'suspended', // Account temporarily suspended
+  DEACTIVATED = 'deactivated', // Account deactivated by user
+  BANNED = 'banned',   // Account permanently banned
+}
+
 @Schema({ timestamps: true })
 export class User implements IUser {
   @ApiProperty({ description: 'User ID' })
@@ -83,6 +91,15 @@ export class User implements IUser {
   @IsEnum(UserRole)
   role: UserRole;
 
+  @ApiProperty({
+    description: 'Account status',
+    enum: AccountStatus,
+    example: AccountStatus.PENDING,
+  })
+  @Prop({ required: true, enum: AccountStatus, default: AccountStatus.PENDING })
+  @IsEnum(AccountStatus)
+  accountStatus: AccountStatus;
+
   @ApiProperty({ description: 'User city', example: 'Lagos' })
   @Prop({ required: false, maxlength: 100 })
   @IsString()
@@ -112,6 +129,33 @@ export class User implements IUser {
   @Min(300)
   @Max(850)
   creditScore?: number;
+
+  @ApiProperty({ description: 'Whether email has been verified' })
+  @Prop({ required: true, type: Boolean, default: false })
+  @IsOptional()
+  emailVerified?: boolean;
+
+  @ApiProperty({ description: 'Email verification token' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  emailVerificationToken?: string;
+
+  @ApiProperty({ description: 'Email verification token expiry' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  emailVerificationExpiry?: Date;
+
+  @ApiProperty({ description: 'Password reset token' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  passwordResetToken?: string;
+
+  @ApiProperty({ description: 'Password reset token expiry' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  passwordResetExpiry?: Date;
 
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;

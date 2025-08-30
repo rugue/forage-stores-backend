@@ -26,6 +26,27 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   FRONTEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_HOST?: string = 'smtp.gmail.com';
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  SMTP_PORT?: number = 587;
+
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_PASS?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_FROM?: string = 'noreply@forage.com';
 }
 
 export function validate(config: Record<string, unknown>) {

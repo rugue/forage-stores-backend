@@ -178,4 +178,107 @@ export class UsersService {
   ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
+
+  // Email Verification Methods
+  async findByEmailVerificationToken(token: string): Promise<User | null> {
+    return this.userModel.findOne({ 
+      emailVerificationToken: token,
+      emailVerificationExpiry: { $gt: new Date() }
+    }).exec();
+  }
+
+  async updateUserVerification(userId: string, updateData: {
+    emailVerified?: boolean;
+    accountStatus?: string;
+    emailVerificationToken?: string;
+    emailVerificationExpiry?: Date;
+  }): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true }
+    ).exec();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  // Password Reset Methods
+  async findByPasswordResetToken(token: string): Promise<User | null> {
+    return this.userModel.findOne({
+      passwordResetToken: token,
+      passwordResetExpiry: { $gt: new Date() }
+    }).exec();
+  }
+
+  async updatePasswordResetToken(userId: string, updateData: {
+    passwordResetToken?: string;
+    passwordResetExpiry?: Date;
+  }): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true }
+    ).exec();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  async updatePasswordAndClearToken(userId: string, updateData: {
+    password: string;
+    passwordResetToken?: string;
+    passwordResetExpiry?: Date;
+  }): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { 
+        $set: updateData,
+        $unset: {
+          passwordResetToken: 1,
+          passwordResetExpiry: 1
+        }
+      },
+      { new: true }
+    ).exec();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  // Account Status Management
+  async updateAccountStatus(userId: string, status: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { accountStatus: status },
+      { new: true }
+    ).exec();
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  async findByAccountStatus(status: string): Promise<User[]> {
+    return this.userModel.find({ accountStatus: status }).exec();
+  }
+
+  async findActiveUsers(): Promise<User[]> {
+    return this.userModel.find({ accountStatus: 'active' }).exec();
+  }
+
+  async findPendingUsers(): Promise<User[]> {
+    return this.userModel.find({ accountStatus: 'pending' }).exec();
+  }
 }
