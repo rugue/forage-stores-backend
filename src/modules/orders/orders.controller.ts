@@ -213,4 +213,17 @@ export class OrdersController {
   ) {
     return this.ordersService.approveCreditCheck(id, creditApprovalDto);
   }
+
+  @Post(':id/enhanced-credit-approval')
+  @ApiOperation({ summary: 'Enhanced credit approval using qualification engine' })
+  @ApiResponse({ status: 200, description: 'Enhanced credit approval completed' })
+  @ApiResponse({ status: 400, description: 'Bad request - not a Pay Later order' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @HttpCode(HttpStatus.OK)
+  enhancedCreditApproval(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.ordersService.enhancedCreditApproval(id, userId);
+  }
 }

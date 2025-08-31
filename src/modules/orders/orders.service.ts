@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { 
@@ -17,6 +17,7 @@ import { User, UserDocument, UserRole } from '../users/entities/user.entity';
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { OrdersReferralHookService } from './orders-referral-hook.service';
 import { CartService } from './cart.service';
+import { CreditQualificationService } from '../credit-scoring/services/credit-qualification.service';
 import {
   AddToCartDto,
   UpdateCartItemDto,
@@ -35,6 +36,8 @@ import {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
@@ -43,6 +46,8 @@ export class OrdersService {
     @Inject(forwardRef(() => OrdersReferralHookService))
     private readonly referralHook: OrdersReferralHookService,
     private readonly cartService: CartService,
+    @Inject(forwardRef(() => CreditQualificationService))
+    private readonly qualificationService: CreditQualificationService,
   ) {}
 
   // Cart Management - Now delegated to CartService
@@ -273,32 +278,59 @@ export class OrdersService {
     orderData.creditCheck = {
       status: CreditStatus.PENDING,
       checkDate: new Date(),
-      notes: 'Credit check in progress',
+      notes: 'Advanced credit qualification in progress',
     };
 
-    // In a real system, we'd call a credit check API here
-    // For this implementation, we'll simulate a credit check based on order amount and user's provided details
-    const { monthlyIncome } = payLaterDetails;
-    const orderTotal = orderData.finalTotal;
-    
-    // Simple credit check rule: Order total should not exceed 50% of monthly income
-    const creditRatio = orderTotal / monthlyIncome;
-    
-    if (creditRatio <= 0.5) {
-      // Approve credit
-      orderData.creditCheck.status = CreditStatus.APPROVED;
-      orderData.creditCheck.score = 700 + Math.floor(Math.random() * 100); // Random score between 700-799
-      orderData.creditCheck.notes = 'Credit automatically approved';
-      orderData.creditCheck.approvedLimit = monthlyIncome * 0.5;
+    // Use the new qualification engine for comprehensive credit assessment
+    try {
+      const qualificationResult = await this.qualificationService.assessCreditQualification(userId);
       
-      // Set expected delivery date to 1-3 days from now
-      const deliveryDate = new Date();
-      deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 3));
-      orderData.expectedDeliveryDate = deliveryDate;
-    } else {
-      // Set to pending for manual review
-      orderData.creditCheck.notes = 'Order requires manual credit review';
-      // Order will remain in PENDING status until manually approved
+      if (qualificationResult.isQualified) {
+        // Approve credit using qualification engine result
+        orderData.creditCheck.status = CreditStatus.APPROVED;
+        orderData.creditCheck.score = qualificationResult.recommendedCreditLimit > 0 ? 750 : 650;
+        orderData.creditCheck.notes = 'Credit approved by qualification engine';
+        orderData.creditCheck.approvedLimit = qualificationResult.recommendedCreditLimit;
+        
+        // Set payment due date (30 days from order)
+        const paymentDueDate = new Date();
+        paymentDueDate.setDate(paymentDueDate.getDate() + 30);
+        orderData.paymentDueDate = paymentDueDate;
+        
+        // Set expected delivery date to 1-3 days from now
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 3));
+        orderData.expectedDeliveryDate = deliveryDate;
+      } else {
+        // Reject credit with specific reasons
+        orderData.creditCheck.status = CreditStatus.REJECTED;
+        orderData.creditCheck.notes = `Credit rejected: ${qualificationResult.failureReasons.join(', ')}`;
+        orderData.creditCheck.approvedLimit = 0;
+        
+        throw new BadRequestException(`Credit qualification failed: ${qualificationResult.failureReasons.join(', ')}`);
+      }
+    } catch (qualificationError) {
+      this.logger.error(`Credit qualification error: ${qualificationError.message}`);
+      
+      // Fallback to simple credit check if qualification service fails
+      const { monthlyIncome } = payLaterDetails;
+      const orderTotal = orderData.finalTotal;
+      const creditRatio = orderTotal / monthlyIncome;
+      
+      if (creditRatio <= 0.5) {
+        orderData.creditCheck.status = CreditStatus.APPROVED;
+        orderData.creditCheck.score = 700 + Math.floor(Math.random() * 100);
+        orderData.creditCheck.notes = 'Credit approved (fallback method)';
+        orderData.creditCheck.approvedLimit = monthlyIncome * 0.5;
+        
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 3));
+        orderData.expectedDeliveryDate = deliveryDate;
+      } else {
+        orderData.creditCheck.status = CreditStatus.REJECTED;
+        orderData.creditCheck.notes = 'Credit check failed - income to order ratio too high';
+        throw new BadRequestException('Credit check failed. Please choose a different payment plan or reduce order amount.');
+      }
     }
     
     // Store the credit check details for reference
@@ -765,6 +797,77 @@ export class OrdersService {
         expectedDeliveryDate: order.expectedDeliveryDate,
       }
     };
+  }
+
+  /**
+   * Enhanced Credit Approval with Qualification Engine
+   */
+  async enhancedCreditApproval(orderId: string, userId: string): Promise<{
+    approved: boolean;
+    qualificationResult: any;
+    creditLimit: number;
+    conditions: string[];
+    paymentDueDate: Date;
+  }> {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.paymentPlan !== PaymentPlan.PAY_LATER) {
+      throw new BadRequestException('Enhanced credit approval only applies to Pay Later orders');
+    }
+
+    try {
+      // Use qualification engine for comprehensive assessment
+      const qualificationResult = await this.qualificationService.assessCreditQualification(userId);
+      
+      if (qualificationResult.isQualified) {
+        // Update order with approval
+        const paymentDueDate = new Date();
+        paymentDueDate.setDate(paymentDueDate.getDate() + 30); // 30 days to pay
+
+        await this.orderModel.findByIdAndUpdate(orderId, {
+          'creditCheck.status': CreditStatus.APPROVED,
+          'creditCheck.score': qualificationResult.recommendedCreditLimit > 50000 ? 800 : 750,
+          'creditCheck.approvedLimit': qualificationResult.recommendedCreditLimit,
+          'creditCheck.notes': 'Approved by qualification engine',
+          paymentDueDate,
+          defaultRecoveryStatus: 'pending',
+        });
+
+        const conditions = [
+          'Payment due within 30 days of order',
+          'Late payment may result in FoodSafe deduction',
+          'Credit utilization will be monitored',
+        ];
+
+        return {
+          approved: true,
+          qualificationResult,
+          creditLimit: qualificationResult.recommendedCreditLimit,
+          conditions,
+          paymentDueDate,
+        };
+      } else {
+        // Update order with rejection
+        await this.orderModel.findByIdAndUpdate(orderId, {
+          'creditCheck.status': CreditStatus.REJECTED,
+          'creditCheck.notes': `Rejected: ${qualificationResult.failureReasons.join(', ')}`,
+        });
+
+        return {
+          approved: false,
+          qualificationResult,
+          creditLimit: 0,
+          conditions: [],
+          paymentDueDate: new Date(),
+        };
+      }
+    } catch (error) {
+      this.logger.error(`Enhanced credit approval error: ${error.message}`, error.stack);
+      throw new BadRequestException(`Credit approval failed: ${error.message}`);
+    }
   }
 }
 // Updated

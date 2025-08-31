@@ -361,6 +361,61 @@ export class Order {
   @IsDateString()
   expectedDeliveryDate?: Date;
 
+  // Default Recovery Properties for Pay Later Orders
+  @ApiProperty({ description: 'Payment due date for pay later orders' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  @IsDateString()
+  paymentDueDate?: Date;
+
+  @ApiProperty({ description: 'Default recovery status' })
+  @Prop({ 
+    required: false, 
+    type: String,
+    enum: ['pending', 'processing', 'recovered', 'partial_recovery', 'payment_plan_active', 'manual_collection']
+  })
+  @IsOptional()
+  @IsString()
+  defaultRecoveryStatus?: string;
+
+  @ApiProperty({ description: 'Amount recovered from defaults' })
+  @Prop({ required: false, type: Number, min: 0, default: 0 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  recoveredAmount?: number;
+
+  @ApiProperty({ description: 'Remaining default amount after recovery' })
+  @Prop({ required: false, type: Number, min: 0, default: 0 })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  remainingDefault?: number;
+
+  @ApiProperty({ description: 'Last recovery attempt date' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  @IsDateString()
+  lastRecoveryDate?: Date;
+
+  @ApiProperty({ description: 'Recovery transaction reference ID' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  recoveryTransactionId?: string;
+
+  @ApiProperty({ description: 'Recovery payment plan details for defaulted orders' })
+  @Prop({ required: false, type: Object })
+  @IsOptional()
+  recoveryPaymentPlan?: {
+    totalAmount: number;
+    installmentAmount: number;
+    totalInstallments: number;
+    installmentsPaid: number;
+    nextPaymentDate: Date;
+    paymentFrequency: string;
+  };
+
   @ApiProperty({ description: 'Actual delivery date' })
   @Prop({ required: false, type: Date })
   @IsOptional()

@@ -15,6 +15,7 @@ import {
 } from './entities/credit-check.entity';
 import { Order, OrderDocument } from '../orders/entities/order.entity';
 import { User, UserDocument } from '../users/entities/user.entity';
+import { CreditQualificationService } from './services/credit-qualification.service';
 import {
   ICreditScoringService,
   ICreditReport,
@@ -68,6 +69,7 @@ export class CreditScoringService implements ICreditScoringService {
     private readonly orderModel: Model<OrderDocument>,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    private readonly qualificationService: CreditQualificationService,
   ) {}
 
   /**
@@ -897,5 +899,98 @@ export class CreditScoringService implements ICreditScoringService {
   async scheduleQuarterlyAssessments(): Promise<void> {
     // This method can be called to manually trigger quarterly assessments
     await this.processScheduledAssessments();
+  }
+
+  /**
+   * Enhanced Credit Decision with Qualification Engine Integration
+   */
+  async makeEnhancedCreditDecision(userId: string, requestedAmount: number): Promise<{
+    approved: boolean;
+    creditLimit: number;
+    qualificationResult: any; // Will be typed properly when qualification service is integrated
+    decision: ICreditDecision;
+    conditions: string[];
+  }> {
+    this.logger.log(`Making enhanced credit decision for user ${userId}, amount: ₦${requestedAmount}`);
+
+    try {
+      // Get current credit score and assessment using the new qualification engine
+      const creditScore = await this.calculateCreditScore(new Types.ObjectId(userId));
+      const qualificationReport = await this.qualificationService.getQualificationReport(userId);
+      
+      // Create credit decision based on qualification result
+      const creditDecision: ICreditDecision = {
+        approved: qualificationReport.qualification.isQualified,
+        creditScore: creditScore,
+        riskLevel: 'medium' as CreditRiskLevel, // This could be enhanced based on score
+        approvedAmount: qualificationReport.qualification.isQualified ? requestedAmount : 0,
+        maxCreditLimit: qualificationReport.qualification.recommendedCreditLimit,
+        reasons: qualificationReport.qualification.failureReasons,
+        conditions: qualificationReport.recommendations,
+      };
+      
+      const conditions: string[] = [...qualificationReport.recommendations];
+      
+      // Add conditions based on risk factors
+      const creditCheck = await this.creditCheckModel.findOne({ 
+        userId: new Types.ObjectId(userId), 
+        isActive: true 
+      });
+
+      if (creditCheck?.riskLevel === CreditRiskLevel.MEDIUM) {
+        conditions.push('Monthly payment monitoring required');
+        conditions.push('Credit utilization must stay below 50%');
+      } else if (creditCheck?.riskLevel === CreditRiskLevel.HIGH) {
+        conditions.push('Bi-weekly payment monitoring required');
+        conditions.push('Credit utilization must stay below 30%');
+        conditions.push('Additional income verification may be required');
+      }
+
+      return {
+        approved: creditDecision.approved && qualificationReport.qualification.isQualified,
+        creditLimit: Math.min(creditDecision.maxCreditLimit, qualificationReport.qualification.recommendedCreditLimit),
+        qualificationResult: qualificationReport,
+        decision: creditDecision,
+        conditions,
+      };
+
+    } catch (error) {
+      this.logger.error(`Error in enhanced credit decision: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Get Credit Qualification Status
+   */
+  async getCreditQualificationStatus(userId: string): Promise<{
+    isEligible: boolean;
+    creditScore: number;
+    riskLevel: string;
+    estimatedLimit: number;
+    nextAssessmentDate: Date;
+    improvementRecommendations: string[];
+  }> {
+    const creditCheck = await this.creditCheckModel.findOne({ 
+      userId: new Types.ObjectId(userId), 
+      isActive: true 
+    });
+
+    if (!creditCheck) {
+      // Create initial assessment
+      await this.calculateCreditScore(new Types.ObjectId(userId));
+      return this.getCreditQualificationStatus(userId);
+    }
+
+    const improvements = await this.generateImprovementRecommendations(new Types.ObjectId(userId));
+
+    return {
+      isEligible: creditCheck.currentScore >= 650,
+      creditScore: creditCheck.currentScore,
+      riskLevel: creditCheck.riskLevel,
+      estimatedLimit: creditCheck.approvedCreditLimit,
+      nextAssessmentDate: creditCheck.nextAssessmentDate,
+      improvementRecommendations: improvements,
+    };
   }
 }

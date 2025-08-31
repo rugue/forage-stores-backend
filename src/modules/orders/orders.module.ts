@@ -12,6 +12,7 @@ import { Product, ProductSchema } from '../products/entities/product.entity';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
 import { ReferralsModule } from '../referrals/referrals.module';
+import { CreditScoringModule } from '../credit-scoring/credit-scoring.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReferralsModule } from '../referrals/referrals.module';
     ]),
     ScheduleModule.forRoot(),
     forwardRef(() => ReferralsModule),
+    forwardRef(() => CreditScoringModule),
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersReferralHookService, CartService, CartCleanupService],
