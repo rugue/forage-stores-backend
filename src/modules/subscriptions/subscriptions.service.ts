@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { 
   Subscription, 
   SubscriptionDocument, 
@@ -22,6 +24,9 @@ import {
 import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType, NotificationChannel } from '../notifications/entities/notification.entity';
+import { ConvenienceFeeProvider } from './services/convenience-fee.provider';
+import { SubscriptionStateMachine } from './services/subscription-state-machine.service';
+import { ConflictResolutionService } from './services/conflict-resolution.service';
 import { 
   CreateSubscriptionDto, 
   UpdateSubscriptionDto, 
@@ -38,7 +43,11 @@ export class SubscriptionsService {
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    @InjectQueue('subscription-processing') private processingQueue: Queue,
     private readonly notificationsService: NotificationsService,
+    private readonly convenienceFeeProvider: ConvenienceFeeProvider,
+    private readonly stateMachine: SubscriptionStateMachine,
+    private readonly conflictResolver: ConflictResolutionService,
   ) {}
 
   async create(userId: string, createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {

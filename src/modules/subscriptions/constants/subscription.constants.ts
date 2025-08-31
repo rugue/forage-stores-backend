@@ -10,6 +10,7 @@ export const SUBSCRIPTION_CONSTANTS = {
   // Payment settings
   MIN_SUBSCRIPTION_AMOUNT: 1000, // Minimum subscription amount (NGN)
   MAX_SUBSCRIPTION_AMOUNT: 1000000, // Maximum subscription amount (NGN)
+  MIN_PRICE_LOCK_AMOUNT: 5000, // Minimum amount for price lock (NGN)
   MIN_DROPS: 2, // Minimum number of drops
   MAX_DROPS: 365, // Maximum number of drops (1 year daily)
   

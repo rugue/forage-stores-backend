@@ -6,6 +6,7 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SubscriptionStatus } from '../../subscriptions/entities/subscription.entity';
+import { ValidateStateTransition } from '../decorators/subscription.decorators';
 
 export class UpdateSubscriptionDto {
   @ApiProperty({
@@ -15,6 +16,7 @@ export class UpdateSubscriptionDto {
   })
   @IsOptional()
   @IsEnum(SubscriptionStatus)
+  @ValidateStateTransition()
   status?: SubscriptionStatus;
   
   @ApiProperty({
@@ -24,4 +26,7 @@ export class UpdateSubscriptionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  // Internal property to hold current status for validation
+  currentStatus?: SubscriptionStatus;
 }
