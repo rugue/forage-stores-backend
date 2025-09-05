@@ -1,5 +1,5 @@
 import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { Job } from 'bull';
 import { CommissionService } from '../../services/commission.service';
 import { TransactionService } from '../../services/transaction.service';
@@ -25,8 +25,8 @@ export class CommissionProcessor {
   private readonly logger = new Logger(CommissionProcessor.name);
 
   constructor(
-    private commissionService: CommissionService,
-    private transactionService: TransactionService,
+    @Inject(forwardRef(() => CommissionService)) private commissionService: CommissionService,
+    @Inject(forwardRef(() => TransactionService)) private transactionService: TransactionService,
   ) {}
 
   @Process('process-commission')

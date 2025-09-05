@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Order, OrderDocument, OrderStatus, DeliveryMethod } from '../../orders/entities/order.entity';
@@ -12,7 +12,7 @@ export class DeliveryOrchestrationService {
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     private riderAssignmentService: RiderAssignmentService,
-    private ordersService: OrdersService,
+    @Inject(forwardRef(() => OrdersService)) private ordersService: OrdersService,
   ) {}
 
   /**
@@ -67,9 +67,9 @@ export class DeliveryOrchestrationService {
       const assignmentResult = await this.riderAssignmentService.assignRider(criteria);
 
       if (assignmentResult.success && assignmentResult.assignedRider) {
-        // Update order status to SHIPPED
+                // Update order status to SHIPPED
         await this.ordersService.updateOrderStatus(orderId, OrderStatus.SHIPPED, {
-          reason: `Assigned to rider ${assignmentResult.assignedRider.firstName} ${assignmentResult.assignedRider.lastName}`,
+          reason: `Assigned to rider ${assignmentResult.assignedRider._id}`,
           updatedBy: 'system',
         });
 
@@ -202,7 +202,7 @@ export class DeliveryOrchestrationService {
    */
   private determineOrderUrgency(order: OrderDocument): 'low' | 'medium' | 'high' {
     const now = new Date();
-    const orderAge = now.getTime() - order.createdAt.getTime();
+    const orderAge = now.getTime() - (order as any).createdAt.getTime();
     const ageInHours = orderAge / (1000 * 60 * 60);
 
     // High urgency criteria

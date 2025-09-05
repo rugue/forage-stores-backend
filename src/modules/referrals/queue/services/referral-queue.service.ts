@@ -9,8 +9,8 @@ export class ReferralQueueService {
   private readonly logger = new Logger(ReferralQueueService.name);
 
   constructor(
-    @InjectQueue(COMMISSION_QUEUE) private commissionQueue: Queue,
-    @InjectQueue(REFERRAL_QUEUE) private referralQueue: Queue,
+    @InjectQueue('commission-processing') private commissionQueue: Queue,
+    @InjectQueue('referral-processing') private referralQueue: Queue,
   ) {}
 
   async addCommissionJob(

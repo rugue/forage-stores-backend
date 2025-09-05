@@ -5,6 +5,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -43,6 +45,14 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
       process.env.MONGODB_URI || 'mongodb://localhost:27017/forage-stores',
     ),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD,
+      },
+    }),
     ThrottlerModule.forRoot([
       {
         name: 'short',

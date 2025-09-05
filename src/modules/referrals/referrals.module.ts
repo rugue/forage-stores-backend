@@ -5,13 +5,21 @@ import { ReferralsController } from './referrals.controller';
 import { CommissionService } from './services/commission.service';
 import { GrowthManagementService } from './services/growth-management.service';
 import { TransactionService } from './services/transaction.service';
-import { CommissionStrategyFactory } from './strategies/commission.strategies';
+import { CommissionProcessor } from './queue/processors/commission.processor';
+import { 
+  CommissionStrategyFactory,
+  RegularUserCommissionStrategy,
+  GrowthAssociateCommissionStrategy,
+  GrowthEliteCommissionStrategy
+} from './strategies/commission.strategies';
 import { ReferralQueueModule } from './queue/referral-queue.module';
 import { Referral, ReferralSchema } from '../referrals/entities/referral.entity';
 import { Commission, CommissionSchema } from './entities/commission.entity';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { Order, OrderSchema } from '../orders/entities/order.entity';
+import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
 import { OrdersModule } from '../orders/orders.module';
+import { WalletsModule } from '../wallets/wallets.module';
 
 @Module({
   imports: [
@@ -20,8 +28,10 @@ import { OrdersModule } from '../orders/orders.module';
       { name: Commission.name, schema: CommissionSchema },
       { name: User.name, schema: UserSchema },
       { name: Order.name, schema: OrderSchema },
+      { name: Wallet.name, schema: WalletSchema },
     ]),
     forwardRef(() => OrdersModule),
+    forwardRef(() => WalletsModule),
     ReferralQueueModule,
   ],
   controllers: [ReferralsController],
@@ -30,7 +40,11 @@ import { OrdersModule } from '../orders/orders.module';
     CommissionService,
     GrowthManagementService,
     TransactionService,
+    CommissionProcessor,
     CommissionStrategyFactory,
+    RegularUserCommissionStrategy,
+    GrowthAssociateCommissionStrategy,
+    GrowthEliteCommissionStrategy,
   ],
   exports: [
     ReferralsService,
@@ -38,6 +52,7 @@ import { OrdersModule } from '../orders/orders.module';
     GrowthManagementService,
     TransactionService,
     CommissionStrategyFactory,
+    ReferralQueueModule,
   ],
 })
 export class ReferralsModule {}
