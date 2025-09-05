@@ -2,8 +2,11 @@ import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DeliveryService } from './delivery.service';
 import { RidersService } from './riders.service';
+import { RiderAssignmentService } from './services/rider-assignment.service';
+import { DeliveryOrchestrationService } from './services/delivery-orchestration.service';
 import { DeliveryController } from './delivery.controller';
 import { RidersController } from './riders.controller';
+import { DeliveryManagementController } from './delivery-management.controller';
 import { Delivery, DeliverySchema } from '../delivery/entities/delivery.entity';
 import { Rider, RiderSchema } from '../delivery/entities/rider.entity';
 import { Order, OrderSchema } from '../orders/entities/order.entity';
@@ -28,8 +31,18 @@ import { OrdersModule } from '../orders/orders.module';
     forwardRef(() => WalletsModule),
     forwardRef(() => OrdersModule),
   ],
-  controllers: [DeliveryController, RidersController],
-  providers: [DeliveryService, RidersService],
-  exports: [DeliveryService, RidersService],
+  controllers: [DeliveryController, RidersController, DeliveryManagementController],
+  providers: [
+    DeliveryService, 
+    RidersService, 
+    RiderAssignmentService,
+    DeliveryOrchestrationService
+  ],
+  exports: [
+    DeliveryService, 
+    RidersService, 
+    RiderAssignmentService,
+    DeliveryOrchestrationService
+  ],
 })
 export class DeliveryModule {}

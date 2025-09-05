@@ -271,6 +271,18 @@ export class DeliveryAddress {
   @IsOptional()
   @IsString()
   instructions?: string;
+
+  @ApiProperty({ description: 'Latitude coordinate for delivery location' })
+  @Prop({ required: false, type: Number })
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @ApiProperty({ description: 'Longitude coordinate for delivery location' })
+  @Prop({ required: false, type: Number })
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
 }
 
 @Schema({ timestamps: true })
@@ -469,6 +481,17 @@ export class Order {
   @IsOptional()
   @IsString()
   trackingNumber?: string;
+
+  @ApiProperty({ description: 'Assigned rider for delivery' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Rider' })
+  @IsOptional()
+  assignedRider?: Types.ObjectId;
+
+  @ApiProperty({ description: 'Date when rider was assigned' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  @IsDateString()
+  riderAssignedAt?: Date;
 }
 
 export const CartItemSchema = SchemaFactory.createForClass(CartItem);
@@ -520,3 +543,5 @@ OrderSchema.index({ deliveryMethod: 1 });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ expectedDeliveryDate: 1 });
 OrderSchema.index({ 'deliveryAddress.city': 1 });
+OrderSchema.index({ assignedRider: 1 });
+OrderSchema.index({ riderAssignedAt: 1 });

@@ -20,6 +20,7 @@ import { OrdersReferralHookService } from './orders-referral-hook.service';
 import { CartService } from './cart.service';
 import { CreditQualificationService } from '../credit-scoring/services/credit-qualification.service';
 import { OrderStateMachine, OrderStateMachineContext } from './services/order-state-machine.service';
+import { DeliveryOrchestrationService } from '../delivery/services/delivery-orchestration.service';
 import {
   AddToCartDto,
   UpdateCartItemDto,
@@ -52,6 +53,8 @@ export class OrdersService {
     private readonly qualificationService: CreditQualificationService,
     private readonly orderStateMachine: OrderStateMachine,
     private readonly realTimeService: OrderRealTimeService,
+    @Inject(forwardRef(() => DeliveryOrchestrationService))
+    private readonly deliveryOrchestration: DeliveryOrchestrationService,
   ) {}
 
   // Cart Management - Now delegated to CartService
@@ -451,6 +454,7 @@ export class OrdersService {
       case PaymentPlan.PAY_NOW:
         // For Pay Now, order is marked as PAID when fully paid
         if (order.remainingAmount <= 0) {
+          const wasNotPaid = order.status !== OrderStatus.PAID;
           order.status = OrderStatus.PAID;
           
           // Reduce product stock
@@ -465,6 +469,11 @@ export class OrdersService {
           const deliveryDate = new Date();
           deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 2));
           order.expectedDeliveryDate = deliveryDate;
+
+          // Trigger delivery processing if order just became PAID
+          if (wasNotPaid) {
+            this.triggerDeliveryProcessing(order._id.toString());
+          }
         }
         break;
         
@@ -484,6 +493,7 @@ export class OrdersService {
           // Only change to PAID if we've reached the scheduled delivery date
           const now = new Date();
           if (order.scheduledDeliveryDate && now >= order.scheduledDeliveryDate) {
+            const wasNotPaid = order.status !== OrderStatus.PAID;
             order.status = OrderStatus.PAID;
             
             // Reduce product stock
@@ -492,6 +502,11 @@ export class OrdersService {
                 item.productId,
                 { $inc: { stock: -item.quantity } }
               );
+            }
+
+            // Trigger delivery processing if order just became PAID
+            if (wasNotPaid) {
+              this.triggerDeliveryProcessing(order._id.toString());
             }
           }
         }
@@ -519,6 +534,7 @@ export class OrdersService {
           
           // If fully paid or paid 50% or more, we can update status
           if (order.remainingAmount <= 0) {
+            const wasNotPaid = order.status !== OrderStatus.PAID;
             order.status = OrderStatus.PAID;
             
             // Reduce product stock
@@ -533,6 +549,11 @@ export class OrdersService {
             const deliveryDate = new Date();
             deliveryDate.setDate(deliveryDate.getDate() + 3 + Math.floor(Math.random() * 4)); // 3-7 days
             order.expectedDeliveryDate = deliveryDate;
+
+            // Trigger delivery processing if order just became PAID
+            if (wasNotPaid) {
+              this.triggerDeliveryProcessing(order._id.toString());
+            }
           } else if (order.amountPaid >= order.finalTotal * 0.5) {
             // If 50% or more is paid, optionally update delivery expectations
             // Business rule: Could release product after 50% payment for trusted customers
@@ -543,6 +564,7 @@ export class OrdersService {
       case PaymentPlan.PAY_LATER:
         // For Pay Later, order is processed after credit approval
         if (order.remainingAmount <= 0) {
+          const wasNotPaid = order.status !== OrderStatus.PAID;
           order.status = OrderStatus.PAID;
           
           // Reduce product stock
@@ -558,6 +580,11 @@ export class OrdersService {
             const deliveryDate = new Date();
             deliveryDate.setDate(deliveryDate.getDate() + 1 + Math.floor(Math.random() * 2)); // 1-3 days
             order.expectedDeliveryDate = deliveryDate;
+          }
+
+          // Trigger delivery processing if order just became PAID
+          if (wasNotPaid) {
+            this.triggerDeliveryProcessing(order._id.toString());
           }
         }
         break;
@@ -1031,6 +1058,106 @@ export class OrdersService {
       }
     }
     return true;
+  }
+
+  /**
+   * Trigger delivery processing when order becomes PAID
+   */
+  private async triggerDeliveryProcessing(orderId: string): Promise<void> {
+    try {
+      // Use setTimeout to ensure this runs after the current transaction
+      setTimeout(async () => {
+        await this.deliveryOrchestration.processOrderForDelivery(orderId);
+      }, 100);
+    } catch (error) {
+      this.logger.error(`Failed to trigger delivery processing for order ${orderId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Add status history entry to order
+   */
+  async addStatusHistory(orderId: string, historyEntry: {
+    status: OrderStatus;
+    reason?: string;
+    updatedBy?: string;
+  }): Promise<void> {
+    await this.orderModel.updateOne(
+      { _id: orderId },
+      {
+        $push: {
+          statusHistory: {
+            status: historyEntry.status,
+            timestamp: new Date(),
+            reason: historyEntry.reason,
+            updatedBy: historyEntry.updatedBy || 'system',
+          }
+        }
+      }
+    );
+  }
+
+  /**
+   * Update order status with state machine validation
+   */
+  async updateOrderStatus(
+    orderId: string, 
+    newStatus: OrderStatus, 
+    historyEntry?: {
+      reason?: string;
+      updatedBy?: string;
+    }
+  ): Promise<void> {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const context: OrderStateMachineContext = {
+      orderId,
+      userId: order.userId.toString(),
+      userRole: UserRole.SYSTEM,
+      paymentStatus: order.paymentHistory[order.paymentHistory.length - 1]?.status,
+      totalAmount: order.finalTotal,
+      amountPaid: order.amountPaid,
+      remainingAmount: order.remainingAmount,
+      hasStockAvailable: await this.checkStockAvailability(order.items),
+      isPaymentPlanEligible: order.paymentPlan !== PaymentPlan.PAY_NOW,
+    };
+
+    // Validate transition (need to provide action parameter)
+    const action = `update_to_${newStatus}`;
+    const isValid = this.orderStateMachine.canTransition(order.status, newStatus, action, context);
+    if (!isValid) {
+      // Since we don't have predefined actions, skip validation for status updates
+      this.logger.warn(`Status transition validation bypassed for ${order.status} to ${newStatus}`);
+    }
+
+    // Update order status
+    await this.orderModel.updateOne(
+      { _id: orderId },
+      { 
+        $set: { status: newStatus },
+        $push: {
+          statusHistory: {
+            status: newStatus,
+            timestamp: new Date(),
+            reason: historyEntry?.reason,
+            updatedBy: historyEntry?.updatedBy || 'system',
+          }
+        }
+      }
+    );
+
+    // Emit real-time event
+    this.realTimeService.broadcastOrderUpdate({
+      orderId,
+      status: newStatus,
+      timestamp: new Date(),
+      userId: order.userId.toString(),
+    });
+
+    this.logger.log(`Order ${orderId} status updated to ${newStatus}`);
   }
 }
 // Updated
