@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { OrderRealTimeService } from './gateways/orders.gateway';
 import { 
   Order, 
   OrderDocument, 
@@ -18,6 +19,7 @@ import { Wallet, WalletDocument } from '../wallets/entities/wallet.entity';
 import { OrdersReferralHookService } from './orders-referral-hook.service';
 import { CartService } from './cart.service';
 import { CreditQualificationService } from '../credit-scoring/services/credit-qualification.service';
+import { OrderStateMachine, OrderStateMachineContext } from './services/order-state-machine.service';
 import {
   AddToCartDto,
   UpdateCartItemDto,
@@ -48,6 +50,8 @@ export class OrdersService {
     private readonly cartService: CartService,
     @Inject(forwardRef(() => CreditQualificationService))
     private readonly qualificationService: CreditQualificationService,
+    private readonly orderStateMachine: OrderStateMachine,
+    private readonly realTimeService: OrderRealTimeService,
   ) {}
 
   // Cart Management - Now delegated to CartService
@@ -670,9 +674,28 @@ export class OrdersService {
       throw new ForbiddenException('You can only cancel your own orders');
     }
 
-    // Can only cancel pending or paid orders
-    if (![OrderStatus.PENDING, OrderStatus.PAID].includes(order.status)) {
-      throw new BadRequestException('Cannot cancel order in current status');
+    // Use state machine to validate cancellation
+    const context: OrderStateMachineContext = {
+      orderId: id,
+      userId,
+      userRole,
+      reason,
+      paymentStatus: order.paymentHistory[order.paymentHistory.length - 1]?.status,
+      totalAmount: order.finalTotal,
+      amountPaid: order.amountPaid,
+      remainingAmount: order.remainingAmount,
+      hasStockAvailable: true, // Assume true for cancellation
+    };
+
+    const canCancel = this.orderStateMachine.canTransition(
+      order.status, 
+      OrderStatus.CANCELLED, 
+      'CANCEL', 
+      context
+    );
+
+    if (!canCancel) {
+      throw new BadRequestException('Cannot cancel order in current status using state machine rules');
     }
 
     const originalStatus = order.status;
@@ -868,6 +891,146 @@ export class OrdersService {
       this.logger.error(`Enhanced credit approval error: ${error.message}`, error.stack);
       throw new BadRequestException(`Credit approval failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Change order status using state machine validation
+   */
+  async changeOrderStatus(
+    orderId: string,
+    newStatus: OrderStatus,
+    action: string,
+    userId: string,
+    userRole: UserRole,
+    reason?: string
+  ) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Check if order belongs to user or if user is admin
+    if (userRole !== UserRole.ADMIN && order.userId.toString() !== userId) {
+      throw new ForbiddenException('You can only modify your own orders');
+    }
+
+    // Check stock availability for the order items
+    const hasStockAvailable = await this.checkStockAvailability(order.items);
+
+    const context: OrderStateMachineContext = {
+      orderId,
+      userId,
+      userRole,
+      reason,
+      paymentStatus: order.paymentHistory[order.paymentHistory.length - 1]?.status,
+      totalAmount: order.finalTotal,
+      amountPaid: order.amountPaid,
+      remainingAmount: order.remainingAmount,
+      hasStockAvailable,
+      isPaymentPlanEligible: order.paymentPlan !== PaymentPlan.PAY_NOW,
+    };
+
+    // Execute state machine transition
+    const transitionResult = await this.orderStateMachine.executeTransition(
+      order.status,
+      newStatus,
+      action,
+      context
+    );
+
+    if (transitionResult.success) {
+      // Update order status
+      order.status = newStatus;
+      order.statusHistory.push({
+        status: newStatus,
+        timestamp: new Date(),
+        reason: reason || `Status changed via ${action}`,
+        updatedBy: userId,
+      });
+
+      await order.save();
+
+      this.logger.log(`Order ${orderId} status changed from ${order.status} to ${newStatus} by ${userId}`);
+
+      // Broadcast real-time update
+      this.realTimeService.broadcastOrderUpdate({
+        orderId,
+        status: newStatus,
+        paymentStatus: order.paymentHistory[order.paymentHistory.length - 1]?.status,
+        timestamp: new Date(),
+        userId: order.userId.toString(),
+      });
+
+      return {
+        success: true,
+        order,
+        transition: transitionResult,
+      };
+    }
+
+    return transitionResult;
+  }
+
+  /**
+   * Get valid actions for an order in its current state
+   */
+  async getValidOrderActions(orderId: string, userId: string, userRole: UserRole) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Check permissions
+    if (userRole !== UserRole.ADMIN && order.userId.toString() !== userId) {
+      throw new ForbiddenException('You can only view your own orders');
+    }
+
+    const hasStockAvailable = await this.checkStockAvailability(order.items);
+
+    const context: OrderStateMachineContext = {
+      orderId,
+      userId,
+      userRole,
+      paymentStatus: order.paymentHistory[order.paymentHistory.length - 1]?.status,
+      totalAmount: order.finalTotal,
+      amountPaid: order.amountPaid,
+      remainingAmount: order.remainingAmount,
+      hasStockAvailable,
+      isPaymentPlanEligible: order.paymentPlan !== PaymentPlan.PAY_NOW,
+    };
+
+    const validActions = this.orderStateMachine.getValidActions(order.status, context);
+    const validTransitions = this.orderStateMachine.getValidTransitions(order.status, context);
+
+    return {
+      currentStatus: order.status,
+      validActions,
+      validTransitions: validTransitions.map(t => ({
+        to: t.to,
+        action: t.action,
+        hasCondition: !!t.condition,
+      })),
+    };
+  }
+
+  /**
+   * Get state machine documentation
+   */
+  getOrderStateMachineDocumentation() {
+    return this.orderStateMachine.getStateMachineDocumentation();
+  }
+
+  /**
+   * Check stock availability for order items
+   */
+  private async checkStockAvailability(items: any[]): Promise<boolean> {
+    for (const item of items) {
+      const product = await this.productModel.findById(item.productId);
+      if (!product || product.stock < item.quantity) {
+        return false;
+      }
+    }
+    return true;
   }
 }
 // Updated

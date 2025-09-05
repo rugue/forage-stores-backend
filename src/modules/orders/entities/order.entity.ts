@@ -101,6 +101,31 @@ export class CartItem {
 }
 
 @Schema({ timestamps: true, _id: false })
+export class StatusHistory {
+  @ApiProperty({ description: 'Order status', enum: OrderStatus })
+  @Prop({ required: true, enum: Object.values(OrderStatus) })
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+
+  @ApiProperty({ description: 'Timestamp when status was set' })
+  @Prop({ required: true, type: Date, default: Date.now })
+  @IsDateString()
+  timestamp: Date;
+
+  @ApiProperty({ description: 'Reason for status change' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @ApiProperty({ description: 'User who made the change' })
+  @Prop({ required: false, type: String })
+  @IsOptional()
+  @IsString()
+  updatedBy?: string;
+}
+
+@Schema({ timestamps: true, _id: false })
 export class PaymentSchedule {
   @ApiProperty({ description: 'Payment frequency for installments', enum: PaymentFrequency })
   @Prop({ required: true, enum: Object.values(PaymentFrequency), default: PaymentFrequency.MONTHLY })
@@ -343,6 +368,11 @@ export class Order {
   @IsArray()
   paymentHistory: PaymentHistory[];
 
+  @ApiProperty({ description: 'Order status change history', type: [StatusHistory] })
+  @Prop({ required: true, type: [StatusHistory], default: [] })
+  @IsArray()
+  statusHistory: StatusHistory[];
+
   @ApiProperty({ description: 'Total amount paid so far' })
   @Prop({ required: true, type: Number, min: 0, default: 0 })
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -443,6 +473,7 @@ export class Order {
 
 export const CartItemSchema = SchemaFactory.createForClass(CartItem);
 export const PaymentHistorySchema = SchemaFactory.createForClass(PaymentHistory);
+export const StatusHistorySchema = SchemaFactory.createForClass(StatusHistory);
 export const DeliveryAddressSchema = SchemaFactory.createForClass(DeliveryAddress);
 export const PaymentScheduleSchema = SchemaFactory.createForClass(PaymentSchedule);
 export const CreditCheckSchema = SchemaFactory.createForClass(CreditCheck);

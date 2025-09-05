@@ -6,6 +6,9 @@ import { OrdersController } from './orders.controller';
 import { OrdersReferralHookService } from './orders-referral-hook.service';
 import { CartService } from './cart.service';
 import { CartCleanupService } from './cart-cleanup.service';
+import { OrderStateMachine } from './services/order-state-machine.service';
+import { OrderRealTimeService } from './gateways/orders.gateway';
+import { BulkOperationsService } from './services/bulk-operations.service';
 import { Order, OrderSchema } from '../orders/entities/order.entity';
 import { Cart, CartSchema } from './entities/cart.entity';
 import { Product, ProductSchema } from '../products/entities/product.entity';
@@ -28,7 +31,7 @@ import { CreditScoringModule } from '../credit-scoring/credit-scoring.module';
     forwardRef(() => CreditScoringModule),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrdersReferralHookService, CartService, CartCleanupService],
-  exports: [OrdersService, CartService],
+  providers: [OrdersService, OrdersReferralHookService, CartService, CartCleanupService, OrderStateMachine, OrderRealTimeService, BulkOperationsService],
+  exports: [OrdersService, CartService, OrderStateMachine, OrderRealTimeService, BulkOperationsService],
 })
 export class OrdersModule {}

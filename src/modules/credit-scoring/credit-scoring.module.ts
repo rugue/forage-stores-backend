@@ -16,7 +16,6 @@ import {
 import { Order, OrderSchema } from '../orders/entities/order.entity';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { Wallet, WalletSchema } from '../wallets/entities/wallet.entity';
-import { WalletTransaction, WalletTransactionSchema } from '../wallets/entities/wallet-transaction.entity';
 
 // Import related modules for integration
 import { OrdersModule } from '../orders/orders.module';
@@ -34,7 +33,6 @@ import { WalletsModule } from '../wallets/wallets.module';
       { name: Order.name, schema: OrderSchema },
       { name: User.name, schema: UserSchema },
       { name: Wallet.name, schema: WalletSchema },
-      { name: WalletTransaction.name, schema: WalletTransactionSchema },
     ]),
     
     // Related modules - using forwardRef to prevent circular dependencies

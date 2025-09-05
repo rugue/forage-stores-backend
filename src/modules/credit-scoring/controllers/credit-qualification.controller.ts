@@ -77,7 +77,21 @@ export class CreditQualificationController {
     recoveryHistory: any[];
   }> {
     const userIdToCheck = targetUserId && userId ? targetUserId : userId;
-    return await this.recoveryService.getDefaultRecoveryStatus(userIdToCheck);
+    // Use getOrdersPendingRecovery instead of the non-existent method
+    const pendingOrders = await this.recoveryService.getOrdersPendingRecovery(userIdToCheck);
+    
+    const totalDefaultAmount = pendingOrders.reduce((sum, order) => sum + (order.remainingAmount || 0), 0);
+    
+    return {
+      hasActiveDefaults: pendingOrders.length > 0,
+      totalDefaultAmount,
+      activeRecoveries: pendingOrders.map(order => ({
+        orderId: order._id,
+        amount: order.remainingAmount,
+        daysOverdue: Math.floor((Date.now() - order.paymentDueDate.getTime()) / (1000 * 60 * 60 * 24)),
+      })),
+      recoveryHistory: [], // TODO: Implement recovery history tracking
+    };
   }
 
   @Get('foodsafe-recovery-eligibility/:defaultAmount')
@@ -101,7 +115,14 @@ export class CreditQualificationController {
       throw new BadRequestException('Invalid default amount');
     }
     
-    return await this.recoveryService.checkFoodSafeRecoveryEligibility(userIdToCheck, amount);
+    const eligibilityResult = await this.recoveryService.checkFoodSafeEligibility(userIdToCheck, amount);
+    
+    return {
+      eligible: eligibilityResult.eligible,
+      availableForRecovery: eligibilityResult.maxDeductible,
+      foodSafeBalance: eligibilityResult.availableBalance,
+      maxRecoverable: eligibilityResult.maxDeductible,
+    };
   }
 
   // Admin-only endpoints
@@ -117,11 +138,9 @@ export class CreditQualificationController {
       throw new BadRequestException('User ID is required');
     }
     
-    return await this.recoveryService.triggerManualRecovery(
-      userId,
-      dto.orderId,
-      dto.recoveryMethod,
-    );
+    // For now, provide a simplified recovery process until the service is enhanced
+    // This is a placeholder implementation since the required method doesn't exist
+    throw new BadRequestException('Manual recovery triggering is not yet implemented. Please use automatic recovery process.');
   }
 
   @Post('escalate-recovery/:userId/:orderId')
@@ -132,8 +151,9 @@ export class CreditQualificationController {
     @Param('userId') userId: string,
     @Param('orderId') orderId: string,
   ): Promise<{ message: string }> {
-    await this.recoveryService.escalateDefaultRecovery(userId, orderId);
-    return { message: 'Default recovery process escalated successfully' };
+    // For now, provide a placeholder since the method doesn't exist
+    // This could be implemented as a separate escalation service
+    throw new BadRequestException('Recovery escalation is not yet implemented. Please contact system administrator.');
   }
 
   @Get('recovery-analytics')
@@ -153,7 +173,13 @@ export class CreditQualificationController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     
-    return await this.recoveryService.getRecoveryAnalytics(start, end);
+    const analytics = await this.recoveryService.getRecoveryAnalytics(start, end);
+    
+    // Add the missing averageRecoveryTime property
+    return {
+      ...analytics,
+      averageRecoveryTime: 0, // TODO: Implement recovery time tracking
+    };
   }
 
   @Get('qualification-overview')
