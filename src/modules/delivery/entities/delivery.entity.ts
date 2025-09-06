@@ -127,7 +127,7 @@ export class Delivery extends Document implements IDeliveryDocument {
     type: Types.ObjectId, 
     ref: 'Order',
     unique: true,
-    index: true
+
   })
   orderId: Types.ObjectId;
 
@@ -135,7 +135,7 @@ export class Delivery extends Document implements IDeliveryDocument {
     required: false, 
     type: Types.ObjectId, 
     ref: 'Rider',
-    index: true
+
   })
   riderId?: Types.ObjectId;
 
@@ -143,7 +143,7 @@ export class Delivery extends Document implements IDeliveryDocument {
     required: true, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   customerId: Types.ObjectId;
 
@@ -151,7 +151,7 @@ export class Delivery extends Document implements IDeliveryDocument {
     required: true, 
     enum: Object.values(DeliveryStatus), 
     default: DELIVERY_DEFAULTS.status,
-    index: true
+
   })
   status: DeliveryStatus;
 
@@ -174,7 +174,7 @@ export class Delivery extends Document implements IDeliveryDocument {
     required: true, 
     enum: Object.values(PaymentStatus), 
     default: DELIVERY_DEFAULTS.paymentStatus,
-    index: true
+
   })
   paymentStatus: PaymentStatus;
 
@@ -193,7 +193,7 @@ export class Delivery extends Document implements IDeliveryDocument {
   @Prop({ required: false, type: String })
   feedback?: string;
 
-  @Prop({ required: false, type: Date, index: true })
+  @Prop({ required: false, type: Date})
   acceptanceExpiryTime?: Date;
 
   @Prop({ required: true, type: Boolean, default: DELIVERY_DEFAULTS.seenByRider })

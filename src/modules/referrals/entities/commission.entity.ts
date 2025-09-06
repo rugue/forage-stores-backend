@@ -40,7 +40,7 @@ export class Commission extends Document {
     required: true, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   userId: Types.ObjectId;
 
@@ -49,7 +49,7 @@ export class Commission extends Document {
     required: false, 
     type: Types.ObjectId, 
     ref: 'Order',
-    index: true
+
   })
   orderId?: Types.ObjectId;
 
@@ -58,7 +58,7 @@ export class Commission extends Document {
     required: false, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   referredUserId?: Types.ObjectId;
 
@@ -74,7 +74,7 @@ export class Commission extends Document {
   @Prop({ 
     required: true, 
     enum: Object.values(CommissionType),
-    index: true
+
   })
   type: CommissionType;
 
@@ -83,7 +83,7 @@ export class Commission extends Document {
     required: true, 
     enum: Object.values(CommissionStatus),
     default: CommissionStatus.PENDING,
-    index: true
+
   })
   status: CommissionStatus;
 
@@ -108,7 +108,7 @@ export class Commission extends Document {
   @Prop({ 
     required: true, 
     type: String,
-    index: true
+
   })
   city: string;
 
@@ -117,7 +117,7 @@ export class Commission extends Document {
     required: true, 
     type: Date, 
     default: Date.now,
-    index: true
+
   })
   earnedAt: Date;
 

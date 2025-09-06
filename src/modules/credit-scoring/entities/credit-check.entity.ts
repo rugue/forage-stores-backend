@@ -170,7 +170,7 @@ export class QuarterlyAssessmentResult {
 @Schema({ timestamps: true })
 export class CreditCheck {
   @ApiProperty({ description: 'User ID this credit check belongs to' })
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User', index: true })
+@Prop({ required: true, type: Types.ObjectId, ref: 'User'})
   userId: Types.ObjectId;
 
   @ApiProperty({ description: 'Current credit score (300-850)' })

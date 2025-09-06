@@ -46,7 +46,7 @@ export class Bid extends Document {
     required: true, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   userId: Types.ObjectId;
 
@@ -61,7 +61,7 @@ export class Bid extends Document {
     required: true, 
     type: Date, 
     default: Date.now,
-    index: true
+
   })
   timestamp: Date;
 
@@ -88,7 +88,7 @@ export class Bid extends Document {
   @Prop({
     type: Date,
     default: Date.now,
-    index: true,
+
   })
   createdAt: Date;
 
@@ -116,7 +116,7 @@ export class Auction extends Document {
     required: true, 
     type: Types.ObjectId, 
     ref: 'Product',
-    index: true
+
   })
   productId: Types.ObjectId;
 
@@ -162,7 +162,7 @@ export class Auction extends Document {
     required: false, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   currentTopBidder?: Types.ObjectId;
 
@@ -177,14 +177,14 @@ export class Auction extends Document {
   @Prop({ 
     required: true, 
     type: Date,
-    index: true
+
   })
   startTime: Date;
 
   @Prop({ 
     required: true, 
     type: Date,
-    index: true
+
   })
   endTime: Date;
 
@@ -192,7 +192,7 @@ export class Auction extends Document {
     required: true, 
     enum: Object.values(AuctionStatus), 
     default: AUCTION_DEFAULTS.status,
-    index: true
+
   })
   status: AuctionStatus;
 
@@ -244,7 +244,7 @@ export class Auction extends Document {
     required: false, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   winnerId?: Types.ObjectId;
 
@@ -264,7 +264,7 @@ export class Auction extends Document {
   @Prop({
     type: Date,
     default: Date.now,
-    index: true,
+
   })
   createdAt: Date;
 

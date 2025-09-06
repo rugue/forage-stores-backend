@@ -32,7 +32,7 @@ export class CommissionHistory extends Document implements ICommissionHistoryDoc
     required: true, 
     type: Types.ObjectId, 
     ref: 'Order',
-    index: true
+
   })
   orderId: Types.ObjectId;
 
@@ -53,7 +53,7 @@ export class CommissionHistory extends Document implements ICommissionHistoryDoc
     required: true, 
     type: Date, 
     default: Date.now,
-    index: true
+
   })
   date: Date;
 
@@ -82,7 +82,7 @@ export class CommissionHistory extends Document implements ICommissionHistoryDoc
   @Prop({
     type: Date,
     default: Date.now,
-    index: true,
+
   })
   createdAt: Date;
 
@@ -110,7 +110,7 @@ export class Referral extends Document implements IReferralDocument {
     required: true, 
     type: Types.ObjectId, 
     ref: 'User',
-    index: true
+
   })
   referrerId: Types.ObjectId;
 
@@ -119,7 +119,7 @@ export class Referral extends Document implements IReferralDocument {
     type: Types.ObjectId, 
     ref: 'User',
     unique: true,
-    index: true
+
   })
   referredUserId: Types.ObjectId;
 
@@ -127,7 +127,7 @@ export class Referral extends Document implements IReferralDocument {
     required: true, 
     type: Date, 
     default: Date.now,
-    index: true
+
   })
   referralDate: Date;
 
@@ -141,14 +141,14 @@ export class Referral extends Document implements IReferralDocument {
     required: true, 
     enum: Object.values(ReferralStatus), 
     default: REFERRAL_DEFAULTS.status,
-    index: true
+
   })
   status: ReferralStatus;
 
   @Prop({ 
     required: false, 
     type: String,
-    index: true
+
   })
   referralCode?: string;
 
@@ -186,14 +186,14 @@ export class Referral extends Document implements IReferralDocument {
     required: true, 
     enum: Object.values(ReferralTier), 
     default: REFERRAL_DEFAULTS.tier,
-    index: true
+
   })
   tier: ReferralTier;
 
   @Prop({ 
     required: false, 
     type: Date,
-    index: true
+
   })
   expiryDate?: Date;
 
@@ -214,7 +214,7 @@ export class Referral extends Document implements IReferralDocument {
   @Prop({
     type: Date,
     default: Date.now,
-    index: true,
+
   })
   createdAt: Date;
 
