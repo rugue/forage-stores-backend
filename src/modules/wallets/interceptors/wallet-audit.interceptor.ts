@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { Request } from 'express';
 
 export interface WalletAuditLog {
   userId: string;
@@ -30,12 +29,12 @@ export class WalletAuditInterceptor implements NestInterceptor {
   private readonly auditLogs: WalletAuditLog[] = []; // In production, use a database or external logging service
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
     const startTime = Date.now();
 
     // Extract user information
-    const user = request.user as any;
+    const user = request.user;
     const userId = user?.id || user?._id?.toString() || 'anonymous';
 
     // Extract request details
