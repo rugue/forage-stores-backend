@@ -1,0 +1,206 @@
+services:
+  # Main Backend Service
+  - type: web
+    name: forage-backend-prod
+    runtime: node
+    plan: starter # Can upgrade to standard/pro as needed
+    region: oregon # Choose region closest to your users
+    branch: master
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: forage-mongodb
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://your-frontend-domain.com
+      - key: BACKEND_URL
+        value: https://forage-backend-prod.onrender.com
+      # Payment Gateway Configuration
+      - key: PAYSTACK_SECRET_KEY
+        sync: false # Set manually in Render dashboard
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: FLUTTERWAVE_PUBLIC_KEY
+        sync: false
+      # Email Configuration
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false # Set manually
+      - key: SMTP_PASS
+        sync: false # Set manually
+      - key: MAIL_FROM
+        sync: false # Set manually
+      # Redis Configuration (if needed for caching)
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: forage-redis
+          property: connectionString
+      # Logging and Monitoring
+      - key: LOG_LEVEL
+        value: info
+      - key: ENABLE_SWAGGER
+        value: true
+      # Security
+      - key: CORS_ORIGINS
+        value: https://your-frontend-domain.com,https://www.your-frontend-domain.com
+      # File Upload
+      - key: MAX_FILE_SIZE
+        value: 5242880 # 5MB
+      - key: UPLOAD_PATH
+        value: ./uploads
+    autoDeploy: true
+    disk:
+      name: forage-uploads
+      mountPath: /app/uploads
+      sizeGB: 5
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    preDeployCommands:
+      - "echo 'Starting deployment...'"
+      - "npm run migrate:prod || echo 'No migrations to run'"
+    postDeployCommands:
+      - "echo 'Deployment completed successfully!'"
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), microphone=(), camera=()
+
+  # Staging Environment
+  - type: web
+    name: forage-backend-staging
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: develop
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: forage-mongodb-staging
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h # Shorter session for staging
+      - key: ADMIN_PASSWORD
+        value: StagingAdmin123!
+      - key: FRONTEND_URL
+        value: https://your-staging-frontend.onrender.com
+      - key: BACKEND_URL
+        value: https://forage-backend-staging.onrender.com
+      # Use test/sandbox payment credentials for staging
+      - key: PAYSTACK_SECRET_KEY
+        sync: false # Set test keys manually
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: debug
+      - key: ENABLE_SWAGGER
+        value: true
+    autoDeploy: true
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+
+# Database Services
+databases:
+  # Production Database
+  - name: forage-mongodb
+    databaseName: forage-stores
+    plan: starter # MongoDB Atlas M0 equivalent
+    region: oregon
+    user: forage-admin
+    ipAllowList:
+      - source: 0.0.0.0/0 # Allow all IPs (Render manages this)
+        description: Allow Render services
+
+  # Staging Database
+  - name: forage-mongodb-staging
+    databaseName: forage-stores-staging
+    plan: starter
+    region: oregon
+    user: forage-staging-admin
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: Allow Render services
+
+# Redis Cache (Optional - for session management and caching)
+  - name: forage-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+# Static Site for Documentation (Optional)
+  - type: static
+    name: forage-api-docs
+    buildCommand: npm run build:docs
+    publishPath: ./docs/dist
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=86400
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+# Background Workers (if needed for heavy processing)
+  - type: worker
+    name: forage-background-worker
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: master
+    buildCommand: npm ci && npm run build
+    startCommand: npm run worker:start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        fromDatabase:
+          name: forage-mongodb
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: forage-redis
+          property: connectionString
+    scaling:
+      minInstances: 0
+      maxInstances: 2

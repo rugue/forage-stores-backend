@@ -1,0 +1,52 @@
+# Add environment files to gitignore but keep templates
+.env
+.env.local
+.env.production.local
+.env.staging.local
+
+# Keep the template files
+!.env.example
+!.env.production
+!.env.staging
+
+# Docker volumes
+docker-volumes/
+
+# Deployment logs
+deployment.log
+deploy.log
+
+# Render build cache
+.render-build-cache/
+
+# Backup files
+backup/
+*.backup
+*.dump
+
+# Temporary migration files
+migrations/*.tmp
+migrations/*.log
+
+# Health check logs
+health-check.log
+
+# SSL certificates (if stored locally)
+ssl/
+certs/
+*.pem
+*.crt
+*.key
+
+# Monitoring and logging
+logs/
+*.log
+!logs/.gitkeep
+
+# Performance profiling
+*.prof
+*.heapsnapshot
+
+# Environment specific uploads (use volume mounts instead)
+uploads/production/
+uploads/staging/

@@ -32,6 +32,7 @@ import { BundlesModule } from './modules/bundles/bundles.module';
 import { validate } from './config/env.validation';
 import { LoggingMiddleware } from './common/middleware';
 import { SecurityMiddleware } from './modules/security/middleware';
+import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 
@@ -87,6 +88,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     CreditScoringModule,
     AnalyticsModule,
     SecurityModule,
+    HealthModule,
     ProfitPoolModule,
     ScheduledJobsModule,
     BundlesModule,
