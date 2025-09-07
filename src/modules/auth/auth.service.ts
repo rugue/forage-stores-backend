@@ -35,11 +35,14 @@ export class AuthService {
     registerDto: RegisterDto,
   ): Promise<{ user: User; accessToken: string; message: string }> {
     try {
+      console.log('Registration attempt for:', registerDto.email);
+      
       // Check if user already exists
       const existingUser = await this.usersService.findByEmail(
         registerDto.email,
       );
       if (existingUser) {
+        console.log('User already exists:', registerDto.email);
         throw new ConflictException('User with this email already exists');
       }
 
@@ -58,8 +61,13 @@ export class AuthService {
       
       const user = await this.usersService.create(userData);
 
-      // Send verification email
-      await this.authEmailService.sendEmailVerification(user, emailVerificationToken);
+      // Try to send verification email (don't fail registration if email fails)
+      try {
+        await this.authEmailService.sendEmailVerification(user, emailVerificationToken);
+      } catch (emailError) {
+        console.warn('Failed to send verification email:', emailError.message);
+        // Continue with registration even if email fails
+      }
 
       // Generate JWT token (but account is still pending)
       const payload: JwtPayload = {
@@ -80,7 +88,23 @@ export class AuthService {
       if (error instanceof ConflictException) {
         throw error;
       }
-      throw new ConflictException('Registration failed');
+      
+      // Log the actual error for debugging
+      console.error('Registration error:', error);
+      
+      // Handle MongoDB duplicate key errors
+      if (error.code === 11000) {
+        const field = Object.keys(error.keyPattern)[0];
+        throw new ConflictException(`${field} already exists`);
+      }
+      
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map((err: any) => err.message);
+        throw new ConflictException(`Validation failed: ${validationErrors.join(', ')}`);
+      }
+      
+      throw new ConflictException(`Registration failed: ${error.message || 'Unknown error'}`);
     }
   }
 
