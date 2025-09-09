@@ -35,6 +35,7 @@ import { SecurityMiddleware } from './modules/security/middleware';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
+import { WebModule } from './modules/web/web.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     ProfitPoolModule,
     ScheduledJobsModule,
     BundlesModule,
+    WebModule,
   ],
   controllers: [AppController],
   providers: [
