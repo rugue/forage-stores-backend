@@ -28,9 +28,9 @@ Add/Update these in your Render dashboard:
 FRONTEND_URL=https://forage-stores-backend.onrender.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=nibiahq@gmail.com
-SMTP_PASS=hdtt hhjz dlfw mszi
-SMTP_FROM=nibiahq@gmail.com
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=your-email@gmail.com
 ```
 
 ### Step 2: Deploy to Render
