@@ -360,4 +360,25 @@ export class AuthService {
     await this.usersService.updateAccountStatus(userId, AccountStatus.DEACTIVATED);
     return { message: 'Account deactivated successfully' };
   }
+
+  // SMTP Test Method (Development only)
+  async testEmailConfiguration(email: string): Promise<{ message: string }> {
+    try {
+      // Create a test user object
+      const testUser = {
+        name: 'Test User',
+        email: email,
+      } as User;
+
+      // Try to send a test email
+      await this.authEmailService.sendEmailVerification(testUser, 'test-token-123');
+      
+      return { 
+        message: `Test email sent successfully to ${email}. Check your inbox!`,
+      };
+    } catch (error) {
+      console.error('SMTP Test failed:', error);
+      throw new BadRequestException(`Failed to send test email: ${error.message}`);
+    }
+  }
 }

@@ -178,4 +178,15 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
+
+  @Post('test-email')
+  @Public()
+  @Throttle({ default: { limit: 2, ttl: 60000 } }) // 2 test emails per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Test SMTP configuration (Development only)' })
+  @ApiResponse({ status: 200, description: 'Test email sent successfully' })
+  @ApiResponse({ status: 500, description: 'Failed to send test email' })
+  async testEmail(@Body() body: { email: string }) {
+    return this.authService.testEmailConfiguration(body.email);
+  }
 }

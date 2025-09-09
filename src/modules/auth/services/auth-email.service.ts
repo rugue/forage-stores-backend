@@ -25,7 +25,7 @@ export class AuthEmailService {
     const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
-      from: this.configService.get('SMTP_FROM', 'noreply@forage.com'),
+      from: this.configService.get('SMTP_FROM') || this.configService.get('MAIL_FROM') || 'noreply@forage.com',
       to: user.email,
       subject: 'Verify Your Email - Forage Stores',
       html: `
