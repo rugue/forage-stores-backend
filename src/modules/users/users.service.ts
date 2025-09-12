@@ -10,7 +10,7 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
-import { User, UserDocument, AccountStatus } from '../users/entities/user.entity';
+import { User, UserDocument, AccountStatus, AccountType } from '../users/entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
@@ -387,5 +387,68 @@ export class UsersService {
     }
     
     return { message: 'Account reactivated successfully' };
+  }
+
+  // =============================================
+  // NEW STEP-BY-STEP AUTHENTICATION METHODS
+  // =============================================
+
+  /**
+   * Update account type for a user
+   */
+  async updateAccountType(userId: string, accountType: AccountType): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { accountType },
+      { new: true }
+    );
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  /**
+   * Verify email with 4-digit code and activate account
+   */
+  async verifyEmailWithCode(userId: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        emailVerified: true,
+        accountStatus: AccountStatus.ACTIVE,
+        emailVerificationCode: undefined,
+        emailVerificationCodeExpiry: undefined,
+      },
+      { new: true }
+    );
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
+  }
+
+  /**
+   * Update verification code for a user
+   */
+  async updateVerificationCode(
+    userId: string, 
+    codeData: { emailVerificationCode: string; emailVerificationCodeExpiry: Date }
+  ): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      codeData,
+      { new: true }
+    );
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    return user;
   }
 }

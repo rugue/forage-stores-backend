@@ -133,4 +133,38 @@ export class AuthEmailService {
       this.logger.error(`Failed to send account activation email to ${user.email}`, error);
     }
   }
+
+  async sendEmailVerificationCode(user: User, code: string): Promise<void> {
+    const mailOptions = {
+      from: this.configService.get('SMTP_FROM') || this.configService.get('MAIL_FROM') || 'noreply@forage.com',
+      to: user.email,
+      subject: 'Verify Your Email - Forage Stores',
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+          <h2 style="color: #2c5aa0;">Verify Your Email</h2>
+          <p>Hi ${user.name},</p>
+          <p>Thank you for creating your Forage Stores account. Please use the verification code below to verify your email address:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; display: inline-block;">
+              <h1 style="color: #2c5aa0; font-size: 48px; margin: 0; letter-spacing: 8px;">${code}</h1>
+            </div>
+          </div>
+          <p>Enter this code in the app to verify your email address and complete your account setup.</p>
+          <p><strong>This code will expire in 15 minutes.</strong></p>
+          <hr style="margin: 30px 0;">
+          <p style="font-size: 12px; color: #666;">
+            If you didn't create an account with Forage Stores, please ignore this email.
+          </p>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Email verification code sent to ${user.email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send email verification code to ${user.email}`, error);
+      throw new Error('Failed to send verification code email');
+    }
+  }
 }

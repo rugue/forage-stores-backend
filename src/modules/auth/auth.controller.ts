@@ -23,6 +23,9 @@ import {
   ResetPasswordDto,
   VerifyEmailDto,
   ResendVerificationDto,
+  CreateAccountDto,
+  SelectAccountTypeDto,
+  VerifyEmailWithCodeDto,
 } from './dto';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser, Public } from './decorators';
@@ -188,5 +191,87 @@ export class AuthController {
   @ApiResponse({ status: 500, description: 'Failed to send test email' })
   async testEmail(@Body() body: { email: string }) {
     return this.authService.testEmailConfiguration(body.email);
+  }
+
+  // =============================================
+  // NEW STEP-BY-STEP AUTHENTICATION ENDPOINTS
+  // =============================================
+
+  @Post('create-account')
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 account creations per minute
+  @ApiOperation({ summary: 'Step 1: Create basic account (Product Flow: Splash → Onboarding → Create Account)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Account created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        user: { type: 'object' },
+        tempToken: { type: 'string' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 409, description: 'User already exists' })
+  async createAccount(@Body() createAccountDto: CreateAccountDto) {
+    return this.authService.createAccount(createAccountDto);
+  }
+
+  @Post('select-account-type')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Step 2: Select account type (Product Flow: Create Account → Account Type Selection)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Account type selected successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        user: { type: 'object' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async selectAccountType(
+    @CurrentUser() user: any,
+    @Body() selectAccountTypeDto: SelectAccountTypeDto
+  ) {
+    const userId = user.id || user._id.toString();
+    return this.authService.selectAccountType(userId, selectAccountTypeDto);
+  }
+
+  @Post('verify-email-code')
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 300000 } }) // 5 attempts per 5 minutes
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Step 3: Verify email with 4-digit code (Product Flow: Account Type → Verify Email)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        user: { type: 'object' },
+        accessToken: { type: 'string' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid or expired verification code' })
+  async verifyEmailWithCode(@Body() verifyDto: VerifyEmailWithCodeDto) {
+    return this.authService.verifyEmailWithCode(verifyDto);
+  }
+
+  @Post('resend-verification-code')
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 attempts per 5 minutes
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend 4-digit verification code' })
+  @ApiResponse({ status: 200, description: 'Verification code sent' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async resendVerificationCode(@Body() body: { email: string }) {
+    return this.authService.resendVerificationCode(body.email);
   }
 }

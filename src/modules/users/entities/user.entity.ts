@@ -146,6 +146,17 @@ export class User implements IUser {
   @IsOptional()
   emailVerificationExpiry?: Date;
 
+  @ApiProperty({ description: '4-digit email verification code' })
+  @Prop({ required: false, type: String, length: 4 })
+  @IsOptional()
+  @IsString()
+  emailVerificationCode?: string;
+
+  @ApiProperty({ description: '4-digit email verification code expiry' })
+  @Prop({ required: false, type: Date })
+  @IsOptional()
+  emailVerificationCodeExpiry?: Date;
+
   @ApiProperty({ description: 'Password reset token' })
   @Prop({ required: false, type: String })
   @IsOptional()

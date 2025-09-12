@@ -14,6 +14,9 @@ import {
   ResetPasswordDto,
   VerifyEmailDto,
   ResendVerificationDto,
+  CreateAccountDto,
+  SelectAccountTypeDto,
+  VerifyEmailWithCodeDto,
 } from './dto';
 import { User, AccountStatus } from '../users/entities/user.entity';
 import { JwtPayload } from './jwt.strategy';
@@ -46,24 +49,24 @@ export class AuthService {
         throw new ConflictException('User with this email already exists');
       }
 
-      // Generate email verification token
-      const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-      const emailVerificationExpiry = new Date();
-      emailVerificationExpiry.setHours(emailVerificationExpiry.getHours() + 24); // 24 hours expiry
+      // Generate 4-digit verification code (NEW: Updated to use 4-digit instead of long token)
+      const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const emailVerificationCodeExpiry = new Date();
+      emailVerificationCodeExpiry.setMinutes(emailVerificationCodeExpiry.getMinutes() + 15); // 15 minutes expiry
 
-      // Create user with verification token
+      // Create user with 4-digit verification code
       const userData = {
         ...registerDto,
-        emailVerificationToken,
-        emailVerificationExpiry,
+        emailVerificationCode,
+        emailVerificationCodeExpiry,
         accountStatus: AccountStatus.PENDING,
       };
       
       const user = await this.usersService.create(userData);
 
-      // Try to send verification email (don't fail registration if email fails)
+      // Try to send 4-digit verification email (UPDATED: Use new email template)
       try {
-        await this.authEmailService.sendEmailVerification(user, emailVerificationToken);
+        await this.authEmailService.sendEmailVerificationCode(user, emailVerificationCode);
       } catch (emailError) {
         console.warn('Failed to send verification email:', emailError.message);
         // Continue with registration even if email fails
@@ -82,7 +85,7 @@ export class AuthService {
       return {
         user,
         accessToken,
-        message: 'Registration successful. Please check your email to verify your account.',
+        message: 'Registration successful. Please check your email for a 4-digit verification code.',
       };
     } catch (error) {
       if (error instanceof ConflictException) {
@@ -235,10 +238,17 @@ export class AuthService {
     return this.tokenBlacklistService.isBlacklisted(token);
   }
 
-  // Email Verification Methods
+  // Email Verification Methods (UPDATED: Support both 4-digit codes and legacy tokens)
   async verifyEmail(verifyEmailDto: VerifyEmailDto): Promise<{ message: string }> {
     const { token } = verifyEmailDto;
 
+    // Check if it's a 4-digit code format
+    if (/^\d{4}$/.test(token)) {
+      // It's a 4-digit code, redirect to the new verification method
+      throw new BadRequestException('Please use the 4-digit verification code endpoint: /auth/verify-email-code');
+    }
+
+    // Legacy token verification (for backward compatibility)
     const user = await this.usersService.findByEmailVerificationToken(token);
     if (!user) {
       throw new BadRequestException('Invalid or expired verification token');
@@ -278,20 +288,20 @@ export class AuthService {
       throw new BadRequestException('Email is already verified');
     }
 
-    // Generate new verification token
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailVerificationExpiry = new Date();
-    emailVerificationExpiry.setHours(emailVerificationExpiry.getHours() + 24);
+    // Generate new 4-digit verification code (UPDATED: Use 4-digit instead of long token)
+    const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const emailVerificationCodeExpiry = new Date();
+    emailVerificationCodeExpiry.setMinutes(emailVerificationCodeExpiry.getMinutes() + 15);
 
-    await this.usersService.updateUserVerification((user as any)._id.toString(), {
-      emailVerificationToken,
-      emailVerificationExpiry,
+    await this.usersService.updateVerificationCode((user as any)._id.toString(), {
+      emailVerificationCode,
+      emailVerificationCodeExpiry,
     });
 
-    // Send verification email
-    await this.authEmailService.sendEmailVerification(user, emailVerificationToken);
+    // Send 4-digit verification email
+    await this.authEmailService.sendEmailVerificationCode(user, emailVerificationCode);
 
-    return { message: 'Verification email sent successfully' };
+    return { message: 'New 4-digit verification code sent to your email' };
   }
 
   // Password Reset Methods
@@ -379,6 +389,224 @@ export class AuthService {
     } catch (error) {
       console.error('SMTP Test failed:', error);
       throw new BadRequestException(`Failed to send test email: ${error.message}`);
+    }
+  }
+
+  // =============================================
+  // NEW STEP-BY-STEP AUTHENTICATION FLOW
+  // =============================================
+
+  /**
+   * Step 1: Create basic account (without account type)
+   * Product Flow: Splash → Onboarding → Create Account
+   */
+  async createAccount(createAccountDto: CreateAccountDto): Promise<{ 
+    user: Partial<User>; 
+    tempToken: string; 
+    message: string;
+  }> {
+    try {
+      console.log('Account creation attempt for:', createAccountDto.email);
+      
+      // Check if user already exists
+      const existingUser = await this.usersService.findByEmail(createAccountDto.email);
+      if (existingUser) {
+        throw new ConflictException('User with this email already exists');
+      }
+
+      // Generate 4-digit verification code
+      const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const emailVerificationCodeExpiry = new Date();
+      emailVerificationCodeExpiry.setMinutes(emailVerificationCodeExpiry.getMinutes() + 15); // 15 minutes expiry
+
+      // Create user with verification code (without account type yet)
+      const userData = {
+        ...createAccountDto,
+        emailVerificationCode,
+        emailVerificationCodeExpiry,
+        accountStatus: AccountStatus.PENDING,
+        emailVerified: false,
+        // accountType will be set in next step
+      };
+      
+      const user = await this.usersService.create(userData);
+
+      // Generate temporary token for account setup flow
+      const tempPayload = {
+        sub: (user as any)._id.toString(),
+        email: user.email,
+        step: 'account_created',
+        type: 'temp_token',
+      };
+
+      const tempToken = this.jwtService.sign(tempPayload, { expiresIn: '1h' });
+
+      // Try to send 4-digit verification email
+      try {
+        await this.authEmailService.sendEmailVerificationCode(user, emailVerificationCode);
+      } catch (emailError) {
+        console.warn('Failed to send verification email:', emailError.message);
+        // Continue with account creation even if email fails
+      }
+
+      return {
+        user: {
+          id: (user as any)._id.toString(),
+          name: user.name,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          accountStatus: user.accountStatus,
+        },
+        tempToken,
+        message: 'Account created successfully. Please check your email for a 4-digit verification code.',
+      };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      
+      console.error('Account creation error:', error);
+      
+      if (error.code === 11000) {
+        const field = Object.keys(error.keyPattern)[0];
+        throw new ConflictException(`${field} already exists`);
+      }
+      
+      throw new BadRequestException('Account creation failed. Please try again.');
+    }
+  }
+
+  /**
+   * Step 2: Select account type
+   * Product Flow: Create Account → Account Type Selection
+   */
+  async selectAccountType(
+    userId: string,
+    selectAccountTypeDto: SelectAccountTypeDto
+  ): Promise<{ message: string; user: Partial<User> }> {
+    try {
+      const user = await this.usersService.findOne(userId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Update user with account type
+      const updatedUser = await this.usersService.updateAccountType(userId, selectAccountTypeDto.accountType);
+
+      return {
+        message: 'Account type selected successfully',
+        user: {
+          id: userId,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          accountType: updatedUser.accountType,
+          accountStatus: updatedUser.accountStatus,
+        },
+      };
+    } catch (error) {
+      console.error('Account type selection error:', error);
+      throw new BadRequestException('Failed to select account type. Please try again.');
+    }
+  }
+
+  /**
+   * Step 3: Verify email with 4-digit code
+   * Product Flow: Account Type → Verify Email (4-digits)
+   */
+  async verifyEmailWithCode(verifyDto: VerifyEmailWithCodeDto): Promise<{ 
+    user: User; 
+    accessToken: string; 
+    message: string;
+  }> {
+    try {
+      const { email, code } = verifyDto;
+
+      const user = await this.usersService.findByEmail(email);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Check if code matches
+      if (user.emailVerificationCode !== code) {
+        throw new BadRequestException('Invalid verification code');
+      }
+
+      // Check if code has expired
+      if (!user.emailVerificationCodeExpiry || user.emailVerificationCodeExpiry < new Date()) {
+        throw new BadRequestException('Verification code has expired. Please request a new one.');
+      }
+
+      // Verify email and activate account
+      const verifiedUser = await this.usersService.verifyEmailWithCode(user._id.toString());
+
+      // Generate JWT token for verified user
+      const payload: JwtPayload = {
+        sub: (verifiedUser as any)._id.toString(),
+        email: verifiedUser.email,
+        role: verifiedUser.role,
+        accountType: verifiedUser.accountType,
+      };
+
+      const accessToken = this.jwtService.sign(payload);
+
+      return {
+        user: verifiedUser,
+        accessToken,
+        message: 'Email verified successfully. Account is now active.',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      console.error('Email verification error:', error);
+      throw new BadRequestException('Email verification failed. Please try again.');
+    }
+  }
+
+  /**
+   * Resend 4-digit verification code
+   */
+  async resendVerificationCode(email: string): Promise<{ message: string }> {
+    try {
+      const user = await this.usersService.findByEmail(email);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (user.emailVerified) {
+        throw new BadRequestException('Email is already verified');
+      }
+
+      // Generate new 4-digit code
+      const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const emailVerificationCodeExpiry = new Date();
+      emailVerificationCodeExpiry.setMinutes(emailVerificationCodeExpiry.getMinutes() + 15);
+
+      // Update user with new code
+      await this.usersService.updateVerificationCode(user._id.toString(), {
+        emailVerificationCode,
+        emailVerificationCodeExpiry,
+      });
+
+      // Send new verification email
+      try {
+        await this.authEmailService.sendEmailVerificationCode(user, emailVerificationCode);
+      } catch (emailError) {
+        console.error('Failed to send verification code:', emailError.message);
+        throw new BadRequestException('Failed to send verification code. Please try again.');
+      }
+
+      return {
+        message: 'New verification code sent to your email.',
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      console.error('Resend verification code error:', error);
+      throw new BadRequestException('Failed to resend verification code. Please try again.');
     }
   }
 }
