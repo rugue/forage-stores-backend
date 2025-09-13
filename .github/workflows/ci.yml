@@ -8,7 +8,6 @@ on:
 
 env:
   NODE_VERSION: '18'
-  MONGODB_VERSION: '6.0'
 
 jobs:
   # Code Quality and Linting
@@ -45,7 +44,7 @@ jobs:
     
     services:
       mongodb:
-        image: mongo:${{ env.MONGODB_VERSION }}
+        image: mongo:6.0
         ports:
           - 27017:27017
         options: >-
@@ -101,7 +100,7 @@ jobs:
     
     services:
       mongodb:
-        image: mongo:${{ env.MONGODB_VERSION }}
+        image: mongo:6.0
         ports:
           - 27017:27017
         options: >-
