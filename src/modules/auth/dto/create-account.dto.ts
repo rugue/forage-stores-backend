@@ -1,14 +1,33 @@
-import { IsEmail, IsString, IsNotEmpty, MaxLength, MinLength, Matches } from 'class-validator';
+import { IsEmail, IsString, IsNotEmpty, MaxLength, MinLength, Matches, IsOptional, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface, Validate } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
+@ValidatorConstraint({ name: 'MatchPassword', async: false })
+export class MatchPasswordConstraint implements ValidatorConstraintInterface {
+  validate(confirmPassword: string, args: ValidationArguments) {
+    const object = args.object as any;
+    return confirmPassword === object.password;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'Password and confirm password do not match';
+  }
+}
+
 export class CreateAccountDto {
-  @ApiProperty({ description: 'User full name', example: 'John Doe' })
+  @ApiProperty({ description: 'User first name', example: 'John' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxLength(100)
   @Transform(({ value }) => value?.trim())
-  name: string;
+  firstName: string;
+
+  @ApiProperty({ description: 'User last name', example: 'Doe' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  @Transform(({ value }) => value?.trim())
+  lastName: string;
 
   @ApiProperty({
     description: 'User email address',
@@ -23,12 +42,21 @@ export class CreateAccountDto {
   @ApiProperty({
     description: 'User phone number',
     example: '+1234567890',
-    required: false,
   })
   @IsString()
   @IsNotEmpty()
   @MaxLength(20)
   phone: string;
+
+  @ApiProperty({
+    description: 'User location/city',
+    example: 'New York',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  @Transform(({ value }) => value?.trim())
+  location: string;
 
   @ApiProperty({
     description: 'User password (min 8 chars, must contain uppercase, lowercase, number, and special character)',
@@ -42,4 +70,15 @@ export class CreateAccountDto {
     message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)',
   })
   password: string;
+
+  @ApiProperty({
+    description: 'Confirm password (must match password)',
+    example: 'MySecure123!',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8, { message: 'Confirm password must be at least 8 characters long' })
+  @MaxLength(128, { message: 'Confirm password must not exceed 128 characters' })
+  @Validate(MatchPasswordConstraint)
+  confirmPassword: string;
 }

@@ -49,6 +49,18 @@ export class User implements IUser {
   @IsNotEmpty()
   name: string;
 
+  @ApiProperty({ description: 'User first name', example: 'John' })
+  @Prop({ maxlength: 100 })
+  @IsString()
+  @IsOptional()
+  firstName?: string;
+
+  @ApiProperty({ description: 'User last name', example: 'Doe' })
+  @Prop({ maxlength: 100 })
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
   @ApiProperty({
     description: 'User email address',
     example: 'john.doe@example.com',

@@ -200,20 +200,36 @@ export class AuthController {
   @Post('create-account')
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 account creations per minute
-  @ApiOperation({ summary: 'Step 1: Create basic account (Product Flow: Splash → Onboarding → Create Account)' })
+  @ApiOperation({ 
+    summary: 'Step 1: Create basic account (Product Flow: Splash → Onboarding → Create Account)',
+    description: 'Creates account with firstName, lastName, email, phone, location, and password. Sends 4-digit verification code to email. Returns temporary token for next steps.'
+  })
   @ApiResponse({
     status: 201,
     description: 'Account created successfully',
     schema: {
       type: 'object',
       properties: {
-        user: { type: 'object' },
-        tempToken: { type: 'string' },
-        message: { type: 'string' },
+        user: { 
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            name: { type: 'string' },
+            email: { type: 'string' },
+            phone: { type: 'string' },
+            city: { type: 'string' },
+            accountStatus: { type: 'string', example: 'pending' }
+          }
+        },
+        tempToken: { type: 'string', description: 'Temporary JWT token for account setup flow' },
+        message: { type: 'string', example: 'Account created successfully. Please check your email for a 4-digit verification code.' },
       },
     },
   })
   @ApiResponse({ status: 409, description: 'User already exists' })
+  @ApiResponse({ status: 400, description: 'Password and confirm password do not match' })
   async createAccount(@Body() createAccountDto: CreateAccountDto) {
     return this.authService.createAccount(createAccountDto);
   }

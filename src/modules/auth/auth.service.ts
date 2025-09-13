@@ -414,14 +414,26 @@ export class AuthService {
         throw new ConflictException('User with this email already exists');
       }
 
+      // Validate password confirmation
+      if (createAccountDto.password !== createAccountDto.confirmPassword) {
+        throw new BadRequestException('Password and confirm password do not match');
+      }
+
       // Generate 4-digit verification code
       const emailVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
       const emailVerificationCodeExpiry = new Date();
       emailVerificationCodeExpiry.setMinutes(emailVerificationCodeExpiry.getMinutes() + 15); // 15 minutes expiry
 
       // Create user with verification code (without account type yet)
+      // Transform firstName + lastName to name, location to city for existing User schema
       const userData = {
-        ...createAccountDto,
+        name: `${createAccountDto.firstName} ${createAccountDto.lastName}`.trim(),
+        firstName: createAccountDto.firstName,
+        lastName: createAccountDto.lastName,
+        email: createAccountDto.email,
+        phone: createAccountDto.phone,
+        password: createAccountDto.password,
+        city: createAccountDto.location, // Map location to city field in database
         emailVerificationCode,
         emailVerificationCodeExpiry,
         accountStatus: AccountStatus.PENDING,
