@@ -137,6 +137,7 @@ USERS_API.md
 SECURITY_FEATURES.md
 AUTHENTICATION_SYSTEM.md
 
-# Hide all markdown files except README.md
+# Hide all markdown files except main README.md
 *.md
 !README.md
+!./README.md
