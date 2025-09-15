@@ -136,3 +136,7 @@ PROJECT_SETUP.md
 USERS_API.md
 SECURITY_FEATURES.md
 AUTHENTICATION_SYSTEM.md
+
+# Hide all markdown files except README.md
+*.md
+!README.md
