@@ -15,10 +15,9 @@ import {
   VerifyEmailDto,
   ResendVerificationDto,
   CreateAccountDto,
-  SelectAccountTypeDto,
   VerifyEmailWithCodeDto,
 } from './dto';
-import { User, AccountStatus } from '../users/entities/user.entity';
+import { User, AccountStatus, AccountType } from '../users/entities/user.entity';
 import { JwtPayload } from './jwt.strategy';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { AuthEmailService } from './services/auth-email.service';
@@ -397,25 +396,50 @@ export class AuthService {
   // =============================================
 
   /**
-   * Step 1: Create basic account (without account type)
-   * Product Flow: Splash → Onboarding → Create Account
+   * NEW AUTHENTICATION FLOW
+   * Step 1: Create account with selected type (Family or Business)
+   * Product Flow: Choose Account Type → Registration Form
    */
   async createAccount(createAccountDto: CreateAccountDto): Promise<{ 
     user: Partial<User>; 
-    tempToken: string; 
     message: string;
   }> {
     try {
-      console.log('Account creation attempt for:', createAccountDto.email);
+      const { accountType, familyData, businessData } = createAccountDto;
       
+      console.log(`Account creation attempt - Type: ${accountType}`);
+      
+      // Validate that appropriate data is provided based on account type
+      if (accountType === AccountType.FAMILY && !familyData) {
+        throw new BadRequestException('Family registration data is required for family accounts');
+      }
+      if (accountType === AccountType.BUSINESS && !businessData) {
+        throw new BadRequestException('Business registration data is required for business accounts');
+      }
+
+      let email: string;
+      let password: string;
+      let confirmPassword: string;
+
+      // Extract common fields based on account type
+      if (accountType === AccountType.FAMILY) {
+        email = familyData.email;
+        password = familyData.password;
+        confirmPassword = familyData.confirmPassword;
+      } else {
+        email = businessData.officeEmailAddress;
+        password = businessData.password;
+        confirmPassword = businessData.confirmPassword;
+      }
+
       // Check if user already exists
-      const existingUser = await this.usersService.findByEmail(createAccountDto.email);
+      const existingUser = await this.usersService.findByEmail(email);
       if (existingUser) {
         throw new ConflictException('User with this email already exists');
       }
 
       // Validate password confirmation
-      if (createAccountDto.password !== createAccountDto.confirmPassword) {
+      if (password !== confirmPassword) {
         throw new BadRequestException('Password and confirm password do not match');
       }
 
@@ -424,34 +448,46 @@ export class AuthService {
       const emailVerificationCodeExpiry = new Date();
       emailVerificationCodeExpiry.setMinutes(emailVerificationCodeExpiry.getMinutes() + 15); // 15 minutes expiry
 
-      // Create user with verification code (without account type yet)
-      // Transform firstName + lastName to name, location to city for existing User schema
-      const userData = {
-        name: `${createAccountDto.firstName} ${createAccountDto.lastName}`.trim(),
-        firstName: createAccountDto.firstName,
-        lastName: createAccountDto.lastName,
-        email: createAccountDto.email,
-        phone: createAccountDto.phone,
-        password: createAccountDto.password,
-        city: createAccountDto.location, // Map location to city field in database
+      // Create user data based on account type
+      let userData: any = {
+        accountType,
         emailVerificationCode,
         emailVerificationCodeExpiry,
         accountStatus: AccountStatus.PENDING,
         emailVerified: false,
-        // accountType will be set in next step
+        password, // Will be hashed by the service
       };
+
+      if (accountType === AccountType.FAMILY) {
+        userData = {
+          ...userData,
+          name: `${familyData.firstName} ${familyData.lastName}`.trim(),
+          firstName: familyData.firstName,
+          lastName: familyData.lastName,
+          email: familyData.email,
+          phone: familyData.phone,
+          city: familyData.location,
+        };
+      } else {
+        userData = {
+          ...userData,
+          name: `${businessData.ownerFirstName} ${businessData.ownerLastName}`.trim(),
+          firstName: businessData.ownerFirstName,
+          lastName: businessData.ownerLastName,
+          email: businessData.officeEmailAddress,
+          phone: businessData.officePhoneNumber,
+          city: businessData.city,
+          // Business specific fields
+          companyName: businessData.companyName,
+          category: businessData.category,
+          companyAddress: businessData.companyAddress,
+          roleInCompany: businessData.roleInCompany,
+          officePhoneNumber: businessData.officePhoneNumber,
+          officeEmailAddress: businessData.officeEmailAddress,
+        };
+      }
       
       const user = await this.usersService.create(userData);
-
-      // Generate temporary token for account setup flow
-      const tempPayload = {
-        sub: (user as any)._id.toString(),
-        email: user.email,
-        step: 'account_created',
-        type: 'temp_token',
-      };
-
-      const tempToken = this.jwtService.sign(tempPayload, { expiresIn: '1h' });
 
       // Try to send 4-digit verification email
       try {
@@ -466,14 +502,14 @@ export class AuthService {
           id: (user as any)._id.toString(),
           name: user.name,
           email: user.email,
+          accountType: user.accountType,
           emailVerified: user.emailVerified,
           accountStatus: user.accountStatus,
         },
-        tempToken,
         message: 'Account created successfully. Please check your email for a 4-digit verification code.',
       };
     } catch (error) {
-      if (error instanceof ConflictException) {
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
         throw error;
       }
       
@@ -489,41 +525,8 @@ export class AuthService {
   }
 
   /**
-   * Step 2: Select account type
-   * Product Flow: Create Account → Account Type Selection
-   */
-  async selectAccountType(
-    userId: string,
-    selectAccountTypeDto: SelectAccountTypeDto
-  ): Promise<{ message: string; user: Partial<User> }> {
-    try {
-      const user = await this.usersService.findOne(userId);
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      // Update user with account type
-      const updatedUser = await this.usersService.updateAccountType(userId, selectAccountTypeDto.accountType);
-
-      return {
-        message: 'Account type selected successfully',
-        user: {
-          id: userId,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          accountType: updatedUser.accountType,
-          accountStatus: updatedUser.accountStatus,
-        },
-      };
-    } catch (error) {
-      console.error('Account type selection error:', error);
-      throw new BadRequestException('Failed to select account type. Please try again.');
-    }
-  }
-
-  /**
-   * Step 3: Verify email with 4-digit code
-   * Product Flow: Account Type → Verify Email (4-digits)
+   * Step 2: Verify email with 4-digit code
+   * Product Flow: Registration → Email Verification (4-digits)
    */
   async verifyEmailWithCode(verifyDto: VerifyEmailWithCodeDto): Promise<{ 
     user: User; 

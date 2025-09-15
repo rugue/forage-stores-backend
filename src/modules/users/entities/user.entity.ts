@@ -118,6 +118,43 @@ export class User implements IUser {
   @IsOptional()
   city?: string;
 
+  // Business Account Specific Fields
+  @ApiProperty({ description: 'Company name (for business accounts)', example: 'Acme Food Services Ltd' })
+  @Prop({ required: false, maxlength: 255 })
+  @IsString()
+  @IsOptional()
+  companyName?: string;
+
+  @ApiProperty({ description: 'Business category', example: 'Restaurant' })
+  @Prop({ required: false, maxlength: 100 })
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @ApiProperty({ description: 'Company address', example: '123 Business District, Victoria Island, Lagos' })
+  @Prop({ required: false, maxlength: 500 })
+  @IsString()
+  @IsOptional()
+  companyAddress?: string;
+
+  @ApiProperty({ description: 'Role in company', example: 'CEO' })
+  @Prop({ required: false, maxlength: 100 })
+  @IsString()
+  @IsOptional()
+  roleInCompany?: string;
+
+  @ApiProperty({ description: 'Office phone number', example: '+2341234567890' })
+  @Prop({ required: false, maxlength: 20 })
+  @IsString()
+  @IsOptional()
+  officePhoneNumber?: string;
+
+  @ApiProperty({ description: 'Office email address', example: 'info@company.com' })
+  @Prop({ required: false, maxlength: 255 })
+  @IsEmail()
+  @IsOptional()
+  officeEmailAddress?: string;
+
   @ApiProperty({ description: 'User referral code', example: 'REF123456' })
   @Prop({ required: false, unique: true, sparse: true, maxlength: 20 })
   @IsString()

@@ -24,7 +24,6 @@ import {
   VerifyEmailDto,
   ResendVerificationDto,
   CreateAccountDto,
-  SelectAccountTypeDto,
   VerifyEmailWithCodeDto,
 } from './dto';
 import { JwtAuthGuard } from './guards';
@@ -201,8 +200,8 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 account creations per minute
   @ApiOperation({ 
-    summary: 'Step 1: Create basic account (Product Flow: Splash → Onboarding → Create Account)',
-    description: 'Creates account with firstName, lastName, email, phone, location, and password. Sends 4-digit verification code to email. Returns temporary token for next steps.'
+    summary: 'Create account with selected type (Product Flow: Choose Account Type → Registration Form)',
+    description: 'Creates account based on selected account type (family or business). Family accounts use familyData fields, business accounts use businessData fields. Sends 4-digit verification code to email.'
   })
   @ApiResponse({
     status: 201,
@@ -220,49 +219,28 @@ export class AuthController {
             email: { type: 'string' },
             phone: { type: 'string' },
             city: { type: 'string' },
-            accountStatus: { type: 'string', example: 'pending' }
+            accountType: { type: 'string', enum: ['family', 'business'] },
+            accountStatus: { type: 'string', example: 'pending' },
+            companyName: { type: 'string', description: 'For business accounts only' },
+            category: { type: 'string', description: 'For business accounts only' }
           }
         },
-        tempToken: { type: 'string', description: 'Temporary JWT token for account setup flow' },
         message: { type: 'string', example: 'Account created successfully. Please check your email for a 4-digit verification code.' },
       },
     },
   })
   @ApiResponse({ status: 409, description: 'User already exists' })
   @ApiResponse({ status: 400, description: 'Password and confirm password do not match' })
+  @ApiResponse({ status: 400, description: 'Invalid account type or missing registration data' })
   async createAccount(@Body() createAccountDto: CreateAccountDto) {
     return this.authService.createAccount(createAccountDto);
-  }
-
-  @Post('select-account-type')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Step 2: Select account type (Product Flow: Create Account → Account Type Selection)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Account type selected successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        user: { type: 'object' },
-      },
-    },
-  })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async selectAccountType(
-    @CurrentUser() user: any,
-    @Body() selectAccountTypeDto: SelectAccountTypeDto
-  ) {
-    const userId = user.id || user._id.toString();
-    return this.authService.selectAccountType(userId, selectAccountTypeDto);
   }
 
   @Post('verify-email-code')
   @Public()
   @Throttle({ default: { limit: 5, ttl: 300000 } }) // 5 attempts per 5 minutes
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Step 3: Verify email with 4-digit code (Product Flow: Account Type → Verify Email)' })
+  @ApiOperation({ summary: 'Step 2: Verify email with 4-digit code (Product Flow: Registration Form → Verify Email)' })
   @ApiResponse({
     status: 200,
     description: 'Email verified successfully',
